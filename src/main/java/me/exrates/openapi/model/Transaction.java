@@ -6,21 +6,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.TransactionSourceType;
-import me.exrates.model.serializer.LocalDateTimeSerializer;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.TransactionSourceType;
+import me.exrates.openapi.model.serializer.LocalDateTimeSerializer;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * @author Denis Savin (pilgrimm333@gmail.com)
- */
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @ToString
 @EqualsAndHashCode
 public class Transaction {
+
     private int id;
     private Wallet userWallet;
     private CompanyWallet companyWallet;

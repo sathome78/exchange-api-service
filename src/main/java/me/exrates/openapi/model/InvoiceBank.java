@@ -9,14 +9,13 @@ import lombok.ToString;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 
-/**
- * Created by OLEG on 02.02.2017.
- */
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
 public class InvoiceBank {
+
     private Integer id;
     @JsonInclude(NON_NULL)
     private Integer currencyId;

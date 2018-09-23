@@ -2,9 +2,6 @@ package me.exrates.openapi.model;
 
 import java.math.BigDecimal;
 
-/**
- * @author Denis Savin (pilgrimm333@gmail.com)
- */
 public class ReferralLevel {
 
     private int id;

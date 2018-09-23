@@ -1,14 +1,12 @@
 package me.exrates.openapi.model.dto;
 
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.OrderStatus;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.OrderStatus;
 
 import java.math.BigDecimal;
 
-/**
- * Created by Valk on 16.05.2016.
- */
 public class OrderDetailDto {
+
     private int orderId;
     private OrderStatus orderStatus;
     private BigDecimal orderCreatorReservedAmount;

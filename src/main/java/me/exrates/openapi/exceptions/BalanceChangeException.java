@@ -1,9 +1,7 @@
 package me.exrates.openapi.exceptions;
 
-/**
- * Created by OLEG on 23.11.2016.
- */
 public class BalanceChangeException extends RuntimeException {
+
     public BalanceChangeException() {
     }
 

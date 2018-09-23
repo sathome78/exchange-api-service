@@ -6,11 +6,11 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 
-/**
- * @author ValkSam
- */
-@Getter @Setter @ToString
+@Getter
+@Setter
+@ToString
 public class WalletsForOrderCancelDto {
+
     int orderId;
     int orderStatusId;
     BigDecimal reservedAmount;

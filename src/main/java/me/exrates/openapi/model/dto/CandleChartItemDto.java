@@ -6,11 +6,9 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-/**
- * Created by Valk on 07.05.2016.
- */
 @ToString
 public class CandleChartItemDto {
+
     private LocalDateTime beginPeriod;
     private LocalDateTime endPeriod;
     private BigDecimal openRate;

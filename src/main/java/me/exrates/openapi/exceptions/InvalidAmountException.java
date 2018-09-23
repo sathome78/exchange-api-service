@@ -1,9 +1,7 @@
 package me.exrates.openapi.exceptions;
 
-/**
- * @author Denis Savin (pilgrimm333@gmail.com)
- */
 public class InvalidAmountException extends RuntimeException {
+
     public InvalidAmountException() {
     }
 

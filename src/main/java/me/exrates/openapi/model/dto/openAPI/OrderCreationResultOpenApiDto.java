@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.ToString;
-import me.exrates.model.dto.OrderCreationResultDto;
+import me.exrates.openapi.model.dto.OrderCreationResultDto;
 
 import java.math.BigDecimal;
 

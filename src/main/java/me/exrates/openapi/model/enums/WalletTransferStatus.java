@@ -1,9 +1,7 @@
 package me.exrates.openapi.model.enums;
 
-/**
- * Created by Valk on 23.05.2016.
- */
 public enum WalletTransferStatus {
+
     SUCCESS,
     WALLET_NOT_FOUND,
     CORRESPONDING_COMPANY_WALLET_NOT_FOUND,

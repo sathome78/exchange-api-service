@@ -4,16 +4,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.UserRole;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.UserRole;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
-@Getter @Setter
+@Getter
+@Setter
 @ToString
 @NoArgsConstructor
 public class Commission {
+
     private int id;
     private OperationType operationType;
     private BigDecimal value;

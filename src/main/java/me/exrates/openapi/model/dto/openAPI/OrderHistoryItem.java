@@ -5,16 +5,18 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import me.exrates.model.enums.OrderType;
-import me.exrates.model.serializer.BigDecimalToDoubleSerializer;
-import me.exrates.model.serializer.LocalDateTimeToLongSerializer;
+import me.exrates.openapi.model.enums.OrderType;
+import me.exrates.openapi.model.serializer.BigDecimalToDoubleSerializer;
+import me.exrates.openapi.model.serializer.LocalDateTimeToLongSerializer;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Getter @Setter
+@Getter
+@Setter
 @ToString
 public class OrderHistoryItem {
+
     @JsonProperty("order_id")
     private Integer orderId;
 

@@ -5,12 +5,13 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import me.exrates.model.enums.OrderType;
-import me.exrates.model.serializer.BigDecimalToDoubleSerializer;
+import me.exrates.openapi.model.enums.OrderType;
+import me.exrates.openapi.model.serializer.BigDecimalToDoubleSerializer;
 
 import java.math.BigDecimal;
 
-@Getter @Setter
+@Getter
+@Setter
 @ToString
 public class OrderBookItem {
 

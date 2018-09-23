@@ -1,8 +1,5 @@
 package me.exrates.openapi.exceptions;
 
-/**
- * Created by Maks on 17.10.2017.
- */
 public class IncorrectSmsPinException extends RuntimeException {
 
     public IncorrectSmsPinException() {

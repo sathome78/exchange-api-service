@@ -1,14 +1,12 @@
 package me.exrates.openapi.model.dto;
 
-import me.exrates.model.CurrencyPair;
-import me.exrates.model.util.BigDecimalProcessing;
+import me.exrates.openapi.model.CurrencyPair;
+import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 
 import java.math.BigDecimal;
 
-/**
- * Created by Valk on 10.05.2016.
- */
 public class CoinmarketApiDto {
+
     private Integer currencyPairId;
     private String currency_pair_name;
     private BigDecimal first;
@@ -40,16 +38,16 @@ public class CoinmarketApiDto {
 
     @Override
     public String toString() {
-        return '"'+currency_pair_name.replace('/','_')+"\":" +
-                "{\"last\":"+ BigDecimalProcessing.formatNonePointQuoted(last, true) +
-                ", \"lowestAsk\":" + BigDecimalProcessing.formatNonePointQuoted(lowestAsk, true) +
-                ", \"highestBid\":" + BigDecimalProcessing.formatNonePointQuoted(highestBid, true) +
-                ", \"percentChange\":" + BigDecimalProcessing.formatNonePointQuoted(percentChange, true) +
-                ", \"baseVolume\":" + BigDecimalProcessing.formatNonePointQuoted(baseVolume, true) +
-                ", \"quoteVolume\":" + BigDecimalProcessing.formatNonePointQuoted(quoteVolume, true) +
-                ", \"isFrozen\":" + '"'+isFrozen+'"' +
-                ", \"high24hr\":" + BigDecimalProcessing.formatNonePointQuoted(high24hr, true) +
-                ", \"low24hr\":" + BigDecimalProcessing.formatNonePointQuoted(low24hr, true) +
+        return '"' + currency_pair_name.replace('/', '_') + "\":" +
+                "{\"last\":" + BigDecimalProcessingUtil.formatNonePointQuoted(last, true) +
+                ", \"lowestAsk\":" + BigDecimalProcessingUtil.formatNonePointQuoted(lowestAsk, true) +
+                ", \"highestBid\":" + BigDecimalProcessingUtil.formatNonePointQuoted(highestBid, true) +
+                ", \"percentChange\":" + BigDecimalProcessingUtil.formatNonePointQuoted(percentChange, true) +
+                ", \"baseVolume\":" + BigDecimalProcessingUtil.formatNonePointQuoted(baseVolume, true) +
+                ", \"quoteVolume\":" + BigDecimalProcessingUtil.formatNonePointQuoted(quoteVolume, true) +
+                ", \"isFrozen\":" + '"' + isFrozen + '"' +
+                ", \"high24hr\":" + BigDecimalProcessingUtil.formatNonePointQuoted(high24hr, true) +
+                ", \"low24hr\":" + BigDecimalProcessingUtil.formatNonePointQuoted(low24hr, true) +
                 '}';
     }
 

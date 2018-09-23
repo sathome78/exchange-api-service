@@ -1,9 +1,19 @@
 package me.exrates.openapi.controller;
 
+import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
+import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
+import me.exrates.openapi.exceptions.OrderNotFoundException;
+import me.exrates.openapi.model.enums.ErrorCode;
+import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
+import me.exrates.openapi.controller.advice.OpenApiError;
+import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
+import me.exrates.openapi.model.dto.OrderCreationResultDto;
+import me.exrates.openapi.model.dto.openAPI.OpenOrderDto;
+import me.exrates.openapi.model.dto.openAPI.OrderCreationResultOpenApiDto;
+import me.exrates.openapi.model.dto.openAPI.OrderParamsDto;
+import me.exrates.openapi.model.enums.OrderType;
 import me.exrates.openapi.service.OrderService;
 import me.exrates.openapi.service.UserService;
-import me.exrates.openapi.service.services.OrderService;
-import me.exrates.openapi.service.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,8 +38,11 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import static me.exrates.openapi.utils.OpenApiUtils.formatCurrencyPairNameParam;
+import static me.exrates.openapi.utils.RestApiUtils.retrieveParamFormBody;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;

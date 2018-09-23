@@ -1,10 +1,11 @@
 package me.exrates.openapi.model;
 
-import me.exrates.model.enums.CurrencyPairType;
+import me.exrates.openapi.model.enums.CurrencyPairType;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CurrencyPair {
+
     private int id;
     private String name;
     private Currency currency1;

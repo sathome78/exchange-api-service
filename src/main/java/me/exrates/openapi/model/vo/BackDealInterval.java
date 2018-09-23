@@ -1,11 +1,10 @@
 package me.exrates.openapi.model.vo;
 
-import me.exrates.model.enums.IntervalType;
-import me.exrates.model.exceptions.UnsupportedIntervalFormatException;
-import me.exrates.model.exceptions.UnsupportedIntervalTypeException;
+import me.exrates.openapi.model.enums.IntervalType;
+import me.exrates.openapi.exceptions.model.UnsupportedIntervalFormatException;
+import me.exrates.openapi.exceptions.model.UnsupportedIntervalTypeException;
 
 /**
- * Created by Valk on 27.04.2016.
  * stores the interval from current DateTime
  * based on string like "5 DAY"
  */
@@ -29,9 +28,10 @@ public class BackDealInterval {
             throw new UnsupportedIntervalFormatException(intervalString);
         }
     }
+
     /**/
-    public String getInterval(){
-        return intervalValue+" "+intervalType;
+    public String getInterval() {
+        return intervalValue + " " + intervalType;
     }
     /*getters setters*/
 

@@ -7,9 +7,11 @@ import lombok.ToString;
 import java.util.Collections;
 import java.util.List;
 
-@Getter @ToString
+@Getter
+@ToString
 @AllArgsConstructor
 public class OpenApiDocParamItem {
+
     private String name;
     private String descriptionCode;
     private List<Object> descriptionCodeArgs;

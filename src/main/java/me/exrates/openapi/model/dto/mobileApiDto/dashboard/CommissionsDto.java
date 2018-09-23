@@ -2,9 +2,6 @@ package me.exrates.openapi.model.dto.mobileApiDto.dashboard;
 
 import java.math.BigDecimal;
 
-/**
- * Created by OLEG on 31.10.2016.
- */
 public class CommissionsDto {
 
     private BigDecimal inputCommission;

@@ -6,9 +6,11 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 
-@Getter @Setter
+@Getter
+@Setter
 @ToString
 public class CandleDto {
+
     private long time;
     private BigDecimal close;
     private BigDecimal open;

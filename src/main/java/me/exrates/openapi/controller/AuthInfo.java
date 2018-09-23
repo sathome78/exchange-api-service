@@ -51,6 +51,4 @@ public class AuthInfo {
     private void stubAlgorithm(){
         //stub for API doc
     }
-
-
 }

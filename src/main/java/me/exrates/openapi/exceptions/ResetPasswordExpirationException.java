@@ -1,8 +1,5 @@
 package me.exrates.openapi.exceptions;
 
-/**
- * Created by OLEG on 09.09.2016.
- */
 public class ResetPasswordExpirationException extends RuntimeException {
 
     public ResetPasswordExpirationException() {

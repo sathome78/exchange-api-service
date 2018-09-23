@@ -2,21 +2,20 @@ package me.exrates.openapi.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import me.exrates.model.dto.OrderCreateDto;
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.OrderBaseType;
-import me.exrates.model.enums.OrderStatus;
+import me.exrates.openapi.model.dto.OrderCreateDto;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.OrderBaseType;
+import me.exrates.openapi.model.enums.OrderStatus;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Created by Valk on 19.04.16.
- */
 @Component
-@Getter @Setter
+@Getter
+@Setter
 public class ExOrder {
+
     private int id;
     private int userId;
     private int currencyPairId;

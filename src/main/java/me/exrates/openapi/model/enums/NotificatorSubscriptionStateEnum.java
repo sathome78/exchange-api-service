@@ -1,8 +1,5 @@
 package me.exrates.openapi.model.enums;
 
-/**
- * Created by Maks on 05.10.2017.
- */
 public enum NotificatorSubscriptionStateEnum {
 
     SUBSCRIBED(false, true, null),

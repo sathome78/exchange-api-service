@@ -1,10 +1,5 @@
 package me.exrates.openapi.exceptions;
 
-import me.exrates.service.exception.invoice.MerchantException;
-
-/**
- * Created by Valk on 04.04.16.
- */
 public class AbsentFinPasswordException extends MerchantException {
 
     private final String REASON_CODE = "admin.absentfinpassword";

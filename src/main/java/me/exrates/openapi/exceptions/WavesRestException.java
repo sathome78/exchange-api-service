@@ -19,6 +19,7 @@ public class WavesRestException extends RuntimeException {
         super(message);
         this.code = code;
     }
+
     public WavesRestException(Throwable cause, int code) {
         super(cause);
         this.code = code;

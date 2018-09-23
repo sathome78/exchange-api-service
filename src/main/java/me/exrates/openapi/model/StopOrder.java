@@ -1,15 +1,11 @@
 package me.exrates.openapi.model;
 
 import lombok.Data;
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.OrderStatus;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.OrderStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-/**
- * Created by maks on 19.04.2017.
- */
 
 @Data
 public class StopOrder {
@@ -47,5 +43,4 @@ public class StopOrder {
         this.status = exOrder.getStatus();
         this.currencyPair = exOrder.getCurrencyPair();
     }
-
 }

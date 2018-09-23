@@ -1,9 +1,7 @@
 package me.exrates.openapi.exceptions.api;
 
-/**
- * Created by OLEG on 11.10.2016.
- */
 public class MissingBodyParamException extends RuntimeException {
+
     public MissingBodyParamException() {
     }
 

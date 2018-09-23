@@ -16,5 +16,4 @@ public class TemporalToken {
     private TokenType tokenType;
     private String checkIp;
     private boolean isAlreadyUsed;
-
 }

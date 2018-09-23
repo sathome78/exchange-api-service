@@ -2,9 +2,6 @@ package me.exrates.openapi.model;
 
 import java.nio.file.Path;
 
-/**
- * @author Denis Savin (pilgrimm333@gmail.com)
- */
 public class UserFile {
 
     private int id;

@@ -1,8 +1,5 @@
 package me.exrates.openapi.model.enums;
 
-/**
- * Created by Maks on 13.12.2017.
- */
 public enum AlertType {
 
     UPDATE("message.alertUpdate", true), TECHNICAL_WORKS("message.alertTechWorks", false);

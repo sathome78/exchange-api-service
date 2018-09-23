@@ -9,6 +9,7 @@ import me.exrates.openapi.model.enums.UserRole;
 @Setter
 @ToString
 public class UserRoleSettings {
+
     private UserRole userRole;
     private boolean isOrderAcceptionSameRoleOnly;
     private boolean isBotAcceptionAllowedOnly;

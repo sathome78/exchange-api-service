@@ -1,7 +1,7 @@
 package me.exrates.openapi.service.cache;
 
-import me.exrates.model.dto.onlineTableDto.ExOrderStatisticsShortByPairsDto;
 import me.exrates.openapi.dao.OrderDao;
+import me.exrates.openapi.model.dto.onlineTableDto.ExOrderStatisticsShortByPairsDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -44,10 +44,6 @@ public class ExchangeRatesHolder {
         } else {
             ratesMap.put(pairId, orderDao.getOrderStatisticForSomePairs(Collections.singletonList(pairId)).get(0));
         }
-    }
-
-    public List<ExOrderStatisticsShortByPairsDto> getAllRates() {
-        return new ArrayList<>(ratesMap.values());
     }
 
     public List<ExOrderStatisticsShortByPairsDto> getCurrenciesRates(List<Integer> id) {

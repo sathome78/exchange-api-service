@@ -1,14 +1,13 @@
 package me.exrates.openapi.controller.interceptor;
 
 import lombok.extern.log4j.Log4j2;
-import me.exrates.controller.annotation.FinPassCheck;
-import me.exrates.controller.exception.CheckFinPassException;
-import me.exrates.model.User;
+import me.exrates.openapi.controller.annotation.FinPassCheck;
+import me.exrates.openapi.exceptions.AbsentFinPasswordException;
+import me.exrates.openapi.exceptions.CheckFinPassException;
+import me.exrates.openapi.exceptions.NotConfirmedFinPasswordException;
+import me.exrates.openapi.exceptions.WrongFinPasswordException;
+import me.exrates.openapi.model.User;
 import me.exrates.openapi.service.UserService;
-import me.exrates.service.UserService;
-import me.exrates.service.exception.AbsentFinPasswordException;
-import me.exrates.service.exception.NotConfirmedFinPasswordException;
-import me.exrates.service.exception.WrongFinPasswordException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -34,7 +33,7 @@ public class FinPassCheckInterceptor extends HandlerInterceptorAdapter {
     private MessageSource messageSource;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         SpringBeanAutowiringSupport.processInjectionBasedOnCurrentContext(this);
         if (handler instanceof HandlerMethod) {
             HandlerMethod handlerMethod = (HandlerMethod) handler;
@@ -42,7 +41,7 @@ public class FinPassCheckInterceptor extends HandlerInterceptorAdapter {
                 Map<String, Object> annotationAttributes =
                         AnnotationUtils.getAnnotationAttributes(handlerMethod.getMethodAnnotation(FinPassCheck.class));
                 try {
-                    boolean onlyCheckAttribute = (boolean)annotationAttributes.get("notCheckPassIfCheckOnlyParamTrue");
+                    boolean onlyCheckAttribute = (boolean) annotationAttributes.get("notCheckPassIfCheckOnlyParamTrue");
                     if (onlyCheckAttribute) {
                         boolean onlyCheckParam = Boolean.valueOf(request.getParameter("checkOnly"));
                         if (onlyCheckParam) {
@@ -54,7 +53,7 @@ public class FinPassCheckInterceptor extends HandlerInterceptorAdapter {
                     User storedUser = userService.getUserById(userService.getIdByEmail(request.getUserPrincipal().getName()));
                     userService.checkFinPassword(finPass, storedUser, localeResolver.resolveLocale(request));
                 } catch (AbsentFinPasswordException | NotConfirmedFinPasswordException | WrongFinPasswordException e) {
-                    boolean throwCheckPassExceptionAttribute = (boolean)annotationAttributes.get("throwCheckPassException");
+                    boolean throwCheckPassExceptionAttribute = (boolean) annotationAttributes.get("throwCheckPassException");
                     if (throwCheckPassExceptionAttribute) {
                         throw new CheckFinPassException(messageSource.getMessage("admin.wrongfinpassword", null, localeResolver.resolveLocale(request)));
                     }

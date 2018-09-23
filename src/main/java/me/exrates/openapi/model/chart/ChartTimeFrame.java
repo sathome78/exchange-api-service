@@ -3,7 +3,7 @@ package me.exrates.openapi.model.chart;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
-import me.exrates.model.enums.IntervalType2;
+import me.exrates.openapi.model.enums.IntervalType2;
 
 @Getter
 @AllArgsConstructor

@@ -1,8 +1,5 @@
 package me.exrates.openapi.exceptions;
 
-/**
- * Created by Maks on 29.09.2017.
- */
 public class MessageUndeliweredException extends RuntimeException {
 
     public MessageUndeliweredException() {

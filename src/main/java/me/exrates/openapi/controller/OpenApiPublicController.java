@@ -1,9 +1,17 @@
 package me.exrates.openapi.controller;
 
+import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
+import me.exrates.openapi.model.enums.ErrorCode;
+import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
+import me.exrates.openapi.controller.advice.OpenApiError;
+import me.exrates.openapi.model.dto.CoinmarketApiDto;
+import me.exrates.openapi.model.dto.openAPI.CurrencyPairInfoItem;
+import me.exrates.openapi.model.dto.openAPI.OrderBookItem;
+import me.exrates.openapi.model.dto.openAPI.OrderHistoryItem;
+import me.exrates.openapi.model.dto.openAPI.TickerJsonDto;
+import me.exrates.openapi.model.enums.OrderType;
 import me.exrates.openapi.service.CurrencyService;
 import me.exrates.openapi.service.OrderService;
-import me.exrates.openapi.service.services.CurrencyService;
-import me.exrates.openapi.service.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static me.exrates.openapi.utils.OpenApiUtils.formatCurrencyPairNameParam;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
@@ -193,6 +202,4 @@ public class OpenApiPublicController {
     public OpenApiError OtherErrorsHandler(HttpServletRequest req, Exception exception) {
         return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getRequestURL(), exception);
     }
-
-
 }

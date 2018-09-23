@@ -1,10 +1,7 @@
 package me.exrates.openapi.model.enums;
 
-import me.exrates.model.exceptions.UnsupportedTransactionStatusException;
+import me.exrates.openapi.exceptions.model.UnsupportedTransactionStatusException;
 
-/**
- * Created by Valk on 16.05.2016.
- */
 public enum TransactionStatus {
 
     CREATED(1),

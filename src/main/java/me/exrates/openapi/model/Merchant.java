@@ -5,16 +5,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import me.exrates.model.enums.MerchantProcessType;
+import me.exrates.openapi.model.enums.MerchantProcessType;
 
-/**
- * @author Denis Savin (pilgrimm333@gmail.com)
- */
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @EqualsAndHashCode
 @ToString
 public class Merchant {
+
     private int id;
     private String name;
     private String description;
@@ -22,7 +21,6 @@ public class Merchant {
     private MerchantProcessType processType;
     private Integer refillOperationCountLimitForUserPerDay;
     private Boolean additionalTagForWithdrawAddressIsUsed;
-
 
     public Merchant(int id) {
         this.id = id;

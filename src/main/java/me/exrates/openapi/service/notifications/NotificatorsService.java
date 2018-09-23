@@ -1,40 +1,24 @@
 package me.exrates.openapi.service.notifications;
 
-import me.exrates.model.dto.Notificator;
-import me.exrates.model.dto.NotificatorTotalPriceDto;
+import lombok.extern.log4j.Log4j2;
+import me.exrates.openapi.dao.NotificatorPriceDao;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
-/**
- * Created by Maks on 06.10.2017.
- */
-public interface NotificatorsService {
+@Log4j2(topic = "message_notify")
+@Service
+public class NotificatorsService {
 
-    NotificatorService getNotificationService(Integer notificatorId);
+    @Autowired
+    private NotificatorPriceDao notificatorPriceDao;
 
-    NotificatorService getNotificationServiceByBeanName(String beanName);
+    public BigDecimal getMessagePrice(int notificatorId, int roleId) {
+        return notificatorPriceDao.getFeeMessagePrice(notificatorId, roleId);
+    }
 
-    Map<Integer, Object> getSubscriptions(int userId);
-
-    Subscribable getByNotificatorId(int id);
-
-    Notificator getById(int id);
-
-    BigDecimal getMessagePrice(int notificatorId, int roleId);
-
-    NotificatorTotalPriceDto getPrices(int notificatorId, int roleId);
-
-
-    BigDecimal getSubscriptionPrice(int notificatorId, int roleId);
-
-    List<Notificator> getNotificatorSettingsByRole(int roleId);
-
-    void setEnable(int notificatorId, boolean enable);
-
-    void updateNotificatorPrice(BigDecimal price, int roleId, int notificatorId);
-
-    List<Notificator> getAllNotificators();
-
+    public BigDecimal getSubscriptionPrice(int notificatorId, int roleId) {
+        return notificatorPriceDao.getSubscriptionPrice(notificatorId, roleId);
+    }
 }

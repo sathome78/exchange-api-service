@@ -3,9 +3,9 @@ package me.exrates.openapi.model.chart;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import me.exrates.model.enums.ChartResolutionTimeUnit;
-import me.exrates.model.serializer.ChartResolutionSerializer;
-import org.apache.commons.lang3.StringUtils;
+import me.exrates.openapi.model.enums.ChartResolutionTimeUnit;
+import me.exrates.openapi.model.serializer.ChartResolutionSerializer;
+import org.apache.commons.lang.StringUtils;
 
 @Getter
 @EqualsAndHashCode
@@ -45,5 +45,4 @@ public class ChartResolution {
         }
         return new ChartResolution(resolutionValue, ChartResolutionTimeUnit.fromShortName(String.valueOf(resolutionTypeChar)));
     }
-
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.configurations.DatabaseConfiguration;
 import me.exrates.openapi.configurations.MailConfiguration;
+import me.exrates.openapi.configurations.RestTemplateConfiguration;
 import me.exrates.openapi.configurations.TwitterConfiguration;
 import me.exrates.openapi.configurations.WebSecurityConfiguration;
 import me.exrates.openapi.configurations.ZeroMQConfiguration;
@@ -23,12 +24,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableAspectJAutoProxy
 @ComponentScan
 @Import({
-                DatabaseConfiguration.class,
-                WebSecurityConfiguration.class,
-                TwitterConfiguration.class,
-                ZeroMQConfiguration.class,
-                MailConfiguration.class
-        })
+        DatabaseConfiguration.class,
+        WebSecurityConfiguration.class,
+        TwitterConfiguration.class,
+        ZeroMQConfiguration.class,
+        MailConfiguration.class,
+        RestTemplateConfiguration.class
+})
 public class OpenApiConfiguration implements WebMvcConfigurer {
 
     @Bean

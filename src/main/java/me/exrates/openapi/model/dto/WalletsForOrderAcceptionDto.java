@@ -8,10 +8,9 @@ import java.math.BigDecimal;
  * - IDs the wallets -
  * - balances the wallets of participants the order: user-creator, user-acceptor, company
  * - status the order
- *
- * @author ValkSam
  */
 public class WalletsForOrderAcceptionDto {
+
     int orderId;
     int orderStatusId;
     /**/

@@ -1,12 +1,9 @@
 package me.exrates.openapi.model.enums;
 
-import me.exrates.model.exceptions.UnsupportedOrderTypeException;
+import me.exrates.openapi.exceptions.model.UnsupportedOrderTypeException;
 
 import java.util.Arrays;
 
-/**
- * Created by maks on 21.04.2017.
- */
 public enum OrderBaseType {
 
     LIMIT(1), STOP_LIMIT(2), ICO(3);

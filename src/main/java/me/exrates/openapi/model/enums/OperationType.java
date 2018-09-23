@@ -1,23 +1,21 @@
 package me.exrates.openapi.model.enums;
 
-import me.exrates.model.exceptions.UnsupportedOperationTypeException;
+import me.exrates.openapi.exceptions.model.UnsupportedOperationTypeException;
 import org.springframework.context.MessageSource;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
-import static me.exrates.model.enums.TransactionSourceType.REFILL;
-import static me.exrates.model.enums.TransactionSourceType.WITHDRAW;
+import static me.exrates.openapi.model.enums.TransactionSourceType.REFILL;
+import static me.exrates.openapi.model.enums.TransactionSourceType.WITHDRAW;
 
 public enum OperationType {
-    INPUT(1, REFILL){{
+
+    INPUT(1, REFILL) {{
         /*Addition of three digits is required for IDR input*/
-        currencyForAddRandomValueToAmount.put(10, new AdditionalRandomAmountParam(){{
+        currencyForAddRandomValueToAmount.put(10, new AdditionalRandomAmountParam() {{
             currencyName = "IDR";
             lowBound = 100;
             highBound = 999;
@@ -37,16 +35,16 @@ public enum OperationType {
         public double lowBound;
         public double highBound;
 
-    @Override
-    public boolean equals(Object currencyName) {
-        return this.currencyName.equals((String)currencyName);
-    }
+        @Override
+        public boolean equals(Object currencyName) {
+            return this.currencyName.equals(currencyName);
+        }
 
-    @Override
-    public int hashCode() {
-        return currencyName != null ? currencyName.hashCode() : 0;
+        @Override
+        public int hashCode() {
+            return currencyName != null ? currencyName.hashCode() : 0;
+        }
     }
-}
 
     public final int type;
 
@@ -57,26 +55,10 @@ public enum OperationType {
     OperationType(int type) {
         this.type = type;
     }
+
     OperationType(int type, TransactionSourceType transactionSourceType) {
         this.type = type;
         this.transactionSourceType = transactionSourceType;
-    }
-
-    public Optional<AdditionalRandomAmountParam> getRandomAmountParam(Integer currencyId){
-        return Optional.ofNullable(currencyForAddRandomValueToAmount.get(currencyId));
-    }
-
-    public Optional<AdditionalRandomAmountParam> getRandomAmountParam(String currencyName){
-        return currencyForAddRandomValueToAmount.values().stream()
-            .filter(e->e.equals(currencyName))
-            .findAny();
-    }
-
-    public static List<OperationType> getInputOutputOperationsList(){
-        return new ArrayList<OperationType>(){{
-            add(INPUT);
-            add(OUTPUT);
-        }};
     }
 
     public static OperationType getOpposite(OperationType ot) {
@@ -98,15 +80,11 @@ public enum OperationType {
         return type;
     }
 
-    public TransactionSourceType getTransactionSourceType() {
-        return transactionSourceType;
-    }
-
     public static OperationType convert(int id) {
         return Arrays.stream(OperationType.class.getEnumConstants())
-            .filter(e -> e.type == id)
-            .findAny()
-            .orElseThrow(() -> new UnsupportedOperationTypeException(id));
+                .filter(e -> e.type == id)
+                .findAny()
+                .orElseThrow(() -> new UnsupportedOperationTypeException(id));
     }
 
     public String toString(MessageSource messageSource, Locale locale) {

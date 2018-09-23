@@ -1,17 +1,15 @@
 package me.exrates.openapi.model.dto.onlineTableDto;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.OrderBaseType;
-import me.exrates.model.enums.OrderStatus;
-import me.exrates.model.serializer.LocalDateTimeSerializer;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.OrderBaseType;
+import me.exrates.openapi.model.enums.OrderStatus;
+import me.exrates.openapi.model.serializer.LocalDateTimeSerializer;
 
 import java.time.LocalDateTime;
 
-/**
- * Created by Valk on 19.04.16.
- */
-public class OrderWideListDto extends OnlineTableDto{
+public class OrderWideListDto extends OnlineTableDto {
+
     private int id;
     private int userId;
     private String operationType;

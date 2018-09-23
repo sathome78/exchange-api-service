@@ -1,21 +1,18 @@
 package me.exrates.openapi.model.dto;
 
-import me.exrates.model.CurrencyPair;
-import me.exrates.model.enums.ActionType;
-import me.exrates.model.enums.OperationType;
-import me.exrates.model.enums.OrderBaseType;
-import me.exrates.model.enums.OrderStatus;
+import me.exrates.openapi.model.CurrencyPair;
+import me.exrates.openapi.model.enums.ActionType;
+import me.exrates.openapi.model.enums.OperationType;
+import me.exrates.openapi.model.enums.OrderBaseType;
+import me.exrates.openapi.model.enums.OrderStatus;
+import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 
 import java.math.BigDecimal;
 
-import static me.exrates.model.util.BigDecimalProcessing.doAction;
-import static me.exrates.model.util.BigDecimalProcessing.normalize;
-
-/**
- * Created by Valk on 13.04.16.
- */
+import static me.exrates.openapi.utils.BigDecimalProcessingUtil.normalize;
 
 public class OrderCreateDto {
+
     /*this field filled from existing order*/
     private int orderId;
     private int userId;
@@ -44,11 +41,11 @@ To determine which of these forms to be filled, we must set field operationType
     private OrderBaseType orderBaseType;
     //
     /*
-    * these fields will be calculated after submitting the order and before final creation confirmation the order
-    * (here: OrderController.submitNewOrderToSell())
-    * These amounts calculated directly in java (after check the order parameters in java validator) and will be persistented in db
-    * (before this step these amounts were being calculated by javascript and may be occur some difference)
-    * */
+     * these fields will be calculated after submitting the order and before final creation confirmation the order
+     * (here: OrderController.submitNewOrderToSell())
+     * These amounts calculated directly in java (after check the order parameters in java validator) and will be persistented in db
+     * (before this step these amounts were being calculated by javascript and may be occur some difference)
+     * */
     private BigDecimal spentWalletBalance;
     private BigDecimal spentAmount;
     private BigDecimal total; //calculated amount of currency conversion = amount * exchangeRate
@@ -69,18 +66,18 @@ To determine which of these forms to be filled, we must set field operationType
         }
         if (operationType == OperationType.SELL) {
             this.spentWalletBalance = this.currencyBaseBalance == null ? BigDecimal.ZERO : this.currencyBaseBalance;
-            this.total = doAction(this.amount, this.exchangeRate, ActionType.MULTIPLY);
+            this.total = BigDecimalProcessingUtil.doAction(this.amount, this.exchangeRate, ActionType.MULTIPLY);
             this.comissionId = this.comissionForSellId;
-            this.comission = doAction(this.total, this.comissionForSellRate, ActionType.MULTIPLY_PERCENT);
-            this.totalWithComission = doAction(this.total, this.comission.negate(), ActionType.ADD);
+            this.comission = BigDecimalProcessingUtil.doAction(this.total, this.comissionForSellRate, ActionType.MULTIPLY_PERCENT);
+            this.totalWithComission = BigDecimalProcessingUtil.doAction(this.total, this.comission.negate(), ActionType.ADD);
             this.spentAmount = this.amount;
         } else if (operationType == OperationType.BUY) {
             this.spentWalletBalance = this.currencyConvertBalance == null ? BigDecimal.ZERO : this.currencyConvertBalance;
-            this.total = doAction(this.amount, this.exchangeRate, ActionType.MULTIPLY);
+            this.total = BigDecimalProcessingUtil.doAction(this.amount, this.exchangeRate, ActionType.MULTIPLY);
             this.comissionId = this.comissionForBuyId;
-            this.comission = doAction(this.total, this.comissionForBuyRate, ActionType.MULTIPLY_PERCENT);
-            this.totalWithComission = doAction(this.total, this.comission, ActionType.ADD);
-            this.spentAmount = doAction(this.total, this.comission, ActionType.ADD);
+            this.comission = BigDecimalProcessingUtil.doAction(this.total, this.comissionForBuyRate, ActionType.MULTIPLY_PERCENT);
+            this.totalWithComission = BigDecimalProcessingUtil.doAction(this.total, this.comission, ActionType.ADD);
+            this.spentAmount = BigDecimalProcessingUtil.doAction(this.total, this.comission, ActionType.ADD);
         }
         return this;
     }

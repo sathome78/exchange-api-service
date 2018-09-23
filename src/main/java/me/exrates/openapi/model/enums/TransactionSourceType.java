@@ -1,50 +1,48 @@
 package me.exrates.openapi.model.enums;
 
 import lombok.Getter;
-import me.exrates.model.exceptions.UnsupportedTransactionSourceTypeIdException;
-import me.exrates.model.exceptions.UnsupportedTransactionSourceTypeNameException;
+import me.exrates.openapi.exceptions.model.UnsupportedTransactionSourceTypeIdException;
+import me.exrates.openapi.exceptions.model.UnsupportedTransactionSourceTypeNameException;
 import org.springframework.context.MessageSource;
 
 import java.util.Arrays;
 import java.util.Locale;
 
-/**
- * Created by Valk on 23.05.2016.
- */
 @Getter
 public enum TransactionSourceType {
-  ORDER(1),
-  REFERRAL(3),
-  ACCRUAL(4),
-  MANUAL(5),
-  USER_TRANSFER(6),
-  WITHDRAW(9),
-  STOP_ORDER(10),
-  REFILL(11),
-  NOTIFICATIONS(12);
 
-  private final int code;
+    ORDER(1),
+    REFERRAL(3),
+    ACCRUAL(4),
+    MANUAL(5),
+    USER_TRANSFER(6),
+    WITHDRAW(9),
+    STOP_ORDER(10),
+    REFILL(11),
+    NOTIFICATIONS(12);
 
-  TransactionSourceType(int code) {
-    this.code = code;
-  }
+    private final int code;
 
-  public static TransactionSourceType convert(int id) {
-    return Arrays.stream(TransactionSourceType.class.getEnumConstants())
-        .filter(e -> e.code == id)
-        .findAny()
-        .orElseThrow(() -> new UnsupportedTransactionSourceTypeIdException(String.valueOf(id)));
-  }
+    TransactionSourceType(int code) {
+        this.code = code;
+    }
 
-  public static TransactionSourceType convert(String name) {
-    return Arrays.stream(TransactionSourceType.class.getEnumConstants())
-        .filter(e -> e.name().equals(name))
-        .findAny()
-        .orElseThrow(() -> new UnsupportedTransactionSourceTypeNameException(name));
-  }
+    public static TransactionSourceType convert(int id) {
+        return Arrays.stream(TransactionSourceType.class.getEnumConstants())
+                .filter(e -> e.code == id)
+                .findAny()
+                .orElseThrow(() -> new UnsupportedTransactionSourceTypeIdException(String.valueOf(id)));
+    }
 
-  public String toString(MessageSource messageSource, Locale locale) {
-    return messageSource.getMessage("transactionsourcetype." + this.name(), null, locale);
+    public static TransactionSourceType convert(String name) {
+        return Arrays.stream(TransactionSourceType.class.getEnumConstants())
+                .filter(e -> e.name().equals(name))
+                .findAny()
+                .orElseThrow(() -> new UnsupportedTransactionSourceTypeNameException(name));
+    }
 
-  }
+    public String toString(MessageSource messageSource, Locale locale) {
+        return messageSource.getMessage("transactionsourcetype." + this.name(), null, locale);
+
+    }
 }

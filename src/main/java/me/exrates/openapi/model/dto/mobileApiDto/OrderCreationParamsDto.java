@@ -1,14 +1,12 @@
 package me.exrates.openapi.model.dto.mobileApiDto;
 
-import me.exrates.model.enums.OperationType;
+import me.exrates.openapi.model.enums.OperationType;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
-/**
- * Created by OLEG on 01.09.2016.
- */
 public class OrderCreationParamsDto {
+
     @NotNull
     private Integer currencyPairId;
     @NotNull
@@ -17,9 +15,6 @@ public class OrderCreationParamsDto {
     private BigDecimal amount;
     @NotNull
     private BigDecimal rate;
-
-    public OrderCreationParamsDto() {
-    }
 
     public OrderCreationParamsDto(Integer currencyPairId, OperationType orderType, BigDecimal amount, BigDecimal rate) {
         this.currencyPairId = currencyPairId;

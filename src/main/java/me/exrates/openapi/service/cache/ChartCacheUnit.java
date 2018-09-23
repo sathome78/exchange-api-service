@@ -2,11 +2,10 @@ package me.exrates.openapi.service.cache;
 
 import lombok.Data;
 import lombok.extern.log4j.Log4j2;
-import me.exrates.model.chart.ChartTimeFrame;
-import me.exrates.model.dto.CandleChartItemDto;
+import me.exrates.openapi.model.chart.ChartTimeFrame;
+import me.exrates.openapi.model.dto.CandleChartItemDto;
 import me.exrates.openapi.service.OrderService;
-import me.exrates.service.OrderService;
-import me.exrates.service.events.ChartCacheUpdateEvent;
+import me.exrates.openapi.service.events.ChartCacheUpdateEvent;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
@@ -57,7 +56,7 @@ public class ChartCacheUnit {
         this.currencyPairId = currencyPairId;
         this.timeFrame = timeFrame;
         this.minUpdateIntervalSeconds = timeFrame.getResolution().getTimeUnit().getRefreshDelaySeconds();
-        this.lazyUpdate = /*timeFrame.getTimeUnit().isChartLazyUpdate();*/ true;
+        this.lazyUpdate = true;
         this.eventPublisher = eventPublisher;
         this.orderService = orderService;
         cachedData = null;
@@ -65,7 +64,7 @@ public class ChartCacheUnit {
 
     public List<CandleChartItemDto> getData() {
         if (cachedData == null || isUpdateCasheRequired()) {
-            updateCache(cachedData != null );
+            updateCache(cachedData != null);
         }
         return cachedData;
     }
@@ -93,9 +92,9 @@ public class ChartCacheUnit {
                 new Timer().schedule(new TimerTask() {
                     @Override
                     public void run() {
-                            timerLock = new ReentrantLock();
-                            updateCache(true);
-                            eventPublisher.publishEvent(new ChartCacheUpdateEvent(getLastData(), timeFrame, currencyPairId));
+                        timerLock = new ReentrantLock();
+                        updateCache(true);
+                        eventPublisher.publishEvent(new ChartCacheUpdateEvent(getLastData(), timeFrame, currencyPairId));
                     }
                 }, getMinUpdateIntervalSeconds() * 1000);
 
@@ -119,15 +118,11 @@ public class ChartCacheUnit {
                 }
             }
         } else {
-                try {
-                    barrier.await(30, TimeUnit.SECONDS);
-                    /*if (cachedData == null) {
-                        *//*тут рекурсия получается, но без данных трэд не уйдет*//*
-                        updateCache(appendLastEntriesOnly);
-                    }*/
-                } catch (Exception e) {
-                    log.warn(e);
-                }
+            try {
+                barrier.await(30, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.warn(e);
+            }
         }
     }
 
@@ -135,13 +130,13 @@ public class ChartCacheUnit {
         if (lock.tryLock()) {
             return true;
         } else if (lastLock.plusSeconds(40).compareTo(LocalDateTime.now()) <= 0) {
-           lock = new ReentrantLock();
-           return lock.tryLock();
+            lock = new ReentrantLock();
+            return lock.tryLock();
         } else return false;
     }
 
     private void performUpdate(boolean appendLastEntriesOnly) {
-        if (appendLastEntriesOnly && cachedData != null && !cachedData.isEmpty() ) {
+        if (appendLastEntriesOnly && cachedData != null && !cachedData.isEmpty()) {
             cachedData.forEach(System.out::println);
             CandleChartItemDto lastBar = cachedData.remove(cachedData.size() - 1);
             LocalDateTime lastBarStartTime = lastBar.getBeginPeriod();

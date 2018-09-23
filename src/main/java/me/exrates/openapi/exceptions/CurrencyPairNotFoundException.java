@@ -1,8 +1,5 @@
 package me.exrates.openapi.exceptions;
 
-/**
- * Created by OLEG on 12.09.2016.
- */
 public class CurrencyPairNotFoundException extends RuntimeException {
 
     public CurrencyPairNotFoundException() {

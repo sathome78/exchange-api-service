@@ -1,10 +1,11 @@
 package me.exrates.openapi.model.enums;
 
-import me.exrates.model.vo.BackDealInterval;
+import me.exrates.openapi.model.vo.BackDealInterval;
 
 import java.util.Arrays;
 
 public enum OrderHistoryPeriod {
+
     MINUTE(new BackDealInterval("1 MINUTE")),
     HOUR(new BackDealInterval("1 HOUR")),
     DAY(new BackDealInterval("1 DAY"));
@@ -17,10 +18,6 @@ public enum OrderHistoryPeriod {
 
     public BackDealInterval getInterval() {
         return interval;
-    }
-
-    public String toUrlValue() {
-        return this.name().toLowerCase();
     }
 
     public static OrderHistoryPeriod fromLowerCaseString(String lowerCaseString) {

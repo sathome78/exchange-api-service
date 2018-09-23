@@ -1,12 +1,9 @@
 package me.exrates.openapi.model.enums;
 
-import me.exrates.model.vo.BackDealInterval;
+import me.exrates.openapi.model.vo.BackDealInterval;
 
 import java.util.Arrays;
 
-/**
- * Created by Maks on 04.09.2017.
- */
 public enum ChartPeriodsEnum {
 
     HOURS_12(new BackDealInterval(12, IntervalType.HOUR)),

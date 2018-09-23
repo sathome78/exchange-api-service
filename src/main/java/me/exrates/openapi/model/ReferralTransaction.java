@@ -1,10 +1,7 @@
 package me.exrates.openapi.model;
 
-import me.exrates.model.enums.ReferralTransactionStatusEnum;
+import me.exrates.openapi.model.enums.ReferralTransactionStatusEnum;
 
-/**
- * @author Denis Savin (pilgrimm333@gmail.com)
- */
 public class ReferralTransaction {
 
     private int id;

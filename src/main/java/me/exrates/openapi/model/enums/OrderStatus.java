@@ -1,6 +1,6 @@
 package me.exrates.openapi.model.enums;
 
-import me.exrates.model.exceptions.UnsupportedOrderStatusException;
+import me.exrates.openapi.exceptions.model.UnsupportedOrderStatusException;
 
 import java.util.stream.Stream;
 

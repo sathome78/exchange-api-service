@@ -1,7 +1,6 @@
 package me.exrates.openapi.service;
 
 import me.exrates.openapi.model.Email;
-import me.exrates.openapi.model.enums.EmailSenderType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +28,6 @@ public class SendMailService {
     private JavaMailSender supportMailSender;
 
     @Autowired
-    @Qualifier("MandrillMailSender")
-    private JavaMailSender mandrillMailSender;
-
-    @Autowired
     @Qualifier("InfoMailSender")
     private JavaMailSender infoMailSender;
 
@@ -47,51 +42,11 @@ public class SendMailService {
 
     private final static int THREADS_NUMBER = 4;
     private final static ExecutorService executors = Executors.newFixedThreadPool(THREADS_NUMBER);
-    private final static ExecutorService supportMailExecutors = Executors.newFixedThreadPool(3);
 
     private static final Logger logger = LogManager.getLogger(SendMailService.class);
 
     private final String SUPPORT_EMAIL = "mail@exrates.top";
-    private final String MANDRILL_EMAIL = "no-reply@exrates.me";
     private final String INFO_EMAIL = "no-reply@exrates.top";
-
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void sendMail(Email email) {
-        supportMailExecutors.execute(() -> {
-            try {
-                sendMail(email, SUPPORT_EMAIL, supportMailSender);
-            } catch (Exception e) {
-                logger.error(e);
-                sendMail(email, INFO_EMAIL, infoMailSender);
-            }
-        });
-    }
-
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void sendMailMandrill(Email email) {
-        supportMailExecutors.execute(() -> {
-            try {
-                sendByType(email, EmailSenderType.valueOf(mailType));
-            } catch (Exception e) {
-                logger.error(e);
-                sendMail(email, SUPPORT_EMAIL, supportMailSender);
-            }
-        });
-    }
-
-    private void sendByType(Email email, EmailSenderType type) {
-        System.out.println("mailtype " + type);
-        switch (type) {
-            case gmail: {
-                sendInfoMail(email);
-                break;
-            }
-            case mandrill: {
-                sendMail(email, MANDRILL_EMAIL, mandrillMailSender);
-                break;
-            }
-        }
-    }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendInfoMail(Email email) {
@@ -131,23 +86,10 @@ public class SendMailService {
         } catch (Exception e) {
             logger.error("Could not send email {}. Reason: {}", email, e.getMessage());
         }
-
-    }
-
-    public void sendFeedbackMail(String senderName, String senderMail, String messageBody, String mailTo) {
-        Email email = new Email();
-        email.setFrom(senderMail);
-        email.setTo(mailTo);
-        email.setMessage(messageBody);
-        email.setSubject("Feedback from " + senderName + " -- " + senderMail);
-        sendMail(email);
     }
 
     @PreDestroy
     public void destroy() {
         executors.shutdown();
-        supportMailExecutors.shutdown();
     }
-
-
 }

@@ -3,12 +3,12 @@ package me.exrates.openapi.service.cache;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
-import me.exrates.model.chart.ChartTimeFrame;
-import me.exrates.model.dto.CandleChartItemDto;
-import me.exrates.model.dto.CandleDto;
+import me.exrates.openapi.component.StompMessenger;
+import me.exrates.openapi.model.chart.ChartTimeFrame;
+import me.exrates.openapi.model.dto.CandleChartItemDto;
+import me.exrates.openapi.model.dto.CandleDto;
 import me.exrates.openapi.service.OrderService;
-import me.exrates.openapi.service.stomp.StompMessenger;
-import me.exrates.service.events.ChartCacheUpdateEvent;
+import me.exrates.openapi.service.events.ChartCacheUpdateEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -40,33 +40,12 @@ public class ChartsCacheManager {
     public void onUpdateEvent(int pairId) {
         List<ChartTimeFrame> allIntervals = orderService.getChartTimeFrames();
         allIntervals.forEach(p -> setNeedUpdate(pairId, p));
-        /*List<ChartTimeFrame> subscribedTimeFrames = stompMessenger.getSubscribedTimeFramesForCurrencyPair(pairId);
-        subscribedTimeFrames.forEach(i -> {
-            log.debug("subscribed intervals {}", i.getResolution());
-            String data = getPreparedData(pairId, i, true);
-            log.debug("subscribed intervals {}", i.getResolution());
-            stompMessenger.sendChartData(pairId, i.getResolution().toString(), data);
-        });*/
     }
 
 
     private void setNeedUpdate(Integer pairId, ChartTimeFrame timeFrame) {
         ChartCacheUnit cacheUnit = getRequiredCache(pairId, timeFrame);
         cacheUnit.setNeedToUpdate();
-    }
-
-    public List<CandleChartItemDto> getData(Integer pairId, ChartTimeFrame timeFrame) {
-
-        return getData(pairId, timeFrame, false);
-    }
-
-    public List<CandleChartItemDto> getData(Integer pairId, ChartTimeFrame timeFrame, boolean lastOnly) {
-        ChartCacheUnit cacheUnit = getRequiredCache(pairId, timeFrame);
-        return lastOnly ? cacheUnit.getLastData() : cacheUnit.getData();
-    }
-
-    public String getPreparedData(int pairId, ChartTimeFrame timeFrame, boolean lastOnly) {
-        return prepareDataToSend(getData(pairId, timeFrame, lastOnly), pairId, timeFrame);
     }
 
     private ChartCacheUnit getRequiredCache(Integer pairId, ChartTimeFrame timeFrame) {
@@ -88,13 +67,13 @@ public class ChartsCacheManager {
     @EventListener
     void handleChartUpdate(ChartCacheUpdateEvent event) {
         List<CandleChartItemDto> data = (List<CandleChartItemDto>) event.getSource();
-        String dataToSend = prepareDataToSend(data, event.getPairId(), event.getTimeFrame());
+        String dataToSend = prepareDataToSend(data);
         stompMessenger.sendChartData(event.getPairId(),
                 event.getTimeFrame().getResolution().toString(),
                 dataToSend);
     }
 
-    private String prepareDataToSend(List<CandleChartItemDto> data, Integer currencyPairId, final ChartTimeFrame backDealInterval) {
+    private String prepareDataToSend(List<CandleChartItemDto> data) {
         List<CandleDto> resultData = data.stream().map(CandleDto::new).collect(Collectors.toList());
         try {
             return objectMapper.writeValueAsString(resultData);
@@ -102,31 +81,5 @@ public class ChartsCacheManager {
             log.error(e);
             return null;
         }
-
-        /*ArrayList<List> arrayListMain = new ArrayList<>();
-         *//*in first row return backDealInterval - to synchronize period menu with it*//*
-        arrayListMain.add(new ArrayList<Object>() {{
-            add(backDealInterval);
-        }});
-        for (CandleChartItemDto candle : data) {
-            ArrayList<Object> arrayList = new ArrayList<>();
-                *//*values*//*
-            arrayList.add(candle.getBeginDate().toString());
-            arrayList.add(candle.getEndDate().toString());
-            arrayList.add(candle.getOpenRate());
-            arrayList.add(candle.getCloseRate());
-            arrayList.add(candle.getLowRate());
-            arrayList.add(candle.getHighRate());
-            arrayList.add(candle.getBaseVolume());
-            arrayListMain.add(arrayList);
-        }
-        try {
-            return objectMapper.writeValueAsString(new OrdersListWrapper(arrayListMain,
-                    backDealInterval.getInterval(), currencyPairId));
-        } catch (JsonProcessingException e) {
-            log.error(e);
-            return null;
-        }*/
-
     }
 }
