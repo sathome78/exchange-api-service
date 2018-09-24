@@ -33,12 +33,6 @@ public class UsersAlertsService {
         }
     }
 
-    public List<AlertDto> getAllAlerts(Locale locale) {
-        List<AlertDto> list = userAlertsDao.getAlerts(false);
-        completeDtos(list, locale);
-        return list;
-    }
-
     private void completeDtos(List<AlertDto> alertDtos, Locale locale) {
         alertDtos.forEach(p -> {
             if (p.isEnabled()) {

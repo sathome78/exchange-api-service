@@ -41,8 +41,6 @@ public class WalletDao {
     @Autowired
     private TransactionDao transactionDao;
     @Autowired
-    private UserDao userDao;
-    @Autowired
     private CurrencyDao currencyDao;
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -64,6 +62,7 @@ public class WalletDao {
         };
     }
 
+    //+
     public BigDecimal getWalletABalance(int walletId) {
         if (walletId == 0) {
             return new BigDecimal(0);
@@ -78,6 +77,7 @@ public class WalletDao {
         }
     }
 
+    //+
     public int getWalletId(int userId, int currencyId) {
         String sql = "SELECT id FROM WALLET WHERE user_id = :userId AND currency_id = :currencyId";
         Map<String, String> namedParameters = new HashMap<>();
@@ -90,6 +90,7 @@ public class WalletDao {
         }
     }
 
+    //+
     public int createNewWallet(Wallet wallet) {
         String sql = "INSERT INTO WALLET (currency_id,user_id,active_balance) VALUES(:currId,:userId,:activeBalance)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -105,6 +106,7 @@ public class WalletDao {
         return id;
     }
 
+    //+
     public List<WalletBalanceDto> getBalancesForUser(String userEmail) {
         String sql = "SELECT CUR.name AS currency_name, W.active_balance, W.reserved_balance FROM WALLET W " +
                 " JOIN CURRENCY CUR ON W.currency_id = CUR.id " +
@@ -118,6 +120,7 @@ public class WalletDao {
         });
     }
 
+    //+
     public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
         CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
         String sql = "SELECT " +
@@ -205,6 +208,7 @@ public class WalletDao {
         }
     }
 
+    //+
     public WalletTransferStatus walletInnerTransfer(int walletId, BigDecimal amount, TransactionSourceType sourceType, int sourceId, String description) {
         String sql = "SELECT WALLET.id AS wallet_id, WALLET.currency_id, WALLET.active_balance, WALLET.reserved_balance" +
                 "  FROM WALLET " +
@@ -275,6 +279,7 @@ public class WalletDao {
         return WalletTransferStatus.SUCCESS;
     }
 
+    //+
     public WalletTransferStatus walletBalanceChange(WalletOperationData walletOperationData) {
         BigDecimal amount = walletOperationData.getAmount();
         if (walletOperationData.getOperationType() == OperationType.OUTPUT) {
@@ -387,6 +392,7 @@ public class WalletDao {
         return WalletTransferStatus.SUCCESS;
     }
 
+    //+
     public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
         CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
         String sql = "SELECT " +
@@ -413,32 +419,7 @@ public class WalletDao {
         }
     }
 
-    public WalletsForOrderCancelDto getWalletForStopOrderByStopOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType, int currencyPairId) {
-        CurrencyPair currencyPair = currencyDao.findCurrencyPairById(currencyPairId);
-        String sql = "SELECT " +
-                " SO.id AS order_id, " +
-                " SO.status_id AS order_status_id, " +
-                " SO.amount_base AS amount_base, " +
-                " SO.amount_convert AS amount_convert, " +
-                " SO.commission_fixed_amount AS commission_fixed_amount, " +
-                " WA.id AS wallet_id, " +
-                " WA.active_balance AS active_balance, " +
-                " WA.reserved_balance AS reserved_balance " +
-                " FROM STOP_ORDERS AS SO " +
-                " JOIN WALLET AS WA ON  (WA.user_id = SO.user_id) AND " +
-                "             (WA.currency_id = :currency_id) " +
-                " WHERE (SO.id = :order_id)" +
-                " FOR UPDATE ";
-        Map<String, Object> namedParameters = new HashMap<>();
-        namedParameters.put("order_id", orderId);
-        namedParameters.put("currency_id", operationType == SELL ? currencyPair.getCurrency1().getId() : currencyPair.getCurrency2().getId());
-        try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, getWalletsForOrderCancelDtoMapper(operationType));
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-
+    //+
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
         CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
         String sql =

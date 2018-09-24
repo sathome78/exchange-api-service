@@ -22,6 +22,7 @@ public class ReferralTransactionDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    //+
     public ReferralTransaction create(final ReferralTransaction referralTransaction) {
         final String sql = "INSERT INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id) VALUES (:initiatorId, :userId, :orderId, :refLevelId)";
         final Map<String, Integer> params = new HashMap<>();
@@ -35,6 +36,7 @@ public class ReferralTransactionDao {
         return referralTransaction;
     }
 
+    //+
     public void setRefTransactionStatus(ReferralTransactionStatusEnum status, int refTransactionId) {
         String sql = "UPDATE REFERRAL_TRANSACTION " +
                 " SET status = :status" +

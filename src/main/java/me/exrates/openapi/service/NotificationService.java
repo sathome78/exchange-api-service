@@ -14,6 +14,7 @@ public class NotificationService {
     @Autowired
     private UserService userService;
 
+    //+
     public long createLocalizedNotification(Integer userId, NotificationEvent cause, String titleCode, String messageCode,
                                             Object[] messageArgs) {
         Locale locale = new Locale(userService.getPreferedLang(userId));

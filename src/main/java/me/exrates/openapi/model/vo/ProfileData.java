@@ -48,6 +48,7 @@ public class ProfileData {
         return this.time > this.threshold;
     }
 
+    //+
     public boolean checkAndLog(String logMessage) {
         boolean isExceeded = isExceeded();
         if (isExceeded) {

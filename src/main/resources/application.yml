@@ -27,27 +27,5 @@ spring:
     hibernate:
       ddl-auto: none
 
-twitter:
-  appId: WBI5Tr7sfg0GNiOvNGyAzgwf9
-  appSecret: 1ThTHiHk7nTQK9pS3z27NprqPx2fczmbknxzBsUeoyNSOvlt3m
-  accessToken: 927824179738628097-YTWG2obPpKhY6hPvu42KSXT2f4Eljar
-  accessTokenSecret: kJrcW7dVeukCwP8ZD8JIyFl27KL6mDI3RE2YHVE7N39a5
-
-mail_support:
-  host: smtp.gmail.com
-  port: 587
-  protocol: smtp
-  user: exrates.dev@gmail.com
-  password: setarxe123
-mail_mandrill:
-  host: smtp.mandrillapp.com
-  port: 587
-  protocol: smtp
-  user: Currency
-  password: PsQhkDq7dB8Zn3qAserRTw
-mail_info:
-  host: smtp.gmail.com
-  port: 587
-  protocol: smtp
-  user: exrates.dev@gmail.com
-  password: setarxe123
+referral:
+  url: localhost:8080/register?ref=

@@ -35,7 +35,6 @@ import static me.exrates.openapi.utils.BigDecimalProcessingUtil.doAction;
 
 @Log4j2
 @Service
-@PropertySource("classpath:/referral.properties")
 public class ReferralService {
 
     @Autowired
@@ -70,6 +69,7 @@ public class ReferralService {
         this.commission = commissionService.getDefaultCommission(OperationType.REFERRAL);
     }
 
+    //+
     @Transactional(propagation = Propagation.MANDATORY)
     public void processReferral(final ExOrder exOrder, final BigDecimal commissionAmount, Currency currency, int userId) {
         final List<ReferralLevel> levels = referralLevelDao.findAll();
@@ -118,6 +118,7 @@ public class ReferralService {
         }
     }
 
+    //+
     @Transactional
     public void setRefTransactionStatus(ReferralTransactionStatusEnum status, int refTransactionId) {
         referralTransactionDao.setRefTransactionStatus(status, refTransactionId);

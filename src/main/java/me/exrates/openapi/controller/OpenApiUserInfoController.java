@@ -131,6 +131,7 @@ public class OpenApiUserInfoController {
         return orderService.getUserOrdersHistory(currencyPairName, limit, offset);
     }
 
+    //+
     private void validateNaturalInt(Integer number) {
         if (number != null && number <= 0) {
             throw new InvalidNumberParamException("Invalid number: " + number);

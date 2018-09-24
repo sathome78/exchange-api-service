@@ -17,12 +17,14 @@ public class StopOrderService {
     @Autowired
     private StopOrderDao stopOrderDao;
 
+    //+
     @Transactional
     public Integer createOrder(ExOrder exOrder) {
         StopOrder order = new StopOrder(exOrder);
         return stopOrderDao.create(order);
     }
 
+    //+
     @Transactional
     public boolean setStatus(int orderId, OrderStatus status) {
         return stopOrderDao.setStatus(orderId, status);

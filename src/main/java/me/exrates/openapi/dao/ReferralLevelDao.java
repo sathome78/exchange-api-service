@@ -29,6 +29,7 @@ public class ReferralLevelDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    //+
     public List<ReferralLevel> findAll() {
         final String sql = "SELECT REFERRAL_LEVEL.*  FROM REFERRAL_LEVEL REFERRAL_LEVEL LEFT JOIN REFERRAL_LEVEL b ON REFERRAL_LEVEL.level = b.level AND REFERRAL_LEVEL.datetime < b.datetime WHERE b.datetime is NULL ORDER BY level;";
         try {

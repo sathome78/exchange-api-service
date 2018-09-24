@@ -30,15 +30,18 @@ public class WalletService {
     @Autowired
     private UserService userService;
 
+    //+
     public int getWalletId(int userId, int currencyId) {
         return walletDao.getWalletId(userId, currencyId);
     }
 
+    //+
     @Transactional(propagation = Propagation.NESTED)
     public BigDecimal getWalletABalance(int walletId) {
         return walletDao.getWalletABalance(walletId);
     }
 
+    //+
     @Transactional(readOnly = true)
     public boolean ifEnoughMoney(int walletId, BigDecimal amountForCheck) {
         BigDecimal balance = getWalletABalance(walletId);
@@ -51,43 +54,45 @@ public class WalletService {
         return result;
     }
 
+    //+
     @Transactional(propagation = Propagation.NESTED)
     public int createNewWallet(Wallet wallet) {
         return walletDao.createNewWallet(wallet);
     }
 
+    //+
     @Transactional
     public WalletTransferStatus walletInnerTransfer(int walletId, BigDecimal amount, TransactionSourceType sourceType, int sourceId, String description) {
         return walletDao.walletInnerTransfer(walletId, amount, sourceType, sourceId, description);
     }
 
+    //+
     public WalletTransferStatus walletBalanceChange(final WalletOperationData walletOperationData) {
         return walletDao.walletBalanceChange(walletOperationData);
     }
 
+    //+
     @Transactional(readOnly = true)
     public List<WalletBalanceDto> getBalancesForUser() {
         String userEmail = userService.getUserEmailFromSecurityContext();
         return walletDao.getBalancesForUser(userEmail);
     }
 
+    //+
     @Transactional
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
         return walletDao.getOrderRelatedDataAndBlock(orderId);
     }
 
+    //+
     @Transactional
     public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
         return walletDao.getWalletsForOrderByOrderIdAndBlock(orderId, userAcceptorId);
     }
 
+    //+
     @Transactional
     public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
         return walletDao.getWalletForOrderByOrderIdAndOperationTypeAndBlock(orderId, operationType);
-    }
-
-    @Transactional
-    public WalletsForOrderCancelDto getWalletForStopOrderByStopOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType, int currencyPairId) {
-        return walletDao.getWalletForStopOrderByStopOrderIdAndOperationTypeAndBlock(orderId, operationType, currencyPairId);
     }
 }

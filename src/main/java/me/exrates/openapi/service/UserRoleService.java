@@ -12,11 +12,13 @@ public class UserRoleService {
     @Autowired
     UserRoleDao userRoleDao;
 
+    //+
     @Transactional(readOnly = true)
     public boolean isOrderAcceptionAllowedForUser(Integer userId) {
         return userRoleDao.isOrderAcceptionAllowedForUser(userId);
     }
 
+    //+
     @Transactional(readOnly = true)
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
         return userRoleDao.retrieveSettingsForRole(roleId);

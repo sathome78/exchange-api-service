@@ -20,6 +20,7 @@ public class StopOrderDao {
     @Autowired
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
+    //+
     public Integer create(StopOrder order) {
         String sql = "INSERT INTO STOP_ORDERS" +
                 "  (user_id, currency_pair_id, operation_type_id, stop_rate,  limit_rate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id)" +
@@ -47,6 +48,7 @@ public class StopOrderDao {
         return id;
     }
 
+    //+
     public boolean setStatus(int orderId, OrderStatus status) {
         String sql = "UPDATE STOP_ORDERS SET status_id=:status_id WHERE id = :id";
         Map<String, String> namedParameters = new HashMap<>();

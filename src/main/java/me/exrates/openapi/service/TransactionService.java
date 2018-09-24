@@ -14,11 +14,13 @@ public class TransactionService {
     @Autowired
     private TransactionDao transactionDao;
 
+    //+
     @Transactional
     public boolean setStatusById(Integer trasactionId, Integer statusId) {
         return transactionDao.setStatusById(trasactionId, statusId);
     }
 
+    //+
     public List<Transaction> getPayedRefTransactionsByOrderId(int orderId) {
         return transactionDao.getPayedRefTransactionsByOrderId(orderId);
     }

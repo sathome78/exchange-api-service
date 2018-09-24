@@ -14,11 +14,13 @@ public class UserRoleDao {
     @Autowired
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
+    //+
     public boolean isOrderAcceptionAllowedForUser(Integer userId) {
         String sql = "SELECT order_acception_same_role_only FROM USER_ROLE_SETTINGS where user_role_id = (SELECT roleid FROM USER WHERE id = :user_id)";
         return namedParameterJdbcTemplate.queryForObject(sql, Collections.singletonMap("user_id", userId), Boolean.class);
     }
 
+    //+
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
         String sql = "SELECT user_role_id, order_acception_same_role_only, bot_acception_allowed, manual_change_allowed " +
                 " FROM USER_ROLE_SETTINGS where user_role_id = :user_role_id";

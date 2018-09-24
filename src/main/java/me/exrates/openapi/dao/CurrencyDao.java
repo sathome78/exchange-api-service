@@ -46,30 +46,7 @@ public class CurrencyDao {
 
     };
 
-    public Currency findByName(String name) {
-        final String sql = "SELECT * FROM CURRENCY WHERE name = :name";
-        final Map<String, String> params = new HashMap<String, String>() {
-            {
-                put("name", name);
-            }
-        };
-        return jdbcTemplate.queryForObject(sql, params, new BeanPropertyRowMapper<>(Currency.class));
-    }
-
-    public List<CurrencyPair> getAllCurrencyPairs(CurrencyPairType type) {
-        String typeClause = "";
-        if (type != null && type != CurrencyPairType.ALL) {
-            typeClause = " AND type =:pairType ";
-        }
-        String sql = "SELECT id, currency1_id, currency2_id, name, market, type, " +
-                "(select name from CURRENCY where id = currency1_id) as currency1_name, " +
-                "(select name from CURRENCY where id = currency2_id) as currency2_name " +
-                " FROM CURRENCY_PAIR " +
-                " WHERE hidden IS NOT TRUE " + typeClause +
-                " ORDER BY -pair_order DESC";
-        return jdbcTemplate.query(sql, Collections.singletonMap("pairType", type.name()), currencyPairRowMapper);
-    }
-
+    //+
     public CurrencyPair findCurrencyPairById(int currencyPairId) {
         String sql = "SELECT id, currency1_id, currency2_id, name, market, type," +
                 "(select name from CURRENCY where id = currency1_id) as currency1_name, " +
@@ -80,6 +57,7 @@ public class CurrencyDao {
         return jdbcTemplate.queryForObject(sql, namedParameters, currencyPairRowMapper);
     }
 
+    //+
     public CurrencyPair findCurrencyPairByName(String currencyPairName) {
         String sql = "SELECT id, currency1_id, currency2_id, name, market, type," +
                 "(select name from CURRENCY where id = currency1_id) as currency1_name, " +
@@ -90,6 +68,7 @@ public class CurrencyDao {
         return jdbcTemplate.queryForObject(sql, namedParameters, currencyPairRowMapper);
     }
 
+    //+
     public CurrencyPair findCurrencyPairByOrderId(int orderId) {
         String sql = "SELECT CURRENCY_PAIR.id, CURRENCY_PAIR.currency1_id, CURRENCY_PAIR.currency2_id, name, type," +
                 "CURRENCY_PAIR.market, " +
@@ -103,6 +82,7 @@ public class CurrencyDao {
         return jdbcTemplate.queryForObject(sql, namedParameters, currencyPairRowMapper);
     }
 
+    //+
     public CurrencyPairLimitDto findCurrencyPairLimitForRoleByPairAndType(Integer currencyPairId, Integer roleId, Integer orderTypeId) {
         String sql = "SELECT CURRENCY_PAIR.id AS currency_pair_id, CURRENCY_PAIR.name AS currency_pair_name, lim.min_rate, lim.max_rate, " +
                 "lim.min_amount, lim.max_amount " +
@@ -125,12 +105,14 @@ public class CurrencyDao {
         });
     }
 
+    //+
     public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
         String sql = "SELECT name FROM CURRENCY_PAIR WHERE hidden != 1 ORDER BY name ASC";
         return jdbcTemplate.query(sql, Collections.emptyMap(),
                 (rs, row) -> new CurrencyPairInfoItem(rs.getString("name")));
     }
 
+    //+
     public Optional<Integer> findOpenCurrencyPairIdByName(String pairName) {
         String sql = "SELECT id FROM CURRENCY_PAIR WHERE name = :pair_name AND hidden != 1";
         try {

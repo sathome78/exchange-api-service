@@ -19,6 +19,7 @@ public class ReferralUserGraphDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    //+
     public Integer getParent(final Integer child) {
         final String sql = "SELECT parent FROM REFERRAL_USER_GRAPH WHERE child = :child";
         try {

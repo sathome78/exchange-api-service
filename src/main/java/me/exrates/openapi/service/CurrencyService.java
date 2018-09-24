@@ -25,14 +25,7 @@ public class CurrencyService {
     @Autowired
     private UserService userService;
 
-    public Currency findByName(String name) {
-        return currencyDao.findByName(name);
-    }
-
-    public List<CurrencyPair> getAllCurrencyPairs(CurrencyPairType type) {
-        return currencyDao.getAllCurrencyPairs(type);
-    }
-
+    //+
     public CurrencyPair findCurrencyPairById(int currencyPairId) {
         try {
             return currencyDao.findCurrencyPairById(currencyPairId);
@@ -41,20 +34,24 @@ public class CurrencyService {
         }
     }
 
+    //+
     public CurrencyPairLimitDto findLimitForRoleByCurrencyPairAndType(Integer currencyPairId, OperationType operationType) {
         UserRole userRole = userService.getUserRoleFromSecurityContext();
         OrderType orderType = OrderType.convert(operationType.name());
         return currencyDao.findCurrencyPairLimitForRoleByPairAndType(currencyPairId, userRole.getRole(), orderType.getType());
     }
 
+    //+
     public CurrencyPair getCurrencyPairByName(String pairName) {
         return currencyDao.findCurrencyPairByName(pairName);
     }
 
+    //+
     public Integer findCurrencyPairIdByName(String pairName) {
         return currencyDao.findOpenCurrencyPairIdByName(pairName).orElseThrow(() -> new CurrencyPairNotFoundException(pairName));
     }
 
+    //+
     public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
         return currencyDao.findActiveCurrencyPairs();
     }

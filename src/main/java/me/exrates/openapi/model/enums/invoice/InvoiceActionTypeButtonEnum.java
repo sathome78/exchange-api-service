@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum InvoiceActionTypeButtonEnum {
+
     CONFIRM_USER_BUTTON {{
         getProperty().put("tableIdListOnly", new String[]{"inputoutput-table", "unconfirmed-refills-table"});
     }},

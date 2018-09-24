@@ -92,11 +92,13 @@ public class OpenApiPublicController {
         return formatCoinmarketData(orderService.getDailyCoinmarketData(currencyPairName));
     }
 
+    //+
     private void validateCurrencyPair(String currencyPairName) {
         currencyService.findCurrencyPairIdByName(currencyPairName);
     }
 
 
+    //+
     private List<TickerJsonDto> formatCoinmarketData(List<CoinmarketApiDto> data) {
         return data.stream().map(TickerJsonDto::new).collect(Collectors.toList());
     }

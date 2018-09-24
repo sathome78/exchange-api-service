@@ -25,6 +25,7 @@ public class CommissionDao {
     @Autowired
     NamedParameterJdbcTemplate jdbcTemplate;
 
+    //+
     public Commission getCommission(OperationType operationType, UserRole userRole) {
         final String sql = "SELECT COMMISSION.id, COMMISSION.operation_type, COMMISSION.date, COMMISSION.value " +
                 "FROM COMMISSION " +
@@ -35,6 +36,7 @@ public class CommissionDao {
         return jdbcTemplate.queryForObject(sql, params, commissionRowMapper);
     }
 
+    //+
     public Commission getDefaultCommission(OperationType operationType) {
         final String sql = "SELECT id, operation_type, date, value " +
                 "FROM COMMISSION " +

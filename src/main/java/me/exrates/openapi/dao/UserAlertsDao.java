@@ -32,14 +32,6 @@ public class UserAlertsDao {
         return alertDto;
     };
 
-    public List<AlertDto> getAlerts(boolean getOnlyEnabled) {
-        String sql = "SELECT SA.* FROM SERVICE_ALERTS SA ";
-        if (getOnlyEnabled) {
-            sql = sql.concat(" WHERE SA.enable = true ");
-        }
-        return jdbcTemplate.query(sql, new HashMap<>(), getWalletsForOrderCancelDtoMapper);
-    }
-
     public boolean updateAlert(AlertDto alertDto) {
         String sql = "UPDATE SERVICE_ALERTS SA SET SA.enable = :enable, " +
                 " SA.launch_date = :launch_date, SA.time_of_start = :time_of_start, SA.length = :length " +

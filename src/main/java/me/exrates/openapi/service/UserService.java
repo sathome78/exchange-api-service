@@ -39,22 +39,10 @@ public class UserService {
     @Autowired
     private MessageSource messageSource;
 
-    private final static List<String> LOCALES_LIST = new ArrayList<String>() {{
-        add("EN");
-        add("RU");
-        add("CN");
-        add("ID");
-        add("AR");
-    }};
-
     private final Set<String> USER_ROLES = Stream.of(UserRole.values()).map(UserRole::name).collect(Collectors.toSet());
     private final UserRole ROLE_DEFAULT_COMMISSION = UserRole.USER;
 
     private static final Logger LOGGER = LogManager.getLogger(UserService.class);
-
-    public List<String> getLocalesList() {
-        return LOCALES_LIST;
-    }
 
     /*
      * for checking if there are open tokens of concrete type for the user
@@ -63,10 +51,12 @@ public class UserService {
         return userDao.getTokenByUserAndType(user.getId(), tokenType);
     }
 
+    //+
     public int getIdByEmail(String email) {
         return userDao.getIdByEmail(email);
     }
 
+    //+
     public User getUserById(int id) {
         return userDao.getUserById(id);
     }
@@ -87,14 +77,17 @@ public class UserService {
         }
     }
 
+    //+
     public String getPreferedLang(int userId) {
         return userDao.getPreferredLang(userId);
     }
 
+    //+
     public String getPreferedLangByEmail(String email) {
         return userDao.getPreferredLangByEmail(email);
     }
 
+    //+
     public Locale getUserLocaleForMobile(String email) {
         String lang = getPreferedLangByEmail(email);
         //adaptation for locales available in mobile app
@@ -104,6 +97,7 @@ public class UserService {
         return new Locale(lang);
     }
 
+    //+
     public UserRole getUserRoleFromSecurityContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String grantedAuthority = authentication.getAuthorities().
@@ -114,20 +108,24 @@ public class UserService {
         return UserRole.valueOf(grantedAuthority);
     }
 
+    //+
     @Transactional(readOnly = true)
     public String getEmailById(Integer id) {
         return userDao.getEmailById(id);
     }
 
+    //+
     public UserRole getUserRoleFromDB(String email) {
         return userDao.getUserRoleByEmail(email);
     }
 
+    //+
     @Transactional
     public UserRole getUserRoleFromDB(Integer userId) {
         return userDao.getUserRoleById(userId);
     }
 
+    //+
     public String getUserEmailFromSecurityContext() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) {

@@ -51,6 +51,7 @@ public class UserDao {
         };
     }
 
+    //+
     public int getIdByEmail(String email) {
         String sql = "SELECT id FROM USER WHERE email = :email";
         Map<String, String> namedParameters = new HashMap<>();
@@ -62,6 +63,7 @@ public class UserDao {
         }
     }
 
+    //+
     public UserRole getUserRoleById(Integer id) {
         String sql = "select USER_ROLE.name as role_name from USER " +
                 "inner join USER_ROLE on USER.roleid = USER_ROLE.id where USER.id = :id ";
@@ -69,6 +71,7 @@ public class UserDao {
         return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, (rs, row) -> UserRole.valueOf(rs.getString("role_name")));
     }
 
+    //+
     public User getUserById(int id) {
         String sql = SELECT_USER + "WHERE USER.id = :id";
         Map<String, String> namedParameters = new HashMap<>();
@@ -98,6 +101,7 @@ public class UserDao {
         return result;
     }
 
+    //+
     public String getPreferredLang(int userId) {
         String sql = "SELECT preferred_lang FROM USER WHERE id = :id";
         Map<String, Integer> namedParameters = new HashMap<>();
@@ -109,6 +113,7 @@ public class UserDao {
         }
     }
 
+    //+
     public String getPreferredLangByEmail(String email) {
         String sql = "SELECT preferred_lang FROM USER WHERE email = :email";
         Map<String, String> namedParameters = new HashMap<>();
@@ -120,11 +125,13 @@ public class UserDao {
         }
     }
 
+    //+
     public String getEmailById(Integer id) {
         String sql = "SELECT email FROM USER WHERE id = :id";
         return namedParameterJdbcTemplate.queryForObject(sql, Collections.singletonMap("id", id), String.class);
     }
 
+    //+
     public UserRole getUserRoleByEmail(String email) {
         String sql = "select USER_ROLE.name as role_name from USER " +
                 "inner join USER_ROLE on USER.roleid = USER_ROLE.id where USER.email = :email ";

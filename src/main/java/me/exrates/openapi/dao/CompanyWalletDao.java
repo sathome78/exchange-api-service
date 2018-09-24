@@ -17,6 +17,7 @@ public class CompanyWalletDao {
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
+    //+
     public CompanyWallet findByCurrencyId(Currency currency) {
         final String sql = "SELECT * FROM  COMPANY_WALLET WHERE currency_id = :currencyId";
         final Map<String, Integer> params = new HashMap<String, Integer>() {
@@ -38,6 +39,7 @@ public class CompanyWalletDao {
         }
     }
 
+    //+
     public boolean update(CompanyWallet companyWallet) {
         final String sql = "UPDATE COMPANY_WALLET SET balance = :balance, commission_balance = :commissionBalance where id = :id";
         final Map<String, Object> params = new HashMap<String, Object>() {
@@ -50,6 +52,7 @@ public class CompanyWalletDao {
         return jdbcTemplate.update(sql, params) > 0;
     }
 
+    //+
     public boolean substarctCommissionBalanceById(Integer id, BigDecimal amount) {
         String sql = "UPDATE COMPANY_WALLET " +
                 " SET commission_balance = commission_balance - :amount" +

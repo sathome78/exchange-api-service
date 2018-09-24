@@ -285,6 +285,7 @@ public class TransactionDao {
         return jdbcTemplate.update(sql, params) > 0;
     }
 
+    //+
     public boolean setStatusById(Integer trasactionId, Integer statusId) {
         String sql = "UPDATE TRANSACTION " +
                 " SET status_id = :status_id" +
@@ -296,6 +297,7 @@ public class TransactionDao {
         return jdbcTemplate.update(sql, params) > 0;
     }
 
+    //+
     public List<Transaction> getPayedRefTransactionsByOrderId(int orderId) {
         String sql = " SELECT TRANSACTION.*, CURRENCY.*, COMMISSION.*, COMPANY_WALLET.*, WALLET.* FROM TRANSACTION " +
                 "   JOIN REFERRAL_TRANSACTION RTX ON RTX.ID = TRANSACTION.source_id AND TRANSACTION.source_type = 'REFERRAL' " +
