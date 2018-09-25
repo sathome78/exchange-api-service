@@ -9,8 +9,6 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.E
 import org.springframework.security.oauth2.config.annotation.web.configuration.ResourceServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
-import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.access.AccessDeniedHandler;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -31,14 +29,14 @@ public class ResourcesServerConfiguration extends ResourceServerConfigurerAdapte
     @Override
     public void configure(HttpSecurity http) throws Exception {
         http
-                .antMatcher("/openapi/v1/**")
+                .antMatcher("/**")
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers("/openapi/v1/public/**").anonymous()
-                .antMatchers("/openapi/v1/user/**").hasRole("TRADE")
-                .antMatchers("/openapi/v1/orders/**").hasRole("TRADE")
+                .antMatchers("/public/**").anonymous()
+                .antMatchers("/user/**").hasAuthority("TRADE")
+                .antMatchers("/orders/**").hasAuthority("TRADE")
                 .and()
                 .exceptionHandling()
                 .authenticationEntryPoint((request, response, authException) -> response.setStatus(HttpServletResponse.SC_UNAUTHORIZED))

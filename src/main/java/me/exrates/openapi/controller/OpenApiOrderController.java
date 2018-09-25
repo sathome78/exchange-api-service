@@ -51,11 +51,15 @@ import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 @RequestMapping("/orders")
 public class OpenApiOrderController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
+    private final UserService userService;
 
     @Autowired
-    private UserService userService;
+    public OpenApiOrderController(OrderService orderService,
+                                  UserService userService) {
+        this.orderService = orderService;
+        this.userService = userService;
+    }
 
     /**
      * @api {post} /openapi/v1/orders/create Create order
