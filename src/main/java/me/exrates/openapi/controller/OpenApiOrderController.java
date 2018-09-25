@@ -48,7 +48,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 
 @RestController
-@RequestMapping("/openapi/v1/orders")
+@RequestMapping("/orders")
 public class OpenApiOrderController {
 
     @Autowired
