@@ -6,9 +6,12 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Comparator;
 
+/**
+ * Created by OLEG on 06.04.2017.
+ */
 public enum OrderType {
-
     SELL(1, OperationType.SELL, Comparator.naturalOrder()),
+
     BUY(2, OperationType.BUY, Comparator.reverseOrder());
 
     private int type;
@@ -45,9 +48,10 @@ public enum OrderType {
     }
 
     public static OrderType fromOperationType(OperationType operationType) {
-        return Arrays.stream(OrderType.values()).filter(item -> item.operationType == operationType)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException(String.format("Operation type %s not convertible to order type",
-                        operationType.name())));
+        return Arrays.stream(OrderType.values())
+                .filter(item -> item.operationType == operationType)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Operation type %s not convertible to order type", operationType.name())));
     }
 
     @Override

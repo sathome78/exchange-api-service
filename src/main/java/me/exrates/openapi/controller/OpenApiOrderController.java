@@ -1,17 +1,18 @@
 package me.exrates.openapi.controller;
 
+import me.exrates.openapi.controller.advice.OpenApiError;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
 import me.exrates.openapi.exceptions.OrderNotFoundException;
-import me.exrates.openapi.model.enums.ErrorCode;
 import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
-import me.exrates.openapi.controller.advice.OpenApiError;
 import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
 import me.exrates.openapi.model.dto.OrderCreationResultDto;
 import me.exrates.openapi.model.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.model.dto.openAPI.OrderCreationResultOpenApiDto;
 import me.exrates.openapi.model.dto.openAPI.OrderParamsDto;
+import me.exrates.openapi.model.enums.ErrorCode;
 import me.exrates.openapi.model.enums.OrderType;
+import me.exrates.openapi.model.web.BaseResponse;
 import me.exrates.openapi.service.OrderService;
 import me.exrates.openapi.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -41,7 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static me.exrates.openapi.utils.OpenApiUtils.formatCurrencyPairNameParam;
+import static me.exrates.openapi.utils.OpenApiUtils.convertCurrencyPairName;
 import static me.exrates.openapi.utils.RestApiUtils.retrieveParamFormBody;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -84,7 +86,7 @@ public class OpenApiOrderController {
     @RequestMapping(value = "/create", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto) {
-        String currencyPairName = formatCurrencyPairNameParam(orderParamsDto.getCurrencyPair());
+        String currencyPairName = convertCurrencyPairName(orderParamsDto.getCurrencyPair());
         String userEmail = userService.getUserEmailFromSecurityContext();
         OrderCreationResultDto resultDto = orderService.prepareAndCreateOrderRest(currencyPairName, orderParamsDto.getOrderType().getOperationType(),
                 orderParamsDto.getAmount(), orderParamsDto.getPrice(), userEmail);
@@ -92,12 +94,12 @@ public class OpenApiOrderController {
     }
 
     /**
-     * @api {get} /openapi/v1/orders/cancel Cancel order
-     * @apiName Canceles order
+     * @api {post} /openapi/v1/orders/cancel Cancel order by order id
+     * @apiName Cancel order by order id
      * @apiGroup Order API
      * @apiUse APIHeaders
      * @apiPermission NonPublicAuth
-     * @apiDescription Canceles order
+     * @apiDescription Cancel order by order id
      * @apiParam {String} order_id Id of order to be cancelled
      * @apiParamExample Request Example:
      * /openapi/v1/orders/cancel
@@ -105,14 +107,50 @@ public class OpenApiOrderController {
      * @apiSuccess {Map} success Cancellation result
      */
     @PreAuthorize("hasAuthority('TRADE')")
-    @RequestMapping(value = "/cancel", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public Map<String, Boolean> cancelOrder(@RequestBody Map<String, String> params) {
-        String orderIdString = retrieveParamFormBody(params, "order_id", true);
-        Integer orderId = Integer.parseInt(orderIdString);
-        String userEmail = userService.getUserEmailFromSecurityContext();
-        orderService.cancelOrder(orderId, userEmail);
-        return Collections.singletonMap("success", true);
+    @PostMapping(value = "/cancel", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrder(@RequestBody Map<String, String> params) {
+        final Integer orderId = Integer.parseInt(retrieveParamFormBody(params, "order_id", true));
+
+        orderService.cancelOrder(orderId);
+        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
+    }
+
+    /**
+     * @api {post} /openapi/v1/orders/cancel/{currency_pair}/all Cancel open orders by currency pair
+     * @apiName Cancel open orders by currency pair
+     * @apiGroup Order API
+     * @apiUse APIHeaders
+     * @apiPermission NonPublicAuth
+     * @apiDescription Cancel open orders by currency pair
+     * @apiParamExample Request Example:
+     * /openapi/v1/orders/cancel/btc_usd/all
+     * @apiSuccess {Map} success Cancellation result
+     */
+    @PreAuthorize("hasAuthority('TRADE')")
+    @PostMapping(value = "/cancel/{currency_pair}/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrdersByCurrencyPair(@PathVariable("currency_pair") String currencyPair) {
+        final String transformedCurrencyPair = convertCurrencyPairName(currencyPair);
+
+        orderService.cancelOpenOrdersByCurrencyPair(transformedCurrencyPair);
+        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
+    }
+
+    /**
+     * @api {post} /openapi/v1/orders/cancel/all Cancel all open orders
+     * @apiName Cancel all open orders
+     * @apiGroup Order API
+     * @apiUse APIHeaders
+     * @apiPermission NonPublicAuth
+     * @apiDescription Cancel all open orders
+     * @apiParamExample Request Example:
+     * /openapi/v1/orders/cancel/all
+     * @apiSuccess {Map} success Cancellation result
+     */
+    @PreAuthorize("hasAuthority('TRADE')")
+    @PostMapping(value = "/cancel/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelAllOrders() {
+        orderService.cancelAllOpenOrders();
+        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
     }
 
     /**
@@ -160,10 +198,9 @@ public class OpenApiOrderController {
     @GetMapping(value = "/open/{order_type}", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public List<OpenOrderDto> openOrders(@PathVariable("order_type") OrderType orderType,
                                          @RequestParam("currency_pair") String currencyPair) {
-        String currencyPairName = formatCurrencyPairNameParam(currencyPair);
+        String currencyPairName = convertCurrencyPairName(currencyPair);
         return orderService.getOpenOrders(currencyPairName, orderType);
     }
-
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(value = AccessDeniedException.class)

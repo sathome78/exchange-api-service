@@ -1,6 +1,5 @@
 package me.exrates.openapi.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
 import me.exrates.openapi.component.TransactionDescription;
 import me.exrates.openapi.dao.CommissionDao;
@@ -26,13 +25,16 @@ import me.exrates.openapi.model.Transaction;
 import me.exrates.openapi.model.User;
 import me.exrates.openapi.model.UserRoleSettings;
 import me.exrates.openapi.model.Wallet;
-import me.exrates.openapi.model.chart.ChartTimeFrame;
+import me.exrates.openapi.model.dto.CandleChartItemDto;
 import me.exrates.openapi.model.dto.CoinmarketApiDto;
 import me.exrates.openapi.model.dto.CurrencyPairLimitDto;
 import me.exrates.openapi.model.dto.OrderCreateDto;
 import me.exrates.openapi.model.dto.OrderCreationResultDto;
 import me.exrates.openapi.model.dto.OrderDetailDto;
 import me.exrates.openapi.model.dto.OrderValidationDto;
+import me.exrates.openapi.model.dto.TradeHistoryDto;
+import me.exrates.openapi.model.dto.TransactionDto;
+import me.exrates.openapi.model.dto.UserTradeHistoryDto;
 import me.exrates.openapi.model.dto.WalletsAndCommissionsForOrderCreationDto;
 import me.exrates.openapi.model.dto.WalletsForOrderAcceptionDto;
 import me.exrates.openapi.model.dto.WalletsForOrderCancelDto;
@@ -40,17 +42,13 @@ import me.exrates.openapi.model.dto.mobileApiDto.OrderCreationParamsDto;
 import me.exrates.openapi.model.dto.mobileApiDto.dashboard.CommissionsDto;
 import me.exrates.openapi.model.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.model.dto.openAPI.OrderBookItem;
-import me.exrates.openapi.model.dto.openAPI.OrderHistoryItem;
 import me.exrates.openapi.model.dto.openAPI.UserOrdersDto;
 import me.exrates.openapi.model.enums.ActionType;
-import me.exrates.openapi.model.enums.ChartPeriodsEnum;
-import me.exrates.openapi.model.enums.ChartTimeFramesEnum;
 import me.exrates.openapi.model.enums.CurrencyPairType;
 import me.exrates.openapi.model.enums.OperationType;
 import me.exrates.openapi.model.enums.OrderActionEnum;
 import me.exrates.openapi.model.enums.OrderBaseType;
 import me.exrates.openapi.model.enums.OrderDeleteStatus;
-import me.exrates.openapi.model.enums.OrderHistoryPeriod;
 import me.exrates.openapi.model.enums.OrderStatus;
 import me.exrates.openapi.model.enums.OrderType;
 import me.exrates.openapi.model.enums.ReferralTransactionStatusEnum;
@@ -75,10 +73,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Null;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -91,6 +92,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.toList;
 import static me.exrates.openapi.model.enums.OrderActionEnum.ACCEPT;
 import static me.exrates.openapi.model.enums.OrderActionEnum.ACCEPTED;
@@ -796,19 +798,46 @@ public class OrderService {
 
     //+
     @Transactional
-    public void cancelOrder(Integer orderId, String currentUserEmail) {
+    public void cancelOrder(Integer orderId) {
         ExOrder exOrder = getOrderById(orderId);
-        String creatorEmail = userService.getEmailById(exOrder.getUserId());
-        if (!currentUserEmail.equals(creatorEmail)) {
-            throw new IncorrectCurrentUserException(String.format("creator %s, current user %s", creatorEmail, currentUserEmail));
-        }
-        Locale locale = userService.getUserLocaleForMobile(currentUserEmail);
-        cancellOrder(exOrder, locale);
+
+        cancelOrder(exOrder);
     }
 
-    //+
+    @Transactional
+    public void cancelOpenOrdersByCurrencyPair(String currencyPair) {
+        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
+
+        List<ExOrder> openedOrders = orderDao.getOpenedOrdersByCurrencyPair(userId, currencyPair);
+
+        openedOrders.forEach(this::cancelOrder);
+    }
+
+    @Transactional
+    public void cancelAllOpenOrders() {
+        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
+
+        List<ExOrder> openedOrders = orderDao.getAllOpenedOrdersByUserId(userId);
+
+        openedOrders.forEach(this::cancelOrder);
+    }
+
+    private boolean cancelOrder(ExOrder exOrder) {
+        return cancelOrder(exOrder, null);
+    }
+
     @Transactional(rollbackFor = {Exception.class})
-    public boolean cancellOrder(ExOrder exOrder, Locale locale) {
+    public boolean cancelOrder(ExOrder exOrder, Locale locale) {
+        if (isNull(locale)) {
+            final String currentUserEmail = getUserEmailFromSecurityContext();
+
+            final String creatorEmail = userService.getEmailById(exOrder.getUserId());
+            if (!currentUserEmail.equals(creatorEmail)) {
+                throw new IncorrectCurrentUserException(String.format("Creator email: %s and currentUser email: %s are different", creatorEmail, currentUserEmail));
+            }
+
+            locale = userService.getUserLocaleForMobile(currentUserEmail);
+        }
         try {
             WalletsForOrderCancelDto walletsForOrderCancelDto = walletService.getWalletForOrderByOrderIdAndOperationTypeAndBlock(
                     exOrder.getId(),
@@ -832,6 +861,10 @@ public class OrderService {
             logger.error("Error while cancelling order " + exOrder.getId() + " , " + e.getLocalizedMessage());
             throw e;
         }
+    }
+
+    private String getUserEmailFromSecurityContext() {
+        return userService.getUserEmailFromSecurityContext();
     }
 
     //+
@@ -1011,11 +1044,18 @@ public class OrderService {
         }
     }
 
-    //+
-    public List<OrderHistoryItem> getRecentOrderHistory(String currencyPairName, String period) {
-        Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
-        OrderHistoryPeriod historyPeriod = OrderHistoryPeriod.fromLowerCaseString(period);
-        return orderDao.getRecentOrderHistory(currencyPairId, historyPeriod.getInterval());
+    @Transactional(readOnly = true)
+    public List<TradeHistoryDto> getTradeHistory(String currencyPairName,
+                                                 @NotNull LocalDate fromDate,
+                                                 @NotNull LocalDate toDate,
+                                                 @Null Integer limit) {
+        final Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
+
+        return orderDao.getTradeHistory(
+                currencyPairId,
+                LocalDateTime.of(fromDate, LocalTime.MIN),
+                LocalDateTime.of(toDate, LocalTime.MAX),
+                limit);
     }
 
     //+
@@ -1040,6 +1080,59 @@ public class OrderService {
     public List<OpenOrderDto> getOpenOrders(String currencyPairName, OrderType orderType) {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
         return orderDao.getOpenOrders(currencyPairId, orderType);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserOrdersDto> getUserClosedOrders(@Null String currencyPairName,
+                                                   @Null Integer limit,
+                                                   @Null Integer offset) {
+        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
+
+        Integer currencyPairId = isNull(currencyPairName) ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
+        int queryLimit = limit == null ? ORDERS_QUERY_DEFAULT_LIMIT : limit;
+        int queryOffset = offset == null ? 0 : offset;
+
+        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CLOSED, queryLimit, queryOffset);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserOrdersDto> getUserCanceledOrders(@Null String currencyPairName,
+                                                     @Null Integer limit,
+                                                     @Null Integer offset) {
+        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
+
+        Integer currencyPairId = isNull(currencyPairName) ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
+        int queryLimit = limit == null ? ORDERS_QUERY_DEFAULT_LIMIT : limit;
+        int queryOffset = offset == null ? 0 : offset;
+
+        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CANCELLED, queryLimit, queryOffset);
+    }
+
+    public List<CandleChartItemDto> getDataForCandleChart(CurrencyPair currencyPair, BackDealInterval interval) {
+        return orderDao.getDataForCandleChart(currencyPair, interval);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(String currencyPairName,
+                                                                       @NotNull LocalDate fromDate,
+                                                                       @NotNull LocalDate toDate,
+                                                                       @Null Integer limit) {
+        final Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
+        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
+
+        return orderDao.getUserTradeHistoryByCurrencyPair(
+                userId,
+                currencyPairId,
+                LocalDateTime.of(fromDate, LocalTime.MIN),
+                LocalDateTime.of(toDate, LocalTime.MAX),
+                limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionDto> getOrderTransactions(Integer orderId) {
+        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
+
+        return orderDao.getOrderTransactions(userId, orderId);
     }
 }
 

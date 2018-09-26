@@ -3,16 +3,18 @@ package me.exrates.openapi.model.enums;
 import me.exrates.openapi.exceptions.model.UnsupportedOperationTypeException;
 import org.springframework.context.MessageSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static me.exrates.openapi.model.enums.TransactionSourceType.REFILL;
 import static me.exrates.openapi.model.enums.TransactionSourceType.WITHDRAW;
 
 public enum OperationType {
-
     INPUT(1, REFILL) {{
         /*Addition of three digits is required for IDR input*/
         currencyForAddRandomValueToAmount.put(10, new AdditionalRandomAmountParam() {{
@@ -37,7 +39,7 @@ public enum OperationType {
 
         @Override
         public boolean equals(Object currencyName) {
-            return this.currencyName.equals(currencyName);
+            return this.currencyName.equals((String) currencyName);
         }
 
         @Override
@@ -61,6 +63,23 @@ public enum OperationType {
         this.transactionSourceType = transactionSourceType;
     }
 
+    public Optional<AdditionalRandomAmountParam> getRandomAmountParam(Integer currencyId) {
+        return Optional.ofNullable(currencyForAddRandomValueToAmount.get(currencyId));
+    }
+
+    public Optional<AdditionalRandomAmountParam> getRandomAmountParam(String currencyName) {
+        return currencyForAddRandomValueToAmount.values().stream()
+                .filter(e -> e.equals(currencyName))
+                .findAny();
+    }
+
+    public static List<OperationType> getInputOutputOperationsList() {
+        return new ArrayList<OperationType>() {{
+            add(INPUT);
+            add(OUTPUT);
+        }};
+    }
+
     public static OperationType getOpposite(OperationType ot) {
         switch (ot) {
             case INPUT:
@@ -80,11 +99,22 @@ public enum OperationType {
         return type;
     }
 
+    public TransactionSourceType getTransactionSourceType() {
+        return transactionSourceType;
+    }
+
     public static OperationType convert(int id) {
-        return Arrays.stream(OperationType.class.getEnumConstants())
-                .filter(e -> e.type == id)
+        return Arrays.stream(OperationType.values())
+                .filter(operationType -> operationType.type == id)
                 .findAny()
                 .orElseThrow(() -> new UnsupportedOperationTypeException(id));
+    }
+
+    public static OperationType of(String value) {
+        return Arrays.stream(OperationType.values())
+                .filter(operationType -> operationType.name().equals(value))
+                .findAny()
+                .orElseThrow(() -> new UnsupportedOperationTypeException("Not supported booking status: " + value));
     }
 
     public String toString(MessageSource messageSource, Locale locale) {
