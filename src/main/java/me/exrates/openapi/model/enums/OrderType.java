@@ -6,9 +6,6 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Comparator;
 
-/**
- * Created by OLEG on 06.04.2017.
- */
 public enum OrderType {
     SELL(1, OperationType.SELL, Comparator.naturalOrder()),
 

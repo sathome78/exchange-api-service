@@ -3,13 +3,11 @@ package me.exrates.openapi.controller;
 import me.exrates.openapi.controller.advice.OpenApiError;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
 import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
-import me.exrates.openapi.model.CurrencyPair;
 import me.exrates.openapi.model.dto.CandleChartItemReducedDto;
-import me.exrates.openapi.model.dto.CoinmarketApiDto;
 import me.exrates.openapi.model.dto.TradeHistoryDto;
 import me.exrates.openapi.model.dto.openAPI.CurrencyPairInfoItem;
 import me.exrates.openapi.model.dto.openAPI.OrderBookItem;
-import me.exrates.openapi.model.dto.openAPI.TickerJsonDto;
+import me.exrates.openapi.model.dto.openAPI.TickerDto;
 import me.exrates.openapi.model.enums.ErrorCode;
 import me.exrates.openapi.model.enums.IntervalType;
 import me.exrates.openapi.model.enums.OrderType;
@@ -39,7 +37,7 @@ import java.util.Map;
 
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.toList;
-import static me.exrates.openapi.utils.OpenApiUtils.convertCurrencyPairName;
+import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
@@ -49,39 +47,42 @@ import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 @RequestMapping("/public")
 public class OpenApiPublicController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
+    private final CurrencyService currencyService;
 
     @Autowired
-    private CurrencyService currencyService;
+    public OpenApiPublicController(OrderService orderService,
+                                   CurrencyService currencyService) {
+        this.orderService = orderService;
+        this.currencyService = currencyService;
+    }
 
     /**
-     * @api {get} /openapi/v1/public/ticker?currency_pair Ticker Info
-     * @apiName Ticker
+     * @api {get} /openapi/v1/public/ticker/{currency_1}/{currency_2} Ticker Info
+     * @apiName Ticker info
      * @apiGroup Public API
      * @apiPermission user
-     * @apiDescription Returns array of ticker info objects
-     * @apiParam {String} currency_pair Currency pair name (optional)
+     * @apiDescription Returns array with one ticker object element
      * @apiParamExample Request Example:
-     * /openapi/v1/public/ticker?currency_pair=btc_usd
-     * @apiSuccess {Array} Ticker Infos result
-     * @apiSuccess {Object} data Container object
-     * @apiSuccess {Integer} data.id Currency pair id
-     * @apiSuccess {String} data.name Currency pair name
-     * @apiSuccess {Number} data.last Price of last accepted order
-     * @apiSuccess {Number} data.lowestAsk 	Lowest price of opened sell order
-     * @apiSuccess {Number} data.highestBid Highest price of opened buy order
-     * @apiSuccess {Number} data.percentChange Change for period, %
-     * @apiSuccess {Number} data.baseVolume Volume of trade in base currency
-     * @apiSuccess {Number} data.quoteVolume Volume of trade in quote currency
-     * @apiSuccess {Number} data.high Highest price of accepted orders
-     * @apiSuccess {Number} data.low Lowest price of accepted orders
+     * /openapi/v1/public/ticker/btc/usd
+     * @apiSuccess {Array} Ticker Info result
+     * @apiSuccess {Object}     data                    Container object
+     * @apiSuccess {Integer}    data.id                 Currency pair id
+     * @apiSuccess {String}     data.name               Currency pair name
+     * @apiSuccess {Number}     data.last               Price of last accepted order
+     * @apiSuccess {Number}     data.lowest_ask 	    Lowest price of opened sell order
+     * @apiSuccess {Number}     data.highest_bid        Highest price of opened buy order
+     * @apiSuccess {Number}     data.percent_change     Change for period, %
+     * @apiSuccess {Number}     data.base_volume        Volume of trade in base currency
+     * @apiSuccess {Number}     data.quote_volume       Volume of trade in quote currency
+     * @apiSuccess {Number}     data.high               Highest price of accepted orders
+     * @apiSuccess {Number}     data.low                Lowest price of accepted orders
      * * @apiSuccessExample {json} Success-Response:
      * HTTP/1.1 200 OK
      * [
      * {
-     * "id": 123,
-     * "name": "currencyPairName",
+     * "id": 1,
+     * "name": "btc/usd",
      * "last": 12341,
      * "lowestAsk": 12342,
      * "highestBid":  12343
@@ -93,70 +94,130 @@ public class OpenApiPublicController {
      * }
      * ]
      */
-    @RequestMapping("/ticker")
-    public List<TickerJsonDto> getDailyTicker(@RequestParam(value = "currency_pair", required = false) String currencyPair) {
-        String currencyPairName = null;
-        if (currencyPair != null) {
-            currencyPairName = convertCurrencyPairName(currencyPair);
-            validateCurrencyPair(currencyPairName);
-        }
-        return formatCoinmarketData(orderService.getDailyCoinmarketData(currencyPairName));
-    }
+    @GetMapping(value = "/ticker/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<List<TickerDto>>> getTicker(@PathVariable("currency_1") String currency1,
+                                                                   @PathVariable("currency_2") String currency2) {
+        String pairName = convert(currency1, currency2);
 
-    private void validateCurrencyPair(String currencyPairName) {
-        currencyService.findCurrencyPairIdByName(currencyPairName);
-    }
+        List<TickerDto> result = orderService.getDailyCoinmarketData(pairName).stream()
+                .map(TickerDto::new)
+                .collect(toList());
 
-
-    private List<TickerJsonDto> formatCoinmarketData(List<CoinmarketApiDto> data) {
-        return data.stream().map(TickerJsonDto::new).collect(toList());
+        return ResponseEntity.ok(BaseResponse.success(result));
     }
 
     /**
-     * @api {get} /openapi/v1/public/orderbook/:currency_pair?order_type Order Book
-     * @apiName Order Book
+     * @api {get} /openapi/v1/public/tickers Tickers Info
+     * @apiName Tickers info
+     * @apiGroup Public API
+     * @apiPermission user
+     * @apiDescription Returns array with tickers object elements
+     * @apiParamExample Request Example:
+     * /openapi/v1/public/tickers
+     * @apiSuccess {Array} Ticker Info result
+     * @apiSuccess {Object}     data                    Container object
+     * @apiSuccess {Integer}    data.id                 Currency pair id
+     * @apiSuccess {String}     data.name               Currency pair name
+     * @apiSuccess {Number}     data.last               Price of last accepted order
+     * @apiSuccess {Number}     data.lowest_ask 	    Lowest price of opened sell order
+     * @apiSuccess {Number}     data.highest_bid        Highest price of opened buy order
+     * @apiSuccess {Number}     data.percent_change     Change for period, %
+     * @apiSuccess {Number}     data.base_volume        Volume of trade in base currency
+     * @apiSuccess {Number}     data.quote_volume       Volume of trade in quote currency
+     * @apiSuccess {Number}     data.high               Highest price of accepted orders
+     * @apiSuccess {Number}     data.low                Lowest price of accepted orders
+     * * @apiSuccessExample {json} Success-Response:
+     * HTTP/1.1 200 OK
+     * [
+     * {
+     * "id": 1,
+     * "name": "btc/usd",
+     * "last": 12341,
+     * "lowestAsk": 12342,
+     * "highestBid":  12343
+     * "percentChange":  1
+     * "baseVolume": 10
+     * "quoteVolume": 11
+     * "high": 10
+     * "low": 1
+     * },
+     * {
+     * "id": 2,
+     * "name": "eth/usd",
+     * "last": 12341,
+     * "lowestAsk": 12342,
+     * "highestBid":  12343
+     * "percentChange":  1
+     * "baseVolume": 10
+     * "quoteVolume": 11
+     * "high": 10
+     * "low": 1
+     * }
+     * ]
+     */
+    @GetMapping(value = "/tickers", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<List<TickerDto>>> getTickers() {
+        List<TickerDto> result = orderService.getDailyCoinmarketData(null).stream()
+                .map(TickerDto::new)
+                .collect(toList());
+
+        return ResponseEntity.ok(BaseResponse.success(result));
+    }
+
+    /**
+     * @api {get} /openapi/v1/public/order_book/{currency_1}/{currency_2}?order_type&limit Order Book Info
+     * @apiName Order Book Info
      * @apiGroup Public API
      * @apiPermission user
      * @apiDescription Books Order
      * @apiParam {String} order_type Order type (BUY or SELL) (optional)
+     * @apiParam {Integer} limit limit number of entries (allowed values: limit could not be equals or be less then zero, default value: 50) (optional)
      * @apiParamExample Request Example:
-     * /openapi/v1/public/orderbook/btc_usd/?order_type=SELL
-     * @apiSuccess {Map} Object with SELL and BUY fields, each containing array of open orders info objects
-     * (sorted by price - SELL ascending, BUY descending).
-     * amount -	order amount in base currency
-     * rate	- exchange rate
+     * /openapi/v1/public/order_book/btc/usd?order_type=SELL&limit=20
+     * @apiSuccess {Map} Object with SELL and BUY fields, each containing array of open orders info objects (sorted by price - SELL ascending, BUY descending).
+     * @apiSuccess {Object}     data                    Container object
+     * @apiSuccess {Number}     data.amount             Order amount in base currency
+     * @apiSuccess {Number}     data.rate               Exchange rate
      */
-    @RequestMapping("/orderbook/{currency_pair}")
-    public Map<OrderType, List<OrderBookItem>> getOrderBook(@PathVariable(value = "currency_pair") String currencyPair,
-                                                            @RequestParam(value = "order_type", required = false) OrderType orderType) {
-        String currencyPairName = convertCurrencyPairName(currencyPair);
-        return orderService.getOrderBook(currencyPairName, orderType);
+    @GetMapping(value = "/order_book/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<Map<OrderType, List<OrderBookItem>>>> getOrderBook(@PathVariable("currency_1") String currency1,
+                                                                                          @PathVariable("currency_2") String currency2,
+                                                                                          @RequestParam(value = "order_type", required = false) OrderType orderType,
+                                                                                          @RequestParam(required = false, defaultValue = "50") Integer limit) {
+        if (nonNull(limit) && limit <= 0) {
+            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
+        }
+
+        String pairName = convert(currency1, currency2);
+
+        return ResponseEntity.ok(BaseResponse.success(orderService.getOrderBook(pairName, orderType, limit)));
     }
 
     /**
-     * @api {get} /openapi/v1/public/history/{currency_pair}?from_date&to_date&limit Trade History
-     * @apiName Trade History
+     * @api {get} /openapi/v1/public/history/{currency_1}/{currency_2}?from_date&to_date&limit Trade History Info
+     * @apiName Trade History Info
      * @apiGroup Public API
      * @apiPermission user
-     * @apiDescription Provides collection of trade info objects
-     * @apiParam {LocalDate} from_date start date of search (date format: yyyy-MM-dd)
-     * @apiParam {LocalDate} to_date end date of search (date format: yyyy-MM-dd)
-     * @apiParam {Integer} limit limit number of entries (allowed values: limit could not be equals or be less then zero, default value: 50) (optional)
+     * @apiDescription Returns array of trade info objects
+     * @apiParam {LocalDate}    from_date   start date of search (date format: yyyy-MM-dd)
+     * @apiParam {LocalDate}    to_date     end date of search (date format: yyyy-MM-dd)
+     * @apiParam {Integer}      limit       limit number of entries (allowed values: limit could not be equals or be less then zero, default value: 50) (optional)
      * @apiParamExample Request Example:
-     * openapi/v1/public/history/btc_usd?from_date=2018-09-01&to_date=2018-09-05&limit=20
+     * openapi/v1/public/history/btc/usd?from_date=2018-09-01&to_date=2018-09-05&limit=20
      * @apiSuccess {Array} Array of trade info objects
-     * @apiSuccess {Object} data Container object
-     * @apiSuccess {Integer} data.order_id Order id
-     * @apiSuccess {String} data.date_acceptance Order acceptance date
-     * @apiSuccess {String} data.date_creation Order creation date
-     * @apiSuccess {Number} data.amount Order amount in base currency
-     * @apiSuccess {Number} data.price Exchange rate
-     * @apiSuccess {Number} data.total Total sum
-     * @apiSuccess {Number} data.commission commission
-     * @apiSuccess {String} data.order_type Order type (BUY or SELL)
+     * @apiSuccess {Object}     data                    Container object
+     * @apiSuccess {Integer}    data.order_id           Order id
+     * @apiSuccess {String}     data.date_acceptance    Order acceptance date
+     * @apiSuccess {String}     data.date_creation      Order creation date
+     * @apiSuccess {Number}     data.amount             Order amount in base currency
+     * @apiSuccess {Number}     data.price              Exchange rate
+     * @apiSuccess {Number}     data.total              Total sum
+     * @apiSuccess {Number}     data.commission         Commission
+     * @apiSuccess {String}     data.order_type         Order type (BUY or SELL)
      */
-    @GetMapping(value = "/history/{currency_pair}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<TradeHistoryDto>>> getTradeHistory(@PathVariable(value = "currency_pair") String currencyPair,
+    @GetMapping(value = "/history/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<List<TradeHistoryDto>>> getTradeHistory(@PathVariable("currency_1") String currency1,
+                                                                               @PathVariable("currency_2") String currency2,
                                                                                @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
                                                                                @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
                                                                                @RequestParam(required = false, defaultValue = "50") Integer limit) {
@@ -167,31 +228,31 @@ public class OpenApiPublicController {
             return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
         }
 
-        final String transformedCurrencyPair = convertCurrencyPairName(currencyPair);
+        String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getTradeHistory(transformedCurrencyPair, fromDate, toDate, limit)));
+        return ResponseEntity.ok(BaseResponse.success(orderService.getTradeHistory(pairName, fromDate, toDate, limit)));
     }
 
     /**
-     * @api {get} /openapi/v1/public/currency_pairs Currency Pairs
-     * @apiName Currency Pairs
+     * @api {get} /openapi/v1/public/{currency_pairs} Currency Pairs Info
+     * @apiName Currency Pairs Info
      * @apiGroup Public API
      * @apiPermission user
-     * @apiDescription Provides collection of currency pairs
+     * @apiDescription Provides array of currency pairs
      * @apiParamExample Request Example:
      * openapi/v1/public/currency_pairs
-     * @apiSuccess {Array} Array of currency pairs
-     * @apiSuccess {Object} data Container object
-     * @apiSuccess {String} data.name Currency pair name
-     * @apiSuccess {String} data.url_symbol URL symbol (name to be passed as URL parameter or path variable)
+     * @apiSuccess {Array}  Array of currency pairs
+     * @apiSuccess {Object}  data             Container object
+     * @apiSuccess {String}  data.name        Currency pair name
+     * @apiSuccess {String}  data.url_symbol  URL symbol (name to be passed as URL parameter or path variable)
      */
-    @RequestMapping("/currency_pairs")
-    public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
-        return currencyService.findActiveCurrencyPairs();
+    @GetMapping(value = "/currency_pairs", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<List<CurrencyPairInfoItem>>> findActiveCurrencyPairs() {
+        return ResponseEntity.ok(BaseResponse.success(currencyService.findActiveCurrencyPairs()));
     }
 
     /**
-     * @api {get} /openapi/v1/public/{currency_pair}/candle_chart?interval_type&interval_value Data for candle chart
+     * @api {get} /openapi/v1/public/candle_chart/{currency_1}/{currency_2}?interval_type&interval_value Data for candle chart
      * @apiName Data for candle chart
      * @apiGroup Public API
      * @apiPermission user
@@ -199,18 +260,16 @@ public class OpenApiPublicController {
      * @apiParam {String} interval_type type of interval (valid values: "HOUR", "DAY", "MONTH", "YEAR")
      * @apiParam {Integer} interval_value value of interval
      * @apiParamExample Request Example:
-     * /openapi/v1/public/btc_usd/candle_chart?interval_type=DAY&interval_value=7
+     * /openapi/v1/public/candle_chart/btc/usd?interval_type=DAY&interval_value=7
      * @apiSuccess {Array} chartData Request result
      * @apiSuccess {Object} data Candle chart data item
-     * @apiSuccess {Object} data.beginPeriod beginning of period as Java8 LocalDateTime
-     * @apiSuccess {Object} data.endPeriod end of period as Java8 LocalDateTime
-     * @apiSuccess {Number} data.openRate open rate
-     * @apiSuccess {Number} data.closeRate close rate
-     * @apiSuccess {Number} data.lowRate low rate
-     * @apiSuccess {Number} data.highRate high rate
-     * @apiSuccess {Number} data.baseVolume base amount of order
-     * @apiSuccess {Number} data.beginDate same as beginPeriod, different format
-     * @apiSuccess {Number} data.endDate same as endPeriod, different format
+     * @apiSuccess {Number}     data.openRate       Open rate
+     * @apiSuccess {Number}     data.closeRate      Close rate
+     * @apiSuccess {Number}     data.lowRate        Low rate
+     * @apiSuccess {Number}     data.highRate       High rate
+     * @apiSuccess {Number}     data.baseVolume     Base amount of order
+     * @apiSuccess {String}     data.beginDate      Begin date
+     * @apiSuccess {String}     data.endDate        End date
      * @apiSuccessExample {json} Success-Response:
      * HTTP/1.1 200 OK
      * [
@@ -220,8 +279,8 @@ public class OpenApiPublicController {
      * "lowRate":0.1,
      * "highRate":0.1,
      * "baseVolume":0,
-     * "beginDate":1472132318000,
-     * "endDate":1472132378000
+     * "beginDate":2018-09-01,
+     * "endDate":2018-09-05
      * },
      * {
      * "openRate":0.1,
@@ -229,8 +288,8 @@ public class OpenApiPublicController {
      * "lowRate":0.1,
      * "highRate":0.1,
      * "baseVolume":0,
-     * "beginDate":1472132378000,
-     * "endDate":1472132438000
+     * "beginDate":2018-09-01,
+     * "endDate":2018-09-05
      * }
      * ]
      * @apiUse ExpiredAuthenticationTokenError
@@ -242,14 +301,15 @@ public class OpenApiPublicController {
      * @apiUse CurrencyPairNotFoundError
      * @apiUse InternalServerError
      */
-    @GetMapping(value = "/{currency_pair}/candle_chart", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<CandleChartItemReducedDto>>> getCandleChartData(@PathVariable(value = "currency_pair") String currencyPair,
+    @GetMapping(value = "/candle_chart/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<List<CandleChartItemReducedDto>>> getCandleChartData(@PathVariable("currency_1") String currency1,
+                                                                                            @PathVariable("currency_2") String currency2,
                                                                                             @RequestParam(value = "interval_type") IntervalType intervalType,
                                                                                             @RequestParam(value = "interval_value") Integer intervalValue) {
-        final CurrencyPair currencyPairByName = currencyService.getCurrencyPairByName(convertCurrencyPairName(currencyPair));
-        final BackDealInterval interval = new BackDealInterval(intervalValue, intervalType);
+        String pairName = convert(currency1, currency2);
+        BackDealInterval interval = new BackDealInterval(intervalValue, intervalType);
 
-        List<CandleChartItemReducedDto> resultList = orderService.getDataForCandleChart(currencyPairByName, interval).stream()
+        List<CandleChartItemReducedDto> resultList = orderService.getDataForCandleChart(pairName, interval).stream()
                 .map(CandleChartItemReducedDto::new)
                 .collect(toList());
         return ResponseEntity.ok(BaseResponse.success(resultList));

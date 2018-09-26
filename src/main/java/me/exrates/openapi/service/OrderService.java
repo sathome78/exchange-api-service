@@ -1,6 +1,6 @@
 package me.exrates.openapi.service;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.component.TransactionDescription;
 import me.exrates.openapi.dao.CommissionDao;
 import me.exrates.openapi.dao.OrderDao;
@@ -60,9 +60,6 @@ import me.exrates.openapi.model.vo.BackDealInterval;
 import me.exrates.openapi.model.vo.ProfileData;
 import me.exrates.openapi.model.vo.WalletOperationData;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
-import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.lang.Nullable;
@@ -90,22 +87,23 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static me.exrates.openapi.model.enums.OrderActionEnum.ACCEPT;
 import static me.exrates.openapi.model.enums.OrderActionEnum.ACCEPTED;
 import static me.exrates.openapi.model.enums.OrderActionEnum.CANCEL;
 import static me.exrates.openapi.model.enums.OrderActionEnum.CREATE;
 import static me.exrates.openapi.model.enums.OrderActionEnum.DELETE_SPLIT;
+import static me.exrates.openapi.utils.CollectionUtil.isNotEmpty;
 
-@Log4j2
+@Slf4j
 @Service
 public class OrderService {
 
     private static final int ORDERS_QUERY_DEFAULT_LIMIT = 20;
-    private static final Logger logger = LogManager.getLogger(OrderService.class);
 
     private List<CoinmarketApiDto> coinmarketCachedData = new CopyOnWriteArrayList<>();
     private ScheduledExecutorService coinmarketScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -113,42 +111,45 @@ public class OrderService {
     private final Object autoAcceptLock = new Object();
     private final Object restOrderCreationLock = new Object();
 
+    private final OrderDao orderDao;
+    private final CommissionDao commissionDao;
+    private final TransactionService transactionService;
+    private final UserService userService;
+    private final WalletService walletService;
+    private final CompanyWalletService companyWalletService;
+    private final CurrencyService currencyService;
+    private final MessageSource messageSource;
+    private final ReferralService referralService;
+    private final TransactionDescription transactionDescription;
+    private final StopOrderService stopOrderService;
+    private final UserRoleService userRoleService;
 
     @Autowired
-    private OrderDao orderDao;
-
-    @Autowired
-    private CommissionDao commissionDao;
-
-    @Autowired
-    private TransactionService transactionService;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private WalletService walletService;
-
-    @Autowired
-    private CompanyWalletService companyWalletService;
-
-    @Autowired
-    private CurrencyService currencyService;
-
-    @Autowired
-    private MessageSource messageSource;
-
-
-    @Autowired
-    private ReferralService referralService;
-
-    @Autowired
-    TransactionDescription transactionDescription;
-
-    @Autowired
-    StopOrderService stopOrderService;
-    @Autowired
-    private UserRoleService userRoleService;
+    public OrderService(OrderDao orderDao,
+                        CommissionDao commissionDao,
+                        TransactionService transactionService,
+                        UserService userService,
+                        WalletService walletService,
+                        CompanyWalletService companyWalletService,
+                        CurrencyService currencyService,
+                        MessageSource messageSource,
+                        ReferralService referralService,
+                        TransactionDescription transactionDescription,
+                        StopOrderService stopOrderService,
+                        UserRoleService userRoleService) {
+        this.orderDao = orderDao;
+        this.commissionDao = commissionDao;
+        this.transactionService = transactionService;
+        this.userService = userService;
+        this.walletService = walletService;
+        this.companyWalletService = companyWalletService;
+        this.currencyService = currencyService;
+        this.messageSource = messageSource;
+        this.referralService = referralService;
+        this.transactionDescription = transactionDescription;
+        this.stopOrderService = stopOrderService;
+        this.userRoleService = userRoleService;
+    }
 
     @PostConstruct
     public void init() {
@@ -858,7 +859,7 @@ public class OrderService {
             }
             return setStatus(exOrder.getId(), OrderStatus.CANCELLED);
         } catch (Exception e) {
-            logger.error("Error while cancelling order " + exOrder.getId() + " , " + e.getLocalizedMessage());
+            log.error("Error while cancelling order " + exOrder.getId() + " , " + e.getLocalizedMessage());
             throw e;
         }
     }
@@ -871,21 +872,6 @@ public class OrderService {
     @Transactional(propagation = Propagation.NESTED)
     public boolean updateOrder(ExOrder exOrder) {
         return orderDao.updateOrder(exOrder);
-    }
-
-
-    //+
-    public List<CoinmarketApiDto> getCoinmarketDataForActivePairs(String currencyPairName) {
-        return orderDao.getCoinmarketData(currencyPairName);
-    }
-
-    //+
-    public List<CoinmarketApiDto> getDailyCoinmarketData(String currencyPairName) {
-        if (StringUtils.isEmpty(currencyPairName) && coinmarketCachedData != null && !coinmarketCachedData.isEmpty()) {
-            return coinmarketCachedData;
-        } else {
-            return getCoinmarketDataForActivePairs(currencyPairName);
-        }
     }
 
     //+
@@ -1032,33 +1018,6 @@ public class OrderService {
     }
 
     //+
-    public Map<OrderType, List<OrderBookItem>> getOrderBook(String currencyPairName, @Nullable OrderType orderType) {
-        Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
-        if (orderType != null) {
-            return Collections.singletonMap(orderType, orderDao.getOrderBookItemsForType(currencyPairId, orderType));
-        } else {
-            Map<OrderType, List<OrderBookItem>> result = orderDao.getOrderBookItems(currencyPairId)
-                    .stream().collect(Collectors.groupingBy(OrderBookItem::getOrderType));
-            result.forEach((key, value) -> value.sort(Comparator.comparing(OrderBookItem::getRate, key.getBenefitRateComparator())));
-            return result;
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public List<TradeHistoryDto> getTradeHistory(String currencyPairName,
-                                                 @NotNull LocalDate fromDate,
-                                                 @NotNull LocalDate toDate,
-                                                 @Null Integer limit) {
-        final Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
-
-        return orderDao.getTradeHistory(
-                currencyPairId,
-                LocalDateTime.of(fromDate, LocalTime.MIN),
-                LocalDateTime.of(toDate, LocalTime.MAX),
-                limit);
-    }
-
-    //+
     public List<UserOrdersDto> getUserOpenOrders(@Nullable String currencyPairName) {
         Integer userId = userService.getIdByEmail(userService.getUserEmailFromSecurityContext());
         Integer currencyPairId = currencyPairName == null ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
@@ -1108,10 +1067,6 @@ public class OrderService {
         return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CANCELLED, queryLimit, queryOffset);
     }
 
-    public List<CandleChartItemDto> getDataForCandleChart(CurrencyPair currencyPair, BackDealInterval interval) {
-        return orderDao.getDataForCandleChart(currencyPair, interval);
-    }
-
     @Transactional(readOnly = true)
     public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(String currencyPairName,
                                                                        @NotNull LocalDate fromDate,
@@ -1133,6 +1088,63 @@ public class OrderService {
         final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
 
         return orderDao.getOrderTransactions(userId, orderId);
+    }
+
+
+    //+
+    @Transactional(readOnly = true)
+    public List<CoinmarketApiDto> getDailyCoinmarketData(String pairName) {
+        if (nonNull(pairName)) {
+            validateCurrencyPair(pairName);
+        }
+        return isNull(pairName) && isNotEmpty(coinmarketCachedData)
+                ? coinmarketCachedData
+                : getCoinmarketDataForActivePairs(pairName);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public Map<OrderType, List<OrderBookItem>> getOrderBook(String pairName,
+                                                            @Null OrderType orderType,
+                                                            @Null Integer limit) {
+        CurrencyPair currencyPair = currencyService.findCurrencyPairIdByName(pairName);
+
+        return nonNull(orderType)
+                ? Collections.singletonMap(orderType, orderDao.getOrderBookItemsByType(currencyPair, orderType, limit))
+                : orderDao.getOrderBookItems(currencyPair, limit).stream()
+                .sorted(Comparator.comparing(OrderBookItem::getOrderType).thenComparing(OrderBookItem::getRate))
+                .collect(groupingBy(OrderBookItem::getOrderType));
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public List<TradeHistoryDto> getTradeHistory(String pairName,
+                                                 @NotNull LocalDate fromDate,
+                                                 @NotNull LocalDate toDate,
+                                                 @Null Integer limit) {
+        CurrencyPair currencyPair = currencyService.findCurrencyPairIdByName(pairName);
+
+        return orderDao.getTradeHistory(
+                currencyPair,
+                LocalDateTime.of(fromDate, LocalTime.MIN),
+                LocalDateTime.of(toDate, LocalTime.MAX),
+                limit);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public List<CandleChartItemDto> getDataForCandleChart(String pairName, BackDealInterval interval) {
+        CurrencyPair currencyPair = currencyService.getCurrencyPairByName(pairName);
+
+        return orderDao.getDataForCandleChart(currencyPair, interval);
+    }
+
+    private void validateCurrencyPair(String pairName) {
+        currencyService.findCurrencyPairIdByName(pairName);
+    }
+
+    private List<CoinmarketApiDto> getCoinmarketDataForActivePairs(String pairName) {
+        return orderDao.getCoinmarketData(pairName);
     }
 }
 

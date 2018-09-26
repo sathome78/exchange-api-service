@@ -1,41 +1,31 @@
 package me.exrates.openapi.model.dto.openAPI;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import me.exrates.openapi.model.dto.CoinmarketApiDto;
-import me.exrates.openapi.model.serializer.BigDecimalToDoubleSerializer;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@EqualsAndHashCode
-@ToString
-public class TickerJsonDto {
+@Data
+public class TickerDto {
 
     private Integer id;
     private String name;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
     private BigDecimal last;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("lowest_ask")
     private BigDecimal lowestAsk;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("highest_bid")
     private BigDecimal highestBid;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("percent_change")
     private BigDecimal percentChange;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("base_volume")
     private BigDecimal baseVolume;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("quote_volume")
     private BigDecimal quoteVolume;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
     private BigDecimal high;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
     private BigDecimal low;
 
-    public TickerJsonDto(CoinmarketApiDto coinmarketApiDto) {
+    public TickerDto(CoinmarketApiDto coinmarketApiDto) {
         this.id = coinmarketApiDto.getCurrencyPairId();
         this.name = coinmarketApiDto.getCurrency_pair_name().replace('/', '_');
         this.last = coinmarketApiDto.getLast();

@@ -1,6 +1,9 @@
 package me.exrates.openapi.dao;
 
+import me.exrates.openapi.dao.callbacks.StoredProcedureCallback;
 import me.exrates.openapi.dao.jdbc.OrderRowMapper;
+import me.exrates.openapi.dao.mappers.OrderBookItemRowMapper;
+import me.exrates.openapi.dao.mappers.TradeHistoryRowMapper;
 import me.exrates.openapi.model.Currency;
 import me.exrates.openapi.model.CurrencyPair;
 import me.exrates.openapi.model.ExOrder;
@@ -14,7 +17,6 @@ import me.exrates.openapi.model.dto.mobileApiDto.dashboard.CommissionsDto;
 import me.exrates.openapi.model.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.model.dto.openAPI.OrderBookItem;
 import me.exrates.openapi.model.dto.openAPI.UserOrdersDto;
-import me.exrates.openapi.model.enums.ActionType;
 import me.exrates.openapi.model.enums.OperationType;
 import me.exrates.openapi.model.enums.OrderBaseType;
 import me.exrates.openapi.model.enums.OrderStatus;
@@ -22,7 +24,6 @@ import me.exrates.openapi.model.enums.OrderType;
 import me.exrates.openapi.model.enums.TransactionStatus;
 import me.exrates.openapi.model.enums.UserRole;
 import me.exrates.openapi.model.vo.BackDealInterval;
-import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -36,10 +37,8 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -50,13 +49,34 @@ import static java.util.Objects.nonNull;
 import static me.exrates.openapi.model.enums.OperationType.INPUT;
 import static me.exrates.openapi.model.enums.OperationType.OUTPUT;
 import static me.exrates.openapi.model.enums.OrderStatus.CLOSED;
+import static me.exrates.openapi.model.enums.OrderStatus.OPENED;
 import static me.exrates.openapi.model.enums.TransactionSourceType.ORDER;
 
 @Repository
 public class OrderDao {
 
-    @Autowired
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    private static final String CALL_GET_COINMARKETCAP_STATISTICS_PROCEDURE_SQL = "{call GET_COINMARKETCAP_STATISTICS('%s')}";
+    private static final String CALL_GET_DATA_FOR_CANDLE_SQL = "{call GET_DATA_FOR_CANDLE(NOW(), %d, '%s', %d)}";
+
+    private static final String GET_ORDER_BOOK_ITEMS_BY_TYPE_SQL = "SELECT o.operation_type_id, o.amount_base as amount, o.exrate as price" +
+            " FROM EXORDERS o" +
+            " WHERE o.currency_pair_id = :currency_pair_id" +
+            " AND o.status_id = :status_id AND o.operation_type_id = :operation_type_id" +
+            " ORDER BY o.exrate";
+
+    private static final String GET_ORDER_BOOK_ITEMS_SQL = "SELECT o.operation_type_id, o.amount_base as amount, o.exrate as price" +
+            " FROM EXORDERS o" +
+            " WHERE o.currency_pair_id = :currency_pair_id AND o.status_id = :status_id";
+
+    private static final String GET_TRADE_HISTORY_SQL = "SELECT o.id as order_id, o.date_creation as created, o.date_acception as accepted, " +
+            "o.amount_base as amount, o.exrate as price, o.amount_convert as sum, c.value as commission, o.operation_type_id" +
+            " FROM EXORDERS o" +
+            " JOIN COMMISSION c on o.commission_id = c.id" +
+            " WHERE o.currency_pair_id=:currency_pair_id AND o.status_id=:status_id" +
+            " AND o.date_acception BETWEEN :start_date AND :end_date" +
+            " ORDER BY o.date_acception ASC";
+
+    private final NamedParameterJdbcTemplate npJdbcTemplate;
 
     private final RowMapper<UserOrdersDto> userOrdersRowMapper = (rs, row) -> {
         int id = rs.getInt("order_id");
@@ -69,6 +89,11 @@ public class OrderDao {
         BigDecimal price = rs.getBigDecimal("exrate");
         return new UserOrdersDto(id, currencyPairName, amount, orderType, price, dateCreation, dateAcceptance);
     };
+
+    @Autowired
+    public OrderDao(NamedParameterJdbcTemplate npJdbcTemplate) {
+        this.npJdbcTemplate = npJdbcTemplate;
+    }
 
     //+
     public int createOrder(ExOrder exOrder) {
@@ -89,7 +114,7 @@ public class OrderDao {
                 .addValue("status_id", OrderStatus.INPROCESS.getStatus())
                 .addValue("order_source_id", exOrder.getSourceId())
                 .addValue("base_type", exOrder.getOrderBaseType().name());
-        int result = namedParameterJdbcTemplate.update(sql, parameters, keyHolder);
+        int result = npJdbcTemplate.update(sql, parameters, keyHolder);
         int id = (int) keyHolder.getKey().longValue();
         if (result <= 0) {
             id = 0;
@@ -103,7 +128,7 @@ public class OrderDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("id", String.valueOf(orderId));
         try {
-            return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, new OrderRowMapper());
+            return npJdbcTemplate.queryForObject(sql, namedParameters, new OrderRowMapper());
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -115,7 +140,7 @@ public class OrderDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("status_id", String.valueOf(status.getStatus()));
         namedParameters.put("id", String.valueOf(orderId));
-        int result = namedParameterJdbcTemplate.update(sql, namedParameters);
+        int result = npJdbcTemplate.update(sql, namedParameters);
         return result > 0;
     }
 
@@ -128,36 +153,8 @@ public class OrderDao {
         namedParameters.put("user_acceptor_id", String.valueOf(exOrder.getUserAcceptorId()));
         namedParameters.put("status_id", String.valueOf(exOrder.getStatus().getStatus()));
         namedParameters.put("id", String.valueOf(exOrder.getId()));
-        int result = namedParameterJdbcTemplate.update(sql, namedParameters);
+        int result = npJdbcTemplate.update(sql, namedParameters);
         return result > 0;
-    }
-
-    //+
-    public List<CoinmarketApiDto> getCoinmarketData(String currencyPairName) {
-        String s = "{call GET_COINMARKETCAP_STATISTICS('" + currencyPairName + "')}";
-        List<CoinmarketApiDto> result = namedParameterJdbcTemplate.execute(s, ps -> {
-            ResultSet rs = ps.executeQuery();
-            List<CoinmarketApiDto> list = new ArrayList();
-            while (rs.next()) {
-                CoinmarketApiDto coinmarketApiDto = new CoinmarketApiDto();
-                coinmarketApiDto.setCurrencyPairId(rs.getInt("currency_pair_id"));
-                coinmarketApiDto.setCurrency_pair_name(rs.getString("currency_pair_name"));
-                coinmarketApiDto.setFirst(rs.getBigDecimal("first"));
-                coinmarketApiDto.setLast(rs.getBigDecimal("last"));
-                coinmarketApiDto.setLowestAsk(rs.getBigDecimal("lowestAsk"));
-                coinmarketApiDto.setHighestBid(rs.getBigDecimal("highestBid"));
-                coinmarketApiDto.setPercentChange(BigDecimalProcessingUtil.doAction(coinmarketApiDto.getFirst(), coinmarketApiDto.getLast(), ActionType.PERCENT_GROWTH));
-                coinmarketApiDto.setBaseVolume(rs.getBigDecimal("baseVolume"));
-                coinmarketApiDto.setQuoteVolume(rs.getBigDecimal("quoteVolume"));
-                coinmarketApiDto.setIsFrozen(rs.getInt("isFrozen"));
-                coinmarketApiDto.setHigh24hr(rs.getBigDecimal("high24hr"));
-                coinmarketApiDto.setLow24hr(rs.getBigDecimal("low24hr"));
-                list.add(coinmarketApiDto);
-            }
-            rs.close();
-            return list;
-        });
-        return result;
     }
 
     //+
@@ -194,7 +191,7 @@ public class OrderDao {
                         "  ) COMMISSION";
         try {
             Map<String, Integer> params = Collections.singletonMap("user_role", userRole.getRole());
-            return namedParameterJdbcTemplate.queryForObject(sql, params, (rs, row) -> {
+            return npJdbcTemplate.queryForObject(sql, params, (rs, row) -> {
                 CommissionsDto commissionsDto = new CommissionsDto();
                 commissionsDto.setSellCommission(rs.getBigDecimal("sell_commission"));
                 commissionsDto.setBuyCommission(rs.getBigDecimal("buy_commission"));
@@ -225,7 +222,7 @@ public class OrderDao {
         namedParameters.put("currency_id", currency.getId());
         namedParameters.put("user_role", userRole.getRole());
         try {
-            return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
+            return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
                 WalletsAndCommissionsForOrderCreationDto walletsAndCommissionsForOrderCreationDto = new WalletsAndCommissionsForOrderCreationDto();
                 walletsAndCommissionsForOrderCreationDto.setUserId(rs.getInt("user_id"));
                 walletsAndCommissionsForOrderCreationDto.setSpendWalletId(rs.getInt("wallet_id"));
@@ -251,7 +248,7 @@ public class OrderDao {
             Map<String, Object> namedParameters = new HashMap<>();
             namedParameters.put("order_id", orderId);
             try {
-                namedParameterJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
+                npJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
             } catch (EmptyResultDataAccessException e) {
                 return false;
             }
@@ -291,9 +288,9 @@ public class OrderDao {
             put("acceptor_role_id", userAcceptorRoleId);
             put("order_base_type", orderBaseType.name());
         }};
-        namedParameterJdbcTemplate.execute(sqlSetVar, PreparedStatement::execute);
+        npJdbcTemplate.execute(sqlSetVar, PreparedStatement::execute);
 
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
+        return npJdbcTemplate.query(sql, params, (rs, row) -> {
             ExOrder exOrder = new ExOrder();
             exOrder.setId(rs.getInt("id"));
             exOrder.setUserId(rs.getInt("user_id"));
@@ -312,42 +309,6 @@ public class OrderDao {
     }
 
     //+
-    public List<OrderBookItem> getOrderBookItemsForType(Integer currencyPairId, OrderType orderType) {
-        String orderDirection = orderType == OrderType.BUY ? " DESC " : " ASC ";
-        String sql = "SELECT amount_base, exrate FROM EXORDERS WHERE currency_pair_id = :currency_pair_id " +
-                "AND status_id = :status_id AND operation_type_id = :operation_type_id " +
-                "ORDER BY exrate " + orderDirection;
-        Map<String, Object> params = new HashMap<>();
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OrderStatus.OPENED.getStatus());
-        params.put("operation_type_id", orderType.getOperationType().type);
-
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
-            OrderBookItem item = new OrderBookItem();
-            item.setOrderType(orderType);
-            item.setAmount(rs.getBigDecimal("amount_base"));
-            item.setRate(rs.getBigDecimal("exrate"));
-            return item;
-        });
-    }
-
-    //+
-    public List<OrderBookItem> getOrderBookItems(Integer currencyPairId) {
-        String sql = "SELECT operation_type_id, amount_base, exrate FROM EXORDERS WHERE currency_pair_id = :currency_pair_id " +
-                "AND status_id = :status_id ";
-        Map<String, Object> params = new HashMap<>();
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OrderStatus.OPENED.getStatus());
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
-            OrderBookItem item = new OrderBookItem();
-            item.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))));
-            item.setAmount(rs.getBigDecimal("amount_base"));
-            item.setRate(rs.getBigDecimal("exrate"));
-            return item;
-        });
-    }
-
-    //+
     public List<OpenOrderDto> getOpenOrders(Integer currencyPairId, OrderType orderType) {
         String orderByDirection = orderType == OrderType.SELL ? " ASC " : " DESC ";
         String orderBySql = " ORDER BY exrate " + orderByDirection;
@@ -356,57 +317,15 @@ public class OrderDao {
                 "AND status_id = :status_id AND operation_type_id = :operation_type_id " + orderBySql;
         Map<String, Object> params = new HashMap<>();
         params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OrderStatus.OPENED.getStatus());
+        params.put("status_id", OPENED.getStatus());
         params.put("operation_type_id", orderType.getOperationType().type);
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
+        return npJdbcTemplate.query(sql, params, (rs, row) -> {
             OpenOrderDto item = new OpenOrderDto();
             item.setId(rs.getInt("id"));
             item.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))).name());
             item.setAmount(rs.getBigDecimal("amount_base"));
             item.setPrice(rs.getBigDecimal("exrate"));
             return item;
-        });
-    }
-
-    public List<TradeHistoryDto> getTradeHistory(Integer currencyPairId,
-                                                 LocalDateTime fromDate,
-                                                 LocalDateTime toDate,
-                                                 Integer limit) {
-        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
-
-        String sql = "SELECT o.id as order_id, " +
-                "o.date_creation as created, " +
-                "o.date_acception as accepted, " +
-                "o.amount_base as amount, " +
-                "o.exrate as price, " +
-                "o.amount_convert as sum, " +
-                "c.value as commission, " +
-                "o.operation_type_id" +
-                " FROM EXORDERS o" +
-                " JOIN COMMISSION c on o.commission_id = c.id" +
-                " WHERE o.currency_pair_id=:currency_pair_id AND o.status_id=:status_id" +
-                " AND o.date_acception BETWEEN :start_date AND :end_date" +
-                " ORDER BY o.date_acception ASC"
-                + limitSql;
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("status_id", CLOSED.getStatus());
-        params.put("currency_pair_id", currencyPairId);
-        params.put("start_date", fromDate);
-        params.put("end_date", toDate);
-        params.put("limit", limit);
-
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
-            TradeHistoryDto tradeHistoryDto = new TradeHistoryDto();
-            tradeHistoryDto.setOrderId(rs.getInt("order_id"));
-            tradeHistoryDto.setDateCreation(rs.getTimestamp("created").toLocalDateTime());
-            tradeHistoryDto.setDateAcceptance(rs.getTimestamp("accepted").toLocalDateTime());
-            tradeHistoryDto.setAmount(rs.getBigDecimal("amount"));
-            tradeHistoryDto.setPrice(rs.getBigDecimal("price"));
-            tradeHistoryDto.setTotal(rs.getBigDecimal("sum"));
-            tradeHistoryDto.setCommission(rs.getBigDecimal("commission"));
-            tradeHistoryDto.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))));
-            return tradeHistoryDto;
         });
     }
 
@@ -423,9 +342,9 @@ public class OrderDao {
         Map<String, Object> params = new HashMap<>();
         params.put("user_id", userId);
         params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OrderStatus.OPENED.getStatus());
+        params.put("status_id", OPENED.getStatus());
 
-        return namedParameterJdbcTemplate.query(sql, params, userOrdersRowMapper);
+        return npJdbcTemplate.query(sql, params, userOrdersRowMapper);
     }
 
     public List<UserOrdersDto> getUserOrdersByStatus(Integer userId,
@@ -450,7 +369,7 @@ public class OrderDao {
         params.put("limit", limit);
         params.put("offset", offset);
 
-        return namedParameterJdbcTemplate.query(sql, params, userOrdersRowMapper);
+        return npJdbcTemplate.query(sql, params, userOrdersRowMapper);
     }
 
     //+
@@ -472,7 +391,7 @@ public class OrderDao {
         params.put("limit", limit);
         params.put("offset", offset);
 
-        return namedParameterJdbcTemplate.query(sql, params, userOrdersRowMapper);
+        return npJdbcTemplate.query(sql, params, userOrdersRowMapper);
     }
 
     //+
@@ -483,7 +402,7 @@ public class OrderDao {
         namedParameters.put("currency_pair_id", currencyPairId);
         namedParameters.put("operation_type_id", operationTypeId);
         try {
-            return Optional.of(namedParameterJdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class));
+            return Optional.of(npJdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
@@ -506,9 +425,9 @@ public class OrderDao {
 
         Map<String, Object> params = new HashMap<>();
         params.put("user_id", userId);
-        params.put("status_id", OrderStatus.OPENED.getStatus());
+        params.put("status_id", OPENED.getStatus());
 
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
+        return npJdbcTemplate.query(sql, params, (rs, row) -> {
             ExOrder exOrder = new ExOrder();
             exOrder.setId(rs.getInt("id"));
             exOrder.setUserId(userId);
@@ -545,9 +464,9 @@ public class OrderDao {
         Map<String, Object> params = new HashMap<>();
         params.put("user_id", userId);
         params.put("currency_pair", currencyPair);
-        params.put("status_id", OrderStatus.OPENED.getStatus());
+        params.put("status_id", OPENED.getStatus());
 
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
+        return npJdbcTemplate.query(sql, params, (rs, row) -> {
             ExOrder exOrder = new ExOrder();
             exOrder.setId(rs.getInt("id"));
             exOrder.setUserId(userId);
@@ -590,7 +509,7 @@ public class OrderDao {
         params.put("operation_type_1", INPUT.getType());
         params.put("operation_type_2", OUTPUT.getType());
 
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> TransactionDto.builder()
+        return npJdbcTemplate.query(sql, params, (rs, row) -> TransactionDto.builder()
                 .transactionId(rs.getInt("id"))
                 .walletId(rs.getInt("user_wallet_id"))
                 .amount(rs.getBigDecimal("amount"))
@@ -600,34 +519,6 @@ public class OrderDao {
                 .operationType(OperationType.convert(rs.getInt("operation_type_id")))
                 .status(TransactionStatus.convert(rs.getInt("status_id")))
                 .build());
-    }
-
-    public List<CandleChartItemDto> getDataForCandleChart(CurrencyPair currencyPair, BackDealInterval backDealInterval) {
-        return getCandleChartData(currencyPair, backDealInterval, "NOW()");
-    }
-
-    private List<CandleChartItemDto> getCandleChartData(CurrencyPair currencyPair, BackDealInterval backDealInterval, String startTimeSql) {
-        String s = "{call GET_DATA_FOR_CANDLE(" + startTimeSql + ", " + backDealInterval.getIntervalValue() + ", '" + backDealInterval.getIntervalType().name() + "', " + currencyPair.getId() + ")}";
-        List<CandleChartItemDto> result = namedParameterJdbcTemplate.execute(s, ps -> {
-            ResultSet rs = ps.executeQuery();
-            List<CandleChartItemDto> list = new ArrayList<>();
-            while (rs.next()) {
-                CandleChartItemDto candleChartItemDto = new CandleChartItemDto();
-                candleChartItemDto.setBeginDate(rs.getTimestamp("pred_point"));
-                candleChartItemDto.setBeginPeriod(rs.getTimestamp("pred_point").toLocalDateTime());
-                candleChartItemDto.setEndDate(rs.getTimestamp("current_point"));
-                candleChartItemDto.setEndPeriod(rs.getTimestamp("current_point").toLocalDateTime());
-                candleChartItemDto.setOpenRate(rs.getBigDecimal("open_rate"));
-                candleChartItemDto.setCloseRate(rs.getBigDecimal("close_rate"));
-                candleChartItemDto.setLowRate(rs.getBigDecimal("low_rate"));
-                candleChartItemDto.setHighRate(rs.getBigDecimal("high_rate"));
-                candleChartItemDto.setBaseVolume(rs.getBigDecimal("base_volume"));
-                list.add(candleChartItemDto);
-            }
-            rs.close();
-            return list;
-        });
-        return result;
     }
 
     public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(Integer userId,
@@ -661,7 +552,7 @@ public class OrderDao {
         params.put("end_date", toDate);
         params.put("limit", limit);
 
-        return namedParameterJdbcTemplate.query(sql, params, (rs, row) -> {
+        return npJdbcTemplate.query(sql, params, (rs, row) -> {
             UserTradeHistoryDto userTradeHistoryDto = new UserTradeHistoryDto();
             userTradeHistoryDto.setUserId(userId);
             userTradeHistoryDto.setIsMaker(userId == rs.getInt("user_id"));
@@ -675,5 +566,63 @@ public class OrderDao {
             userTradeHistoryDto.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))));
             return userTradeHistoryDto;
         });
+    }
+
+
+    //+
+    public List<CoinmarketApiDto> getCoinmarketData(String pairName) {
+        return npJdbcTemplate.execute(
+                String.format(CALL_GET_COINMARKETCAP_STATISTICS_PROCEDURE_SQL, pairName),
+                StoredProcedureCallback.getCoinmarketDataCallback());
+    }
+
+    //+
+    public List<OrderBookItem> getOrderBookItemsByType(CurrencyPair currencyPair, OrderType orderType, Integer limit) {
+        String directionSql = orderType == OrderType.BUY ? " DESC" : StringUtils.EMPTY;
+        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("currency_pair_id", currencyPair.getId());
+        params.put("status_id", OPENED.getStatus());
+        params.put("operation_type_id", orderType.getOperationType().getType());
+        params.put("limit", limit);
+
+        return npJdbcTemplate.query(GET_ORDER_BOOK_ITEMS_BY_TYPE_SQL + directionSql + limitSql, params, OrderBookItemRowMapper.map());
+    }
+
+    //+
+    public List<OrderBookItem> getOrderBookItems(CurrencyPair currencyPair, Integer limit) {
+        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("currency_pair_id", currencyPair.getId());
+        params.put("status_id", OPENED.getStatus());
+        params.put("limit", limit);
+
+        return npJdbcTemplate.query(GET_ORDER_BOOK_ITEMS_SQL + limitSql, params, OrderBookItemRowMapper.map());
+    }
+
+    //+
+    public List<TradeHistoryDto> getTradeHistory(CurrencyPair currencyPair,
+                                                 LocalDateTime fromDate,
+                                                 LocalDateTime toDate,
+                                                 Integer limit) {
+        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("status_id", CLOSED.getStatus());
+        params.put("currency_pair_id", currencyPair.getId());
+        params.put("start_date", fromDate);
+        params.put("end_date", toDate);
+        params.put("limit", limit);
+
+        return npJdbcTemplate.query(GET_TRADE_HISTORY_SQL + limitSql, params, TradeHistoryRowMapper.map());
+    }
+
+    //+
+    public List<CandleChartItemDto> getDataForCandleChart(CurrencyPair currencyPair, BackDealInterval backDealInterval) {
+        return npJdbcTemplate.execute(
+                String.format(CALL_GET_DATA_FOR_CANDLE_SQL, backDealInterval.getIntervalValue(), backDealInterval.getIntervalType().name(), currencyPair.getId()),
+                StoredProcedureCallback.getDataForCandleChartCallback());
     }
 }

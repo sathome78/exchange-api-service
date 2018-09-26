@@ -3,7 +3,7 @@ package me.exrates.openapi.model.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Data
 public class CandleChartItemReducedDto {
@@ -13,8 +13,8 @@ public class CandleChartItemReducedDto {
     private BigDecimal lowRate;
     private BigDecimal highRate;
     private BigDecimal baseVolume;
-    private Timestamp beginDate;
-    private Timestamp endDate;
+    private LocalDateTime beginDate;
+    private LocalDateTime endDate;
 
     public CandleChartItemReducedDto(CandleChartItemDto candleChartItemDto) {
         this.openRate = candleChartItemDto.getOpenRate();
@@ -22,7 +22,7 @@ public class CandleChartItemReducedDto {
         this.lowRate = candleChartItemDto.getLowRate();
         this.highRate = candleChartItemDto.getHighRate();
         this.baseVolume = candleChartItemDto.getBaseVolume();
-        this.beginDate = candleChartItemDto.getBeginDate();
-        this.endDate = candleChartItemDto.getEndDate();
+        this.beginDate = candleChartItemDto.getBeginDate().toLocalDateTime();
+        this.endDate = candleChartItemDto.getEndDate().toLocalDateTime();
     }
 }

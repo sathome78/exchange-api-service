@@ -1,26 +1,22 @@
 package me.exrates.openapi.model.dto.openAPI;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.exrates.openapi.model.enums.OrderType;
-import me.exrates.openapi.model.serializer.BigDecimalToDoubleSerializer;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@ToString
+@Data
+@Builder(builderClassName = "Builder")
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderBookItem {
 
     @JsonIgnore
     private OrderType orderType;
-
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
     private BigDecimal amount;
-
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
     private BigDecimal rate;
 }

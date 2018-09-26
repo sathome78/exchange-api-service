@@ -1,14 +1,11 @@
 package me.exrates.openapi.dao;
 
-import me.exrates.openapi.model.Currency;
+import me.exrates.openapi.dao.mappers.CurrencyPairInfoItemRowMapper;
+import me.exrates.openapi.dao.mappers.CurrencyPairRowMapper;
 import me.exrates.openapi.model.CurrencyPair;
 import me.exrates.openapi.model.dto.CurrencyPairLimitDto;
 import me.exrates.openapi.model.dto.openAPI.CurrencyPairInfoItem;
-import me.exrates.openapi.model.enums.CurrencyPairType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -16,35 +13,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Repository
 public class CurrencyDao {
 
+    private static final String FIND_ACTIVE_CURRENCY_PAIR_BY_NAME_SQL = "SELECT cp.id FROM CURRENCY_PAIR cp WHERE cp.name = :pair_name AND cp.hidden != 1";
+
+    private static final String FIND_ACTIVE_CURRENCY_PAIRS_SQL = "SELECT cp.name FROM CURRENCY_PAIR cp WHERE cp.hidden != 1 ORDER BY cp.name ASC";
+
     @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
-
-    protected static RowMapper<CurrencyPair> currencyPairRowMapper = (rs, row) -> {
-        CurrencyPair currencyPair = new CurrencyPair();
-        currencyPair.setId(rs.getInt("id"));
-        currencyPair.setName(rs.getString("name"));
-        currencyPair.setPairType(CurrencyPairType.valueOf(rs.getString("type")));
-        /**/
-        Currency currency1 = new Currency();
-        currency1.setId(rs.getInt("currency1_id"));
-        currency1.setName(rs.getString("currency1_name"));
-        currencyPair.setCurrency1(currency1);
-        /**/
-        Currency currency2 = new Currency();
-        currency2.setId(rs.getInt("currency2_id"));
-        currency2.setName(rs.getString("currency2_name"));
-        currencyPair.setCurrency2(currency2);
-        /**/
-        currencyPair.setMarket(rs.getString("market"));
-
-        return currencyPair;
-
-    };
+    private NamedParameterJdbcTemplate npJdbcTemplate;
 
     //+
     public CurrencyPair findCurrencyPairById(int currencyPairId) {
@@ -54,7 +32,7 @@ public class CurrencyDao {
                 " FROM CURRENCY_PAIR WHERE id = :currencyPairId";
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("currencyPairId", String.valueOf(currencyPairId));
-        return jdbcTemplate.queryForObject(sql, namedParameters, currencyPairRowMapper);
+        return npJdbcTemplate.queryForObject(sql, namedParameters, CurrencyPairRowMapper.map());
     }
 
     //+
@@ -65,7 +43,7 @@ public class CurrencyDao {
                 " FROM CURRENCY_PAIR WHERE name = :currencyPairName";
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("currencyPairName", String.valueOf(currencyPairName));
-        return jdbcTemplate.queryForObject(sql, namedParameters, currencyPairRowMapper);
+        return npJdbcTemplate.queryForObject(sql, namedParameters, CurrencyPairRowMapper.map());
     }
 
     //+
@@ -79,7 +57,7 @@ public class CurrencyDao {
                 " WHERE EXORDERS.id = :order_id";
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("order_id", String.valueOf(orderId));
-        return jdbcTemplate.queryForObject(sql, namedParameters, currencyPairRowMapper);
+        return npJdbcTemplate.queryForObject(sql, namedParameters, CurrencyPairRowMapper.map());
     }
 
     //+
@@ -93,7 +71,7 @@ public class CurrencyDao {
         namedParameters.put("currency_pair_id", currencyPairId);
         namedParameters.put("user_role_id", roleId);
         namedParameters.put("order_type_id", orderTypeId);
-        return jdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
+        return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
             CurrencyPairLimitDto dto = new CurrencyPairLimitDto();
             dto.setCurrencyPairId(rs.getInt("currency_pair_id"));
             dto.setCurrencyPairName(rs.getString("currency_pair_name"));
@@ -106,19 +84,14 @@ public class CurrencyDao {
     }
 
     //+
-    public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
-        String sql = "SELECT name FROM CURRENCY_PAIR WHERE hidden != 1 ORDER BY name ASC";
-        return jdbcTemplate.query(sql, Collections.emptyMap(),
-                (rs, row) -> new CurrencyPairInfoItem(rs.getString("name")));
+    public CurrencyPair findActiveCurrencyPairByName(String pairName) {
+        Map<String, String> params = Collections.singletonMap("pair_name", pairName);
+
+        return npJdbcTemplate.queryForObject(FIND_ACTIVE_CURRENCY_PAIR_BY_NAME_SQL, params, CurrencyPairRowMapper.map());
     }
 
     //+
-    public Optional<Integer> findOpenCurrencyPairIdByName(String pairName) {
-        String sql = "SELECT id FROM CURRENCY_PAIR WHERE name = :pair_name AND hidden != 1";
-        try {
-            return Optional.of(jdbcTemplate.queryForObject(sql, Collections.singletonMap("pair_name", pairName), Integer.class));
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
+    public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
+        return npJdbcTemplate.query(FIND_ACTIVE_CURRENCY_PAIRS_SQL, CurrencyPairInfoItemRowMapper.map());
     }
 }

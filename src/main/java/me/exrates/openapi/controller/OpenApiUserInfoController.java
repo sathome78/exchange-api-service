@@ -34,7 +34,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static java.util.Objects.nonNull;
-import static me.exrates.openapi.utils.OpenApiUtils.convertCurrencyPairName;
+import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 import static me.exrates.openapi.utils.ValidationUtil.validateNaturalInt;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -99,7 +99,7 @@ public class OpenApiUserInfoController {
 
         String currencyPairName = null;
         if (currencyPair != null) {
-            currencyPairName = convertCurrencyPairName(currencyPair);
+            currencyPairName = convert(currencyPair);
         }
         return orderService.getUserOpenOrders(currencyPairName);
     }
@@ -129,7 +129,7 @@ public class OpenApiUserInfoController {
     public List<UserOrdersDto> userClosedOrders(@RequestParam(value = "currency_pair", required = false) String currencyPair,
                                                 @RequestParam(required = false) Integer limit,
                                                 @RequestParam(required = false) Integer offset) {
-        final String currencyPairName = nonNull(currencyPair) ? convertCurrencyPairName(currencyPair) : null;
+        final String currencyPairName = nonNull(currencyPair) ? convert(currencyPair) : null;
 
         validateNaturalInt(limit);
         validateNaturalInt(offset);
@@ -162,7 +162,7 @@ public class OpenApiUserInfoController {
     public ResponseEntity<BaseResponse<List<UserOrdersDto>>> userCanceledOrders(@RequestParam(value = "currency_pair", required = false) String currencyPair,
                                                                                 @RequestParam(required = false) Integer limit,
                                                                                 @RequestParam(required = false) Integer offset) {
-        final String currencyPairName = nonNull(currencyPair) ? convertCurrencyPairName(currencyPair) : null;
+        final String currencyPairName = nonNull(currencyPair) ? convert(currencyPair) : null;
 
         validateNaturalInt(limit);
         validateNaturalInt(offset);
@@ -228,7 +228,7 @@ public class OpenApiUserInfoController {
             return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
         }
 
-        final String transformedCurrencyPair = convertCurrencyPairName(currencyPair);
+        final String transformedCurrencyPair = convert(currencyPair);
 
         return ResponseEntity.ok(BaseResponse.success(orderService.getUserTradeHistoryByCurrencyPair(transformedCurrencyPair, fromDate, toDate, limit)));
     }

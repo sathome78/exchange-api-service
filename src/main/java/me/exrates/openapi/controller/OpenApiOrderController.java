@@ -43,7 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static me.exrates.openapi.utils.OpenApiUtils.convertCurrencyPairName;
+import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 import static me.exrates.openapi.utils.RestApiUtils.retrieveParamFormBody;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -86,7 +86,7 @@ public class OpenApiOrderController {
     @RequestMapping(value = "/create", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto) {
-        String currencyPairName = convertCurrencyPairName(orderParamsDto.getCurrencyPair());
+        String currencyPairName = convert(orderParamsDto.getCurrencyPair());
         String userEmail = userService.getUserEmailFromSecurityContext();
         OrderCreationResultDto resultDto = orderService.prepareAndCreateOrderRest(currencyPairName, orderParamsDto.getOrderType().getOperationType(),
                 orderParamsDto.getAmount(), orderParamsDto.getPrice(), userEmail);
@@ -129,7 +129,7 @@ public class OpenApiOrderController {
     @PreAuthorize("hasAuthority('TRADE')")
     @PostMapping(value = "/cancel/{currency_pair}/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrdersByCurrencyPair(@PathVariable("currency_pair") String currencyPair) {
-        final String transformedCurrencyPair = convertCurrencyPairName(currencyPair);
+        final String transformedCurrencyPair = convert(currencyPair);
 
         orderService.cancelOpenOrdersByCurrencyPair(transformedCurrencyPair);
         return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
@@ -198,7 +198,7 @@ public class OpenApiOrderController {
     @GetMapping(value = "/open/{order_type}", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public List<OpenOrderDto> openOrders(@PathVariable("order_type") OrderType orderType,
                                          @RequestParam("currency_pair") String currencyPair) {
-        String currencyPairName = convertCurrencyPairName(currencyPair);
+        String currencyPairName = convert(currencyPair);
         return orderService.getOpenOrders(currencyPairName, orderType);
     }
 
