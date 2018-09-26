@@ -1,7 +1,7 @@
 package me.exrates.openapi.utils;
 
 import me.exrates.openapi.exceptions.model.BigDecimalParseException;
-import me.exrates.openapi.model.enums.ActionType;
+import me.exrates.openapi.models.enums.ActionType;
 import org.apache.commons.lang.StringUtils;
 
 import java.math.BigDecimal;
