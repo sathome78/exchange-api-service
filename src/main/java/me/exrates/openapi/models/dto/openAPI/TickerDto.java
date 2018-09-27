@@ -27,7 +27,7 @@ public class TickerDto {
 
     public TickerDto(CoinmarketApiDto coinmarketApiDto) {
         this.id = coinmarketApiDto.getCurrencyPairId();
-        this.name = coinmarketApiDto.getCurrency_pair_name().replace('/', '_');
+        this.name = coinmarketApiDto.getCurrencyPairName().replace('/', '_');
         this.last = coinmarketApiDto.getLast();
         this.lowestAsk = coinmarketApiDto.getLowestAsk();
         this.highestBid = coinmarketApiDto.getHighestBid();

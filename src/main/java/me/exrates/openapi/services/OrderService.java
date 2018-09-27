@@ -103,8 +103,6 @@ import static me.exrates.openapi.utils.CollectionUtil.isNotEmpty;
 @Service
 public class OrderService {
 
-    private static final int ORDERS_QUERY_DEFAULT_LIMIT = 20;
-
     private List<CoinmarketApiDto> coinmarketCachedData = new CopyOnWriteArrayList<>();
     private ScheduledExecutorService coinmarketScheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -435,7 +433,7 @@ public class OrderService {
                 List<ExOrder> acceptableOrders = orderDao.selectTopOrders(orderCreateDto.getCurrencyPair().getId(), orderCreateDto.getExchangeRate(),
                         OperationType.getOpposite(orderCreateDto.getOperationType()), acceptSameRoleOnly, userService.getUserRoleFromDB(orderCreateDto.getUserId()).getRole(), orderCreateDto.getOrderBaseType());
                 profileData.setTime1();
-                logger.debug("acceptableOrders - " + OperationType.getOpposite(orderCreateDto.getOperationType()) + " : " + acceptableOrders);
+                log.debug("acceptableOrders - " + OperationType.getOpposite(orderCreateDto.getOperationType()) + " : " + acceptableOrders);
                 if (acceptableOrders.isEmpty()) {
                     return Optional.empty();
                 }
@@ -744,7 +742,7 @@ public class OrderService {
                 throw new OrderAcceptionException(messageSource.getMessage("orders.acceptsaveerror", null, locale));
             }
         } catch (Exception e) {
-            logger.error("Error while accepting order with id = " + orderId + " exception: " + e.getLocalizedMessage());
+            log.error("Error while accepting order with id = " + orderId + " exception: " + e.getLocalizedMessage());
             throw e;
         }
     }
@@ -1014,20 +1012,10 @@ public class OrderService {
     }
 
     //+
-    public List<UserOrdersDto> getUserOrdersHistory(@Nullable String currencyPairName,
-                                                    @Nullable Integer limit, @Nullable Integer offset) {
-        Integer userId = userService.getIdByEmail(userService.getUserEmailFromSecurityContext());
-        Integer currencyPairId = currencyPairName == null ? null : currencyService.findCurrencyPairByName(currencyPairName);
-        int queryLimit = limit == null ? ORDERS_QUERY_DEFAULT_LIMIT : limit;
-        int queryOffset = offset == null ? 0 : offset;
-        return orderDao.getUserOrdersHistory(userId, currencyPairId, queryLimit, queryOffset);
-    }
-
-    //+
-    public List<OpenOrderDto> getOpenOrders(String currencyPairName, OrderType orderType) {
-        Integer currencyPairId = currencyService.findCurrencyPairByName(currencyPairName);
-        return orderDao.getOpenOrders(currencyPairId, orderType);
-    }
+//    public List<OpenOrderDto> getOpenOrders(String currencyPairName, OrderType orderType) {
+//        Integer currencyPairId = currencyService.findCurrencyPairByName(currencyPairName);
+//        return orderDao.getOpenOrders(currencyPairId, orderType);
+//    }
 
     //+
     @Transactional(readOnly = true)

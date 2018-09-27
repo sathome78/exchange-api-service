@@ -96,12 +96,12 @@ public class OrderDao {
             "    UNION " +
             "      (SELECT 0 AS sell_commission, buy.value AS buy_commission, 0 AS input_commission, 0 AS output_commission, 0 AS transfer_commission " +
             "      FROM COMMISSION buy " +
-            "      WHERE buy.operation_type = 4  AND buy.user_role = :user_role " +
+            "      WHERE buy.operation_type = 4 AND buy.user_role = :user_role " +
             "      ORDER BY buy.date DESC LIMIT 1) " +
             "    UNION " +
             "      (SELECT 0 AS sell_commission, 0 AS buy_commission, input.value AS input_commission, 0 AS output_commission, 0 AS transfer_commission  " +
             "      FROM COMMISSION input " +
-            "      WHERE input.operation_type = 1  AND input.user_role = :user_role " +
+            "      WHERE input.operation_type = 1 AND input.user_role = :user_role " +
             "      ORDER BY input.date DESC LIMIT 1) " +
             "    UNION " +
             "      (SELECT 0 AS sell_commission, 0 AS buy_commission, 0 AS input_commission, output.value AS output_commission, 0 AS transfer_commission  " +
@@ -325,28 +325,6 @@ public class OrderDao {
             item.setPrice(rs.getBigDecimal("exrate"));
             return item;
         });
-    }
-
-    //+
-    public List<UserOrdersDto> getUserOrdersHistory(Integer userId, @Nullable Integer currencyPairId, int limit, int offset) {
-
-        String limitSql = limit > 0 ? " LIMIT :limit " : "";
-        String offsetSql = limit > 0 && offset > 0 ? "OFFSET :offset" : "";
-
-        String currencyPairSql = currencyPairId == null ? "" : " AND EO.currency_pair_id = :currency_pair_id ";
-        String sql = "SELECT EO.id AS order_id, EO.amount_base AS amount, EO.exrate AS price, CP.name AS currency_pair_name, EO.operation_type_id, " +
-                " EO.date_creation AS created, EO.date_acception AS accepted FROM EXORDERS EO " +
-                " JOIN CURRENCY_PAIR CP ON EO.currency_pair_id = CP.id " +
-                " WHERE (EO.user_id = :user_id OR EO.user_acceptor_id = :user_id) AND EO.status_id = :status_id " + currencyPairSql +
-                " ORDER BY EO.date_creation DESC " + limitSql + offsetSql;
-        Map<String, Object> params = new HashMap<>();
-        params.put("user_id", userId);
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", CLOSED.getStatus());
-        params.put("limit", limit);
-        params.put("offset", offset);
-
-        return npJdbcTemplate.query(sql, params, UserOrdersRowMapper.map());
     }
 
     //+

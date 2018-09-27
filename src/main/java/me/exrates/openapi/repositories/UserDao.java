@@ -23,14 +23,14 @@ import java.util.Map;
 @Repository
 public class UserDao {
 
-    private final String SELECT_USER =
+    private final String SELECT_USER_SQL =
             "SELECT USER.id, u.email AS parent_email, USER.finpassword, USER.nickname, USER.email, USER.password, USER.regdate, " +
                     "USER.phone, USER.status, USER_ROLE.name AS role_name FROM USER " +
                     "INNER JOIN USER_ROLE ON USER.roleid = USER_ROLE.id LEFT JOIN REFERRAL_USER_GRAPH " +
                     "ON USER.id = REFERRAL_USER_GRAPH.child LEFT JOIN USER AS u ON REFERRAL_USER_GRAPH.parent = u.id ";
 
     @Autowired
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    private NamedParameterJdbcTemplate npJdbcTemplate;
 
     private RowMapper<User> getUserRowMapper() {
         return (resultSet, i) -> {
@@ -57,7 +57,7 @@ public class UserDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("email", email);
         try {
-            return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
+            return npJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
         } catch (EmptyResultDataAccessException e) {
             return 0;
         }
@@ -68,37 +68,15 @@ public class UserDao {
         String sql = "select USER_ROLE.name as role_name from USER " +
                 "inner join USER_ROLE on USER.roleid = USER_ROLE.id where USER.id = :id ";
         Map<String, Integer> namedParameters = Collections.singletonMap("id", id);
-        return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, (rs, row) -> UserRole.valueOf(rs.getString("role_name")));
+        return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, row) -> UserRole.valueOf(rs.getString("role_name")));
     }
 
     //+
     public User getUserById(int id) {
-        String sql = SELECT_USER + "WHERE USER.id = :id";
+        String sql = SELECT_USER_SQL + "WHERE USER.id = :id";
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("id", String.valueOf(id));
-        return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, getUserRowMapper());
-    }
-
-    public List<TemporalToken> getTokenByUserAndType(int userId, TokenType tokenType) {
-        String sql = "SELECT * FROM TEMPORAL_TOKEN WHERE user_id= :user_id and token_type_id=:token_type_id";
-        Map<String, String> namedParameters = new HashMap<String, String>();
-        namedParameters.put("user_id", String.valueOf(userId));
-        namedParameters.put("token_type_id", String.valueOf(tokenType.getTokenType()));
-        ArrayList<TemporalToken> result = (ArrayList<TemporalToken>) namedParameterJdbcTemplate.query(sql, namedParameters, new BeanPropertyRowMapper<TemporalToken>() {
-            @Override
-            public TemporalToken mapRow(ResultSet rs, int rowNumber) throws SQLException {
-                TemporalToken temporalToken = new TemporalToken();
-                temporalToken.setId(rs.getInt("id"));
-                temporalToken.setUserId(rs.getInt("user_id"));
-                temporalToken.setValue(rs.getString("value"));
-                temporalToken.setDateCreation(rs.getTimestamp("date_creation").toLocalDateTime());
-                temporalToken.setExpired(rs.getBoolean("expired"));
-                temporalToken.setTokenType(TokenType.convert(rs.getInt("token_type_id")));
-                temporalToken.setCheckIp(rs.getString("check_ip"));
-                return temporalToken;
-            }
-        });
-        return result;
+        return npJdbcTemplate.queryForObject(sql, namedParameters, getUserRowMapper());
     }
 
     //+
@@ -107,7 +85,7 @@ public class UserDao {
         Map<String, Integer> namedParameters = new HashMap<>();
         namedParameters.put("id", userId);
         try {
-            return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, String.class);
+            return npJdbcTemplate.queryForObject(sql, namedParameters, String.class);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -119,7 +97,7 @@ public class UserDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("email", email);
         try {
-            return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, String.class);
+            return npJdbcTemplate.queryForObject(sql, namedParameters, String.class);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -128,7 +106,7 @@ public class UserDao {
     //+
     public String getEmailById(Integer id) {
         String sql = "SELECT email FROM USER WHERE id = :id";
-        return namedParameterJdbcTemplate.queryForObject(sql, Collections.singletonMap("id", id), String.class);
+        return npJdbcTemplate.queryForObject(sql, Collections.singletonMap("id", id), String.class);
     }
 
     //+
@@ -136,7 +114,7 @@ public class UserDao {
         String sql = "select USER_ROLE.name as role_name from USER " +
                 "inner join USER_ROLE on USER.roleid = USER_ROLE.id where USER.email = :email ";
         Map<String, String> namedParameters = Collections.singletonMap("email", email);
-        return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, (rs, row) ->
+        return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, row) ->
                 UserRole.valueOf(rs.getString("role_name")));
     }
 }

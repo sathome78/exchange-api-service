@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 
 @Data
 @Builder(builderClassName = "Builder")
-@NoArgsConstructor
 @AllArgsConstructor
 public class OpenApiCommissionDto {
 

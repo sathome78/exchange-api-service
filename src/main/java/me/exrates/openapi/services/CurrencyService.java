@@ -23,13 +23,10 @@ import static java.util.Objects.isNull;
 public class CurrencyService {
 
     private final CurrencyDao currencyDao;
-    private final UserService userService;
 
     @Autowired
-    public CurrencyService(CurrencyDao currencyDao,
-                           UserService userService) {
+    public CurrencyService(CurrencyDao currencyDao) {
         this.currencyDao = currencyDao;
-        this.userService = userService;
     }
 
     //+

@@ -33,23 +33,11 @@ import static me.exrates.openapi.models.enums.UserRole.USER;
 @Service
 public class UserService {
 
-    private final UserRole ROLE_DEFAULT_COMMISSION = USER;
-
     private final UserDao userDao;
-    private final MessageSource messageSource;
 
     @Autowired
-    public UserService(UserDao userDao,
-                       MessageSource messageSource) {
+    public UserService(UserDao userDao) {
         this.userDao = userDao;
-        this.messageSource = messageSource;
-    }
-
-    /*
-     * for checking if there are open tokens of concrete type for the user
-     * */
-    public List<TemporalToken> getTokenByUserAndType(User user, TokenType tokenType) {
-        return userDao.getTokenByUserAndType(user.getId(), tokenType);
     }
 
     //+
@@ -60,22 +48,6 @@ public class UserService {
     //+
     public User getUserById(int id) {
         return userDao.getUserById(id);
-    }
-
-    public void checkFinPassword(String enteredFinPassword, User storedUser, Locale locale) {
-        boolean isNotConfirmedToken = getTokenByUserAndType(storedUser, TokenType.CHANGE_FIN_PASSWORD).size() > 0;
-        if (isNotConfirmedToken) {
-            throw new NotConfirmedFinPasswordException(messageSource.getMessage("admin.notconfirmedfinpassword", null, locale));
-        }
-        String currentFinPassword = storedUser.getFinpassword();
-        if (currentFinPassword == null || currentFinPassword.isEmpty()) {
-            throw new AbsentFinPasswordException(messageSource.getMessage("admin.absentfinpassword", null, locale));
-        }
-        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        boolean authSuccess = passwordEncoder.matches(enteredFinPassword, currentFinPassword);
-        if (!authSuccess) {
-            throw new WrongFinPasswordException(messageSource.getMessage("admin.wrongfinpassword", null, locale));
-        }
     }
 
     //+

@@ -20,8 +20,6 @@ import java.util.Locale;
 public class UsersAlertsService {
 
     @Autowired
-    private MessageSource messageSource;
-    @Autowired
     private UserAlertsDao userAlertsDao;
 
     @PostConstruct
@@ -31,27 +29,6 @@ public class UsersAlertsService {
         if (alertDto.isEnabled() && alertDto.getEventStart().isBefore(LocalDateTime.now())) {
             disableAlert(alertType);
         }
-    }
-
-    private void completeDtos(List<AlertDto> alertDtos, Locale locale) {
-        alertDtos.forEach(p -> {
-            if (p.isEnabled()) {
-                AlertType alertType = AlertType.valueOf(p.getAlertType());
-                if (alertType.isNeedDateTime() && p.isEnabled()) {
-                    if (LocalDateTime.now().isBefore(p.getEventStart())) {
-                        Duration duration = Duration.between(LocalDateTime.now(), p.getEventStart());
-                        log.debug("now {}, launch {}, duration {}, seconds {}", LocalDateTime.now(), p.getEventStart(), duration, duration.getSeconds());
-                        p.setTimeRemainSeconds(duration.getSeconds());
-                    } else {
-                        p.setTimeRemainSeconds(0L);
-                    }
-                    p.setText(messageSource.getMessage(alertType.getMessageTmpl(),
-                            new String[]{p.getLenghtOfWorks().toString()}, locale));
-                } else {
-                    p.setText(messageSource.getMessage(alertType.getMessageTmpl(), null, locale));
-                }
-            }
-        });
     }
 
     @Transactional
