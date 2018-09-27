@@ -1,6 +1,6 @@
 package me.exrates.openapi.repositories;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.CompanyWallet;
 import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.CurrencyPair;
@@ -15,6 +15,7 @@ import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
 import me.exrates.openapi.models.enums.WalletTransferStatus;
 import me.exrates.openapi.models.vo.WalletOperationData;
+import me.exrates.openapi.repositories.mappers.WalletBalanceRowMapper;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,16 +35,27 @@ import java.util.Map;
 
 import static me.exrates.openapi.models.enums.OperationType.SELL;
 
+@Slf4j
 @Repository
-@Log4j2
 public class WalletDao {
 
+    private static final String GET_USER_BALANCES_SQL = "SELECT c.name AS currency_name, w.active_balance, w.reserved_balance" +
+            " FROM WALLET w" +
+            " JOIN CURRENCY c ON w.currency_id = c.id " +
+            " WHERE w.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
+
+    private final TransactionDao transactionDao;
+    private final CurrencyDao currencyDao;
+    private final NamedParameterJdbcTemplate npJdbcTemplate;
+
     @Autowired
-    private TransactionDao transactionDao;
-    @Autowired
-    private CurrencyDao currencyDao;
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    public WalletDao(TransactionDao transactionDao,
+                     CurrencyDao currencyDao,
+                     NamedParameterJdbcTemplate npJdbcTemplate) {
+        this.transactionDao = transactionDao;
+        this.currencyDao = currencyDao;
+        this.npJdbcTemplate = npJdbcTemplate;
+    }
 
     private RowMapper<WalletsForOrderCancelDto> getWalletsForOrderCancelDtoMapper(OperationType operationType) {
         return (rs, i) -> {
@@ -71,7 +83,7 @@ public class WalletDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("walletId", String.valueOf(walletId));
         try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class);
+            return npJdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -84,7 +96,7 @@ public class WalletDao {
         namedParameters.put("userId", String.valueOf(userId));
         namedParameters.put("currencyId", String.valueOf(currencyId));
         try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
+            return npJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
         } catch (EmptyResultDataAccessException e) {
             return 0;
         }
@@ -98,26 +110,12 @@ public class WalletDao {
                 .addValue("currId", wallet.getCurrencyId())
                 .addValue("userId", wallet.getUser().getId())
                 .addValue("activeBalance", wallet.getActiveBalance());
-        int result = jdbcTemplate.update(sql, parameters, keyHolder);
+        int result = npJdbcTemplate.update(sql, parameters, keyHolder);
         int id = (int) keyHolder.getKey().longValue();
         if (result <= 0) {
             id = 0;
         }
         return id;
-    }
-
-    //+
-    public List<WalletBalanceDto> getBalancesForUser(String userEmail) {
-        String sql = "SELECT CUR.name AS currency_name, W.active_balance, W.reserved_balance FROM WALLET W " +
-                " JOIN CURRENCY CUR ON W.currency_id = CUR.id " +
-                " WHERE W.user_id = (SELECT id FROM USER WHERE email = :email)";
-        return jdbcTemplate.query(sql, Collections.singletonMap("email", userEmail), (rs, rowNum) -> {
-            WalletBalanceDto dto = new WalletBalanceDto();
-            dto.setCurrencyName(rs.getString("currency_name"));
-            dto.setActiveBalance(rs.getBigDecimal("active_balance"));
-            dto.setReservedBalance(rs.getBigDecimal("reserved_balance"));
-            return dto;
-        });
     }
 
     //+
@@ -169,7 +167,7 @@ public class WalletDao {
             namedParameters.put("user_acceptor_id", String.valueOf(userAcceptorId));
         }
         try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, (rs, i) -> {
+            return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, i) -> {
                 WalletsForOrderAcceptionDto walletsForOrderAcceptionDto = new WalletsForOrderAcceptionDto();
                 walletsForOrderAcceptionDto.setOrderId(rs.getInt("order_id"));
                 walletsForOrderAcceptionDto.setOrderStatusId(rs.getInt("order_status_id"));
@@ -218,7 +216,7 @@ public class WalletDao {
         namedParameters.put("walletId", String.valueOf(walletId));
         Wallet wallet;
         try {
-            wallet = jdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
+            wallet = npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
                 Wallet result = new Wallet();
                 result.setId(rs.getInt("wallet_id"));
                 result.setCurrencyId(rs.getInt("currency_id"));
@@ -247,7 +245,7 @@ public class WalletDao {
                 put("walletId", String.valueOf(walletId));
             }
         };
-        if (jdbcTemplate.update(sql, params) <= 0) {
+        if (npJdbcTemplate.update(sql, params) <= 0) {
             return WalletTransferStatus.WALLET_UPDATE_ERROR;
         }
         /**/
@@ -272,7 +270,7 @@ public class WalletDao {
         try {
             transactionDao.create(transaction);
         } catch (Exception e) {
-            log.error(e);
+            log.error("Something happened wrong", e);
             return WalletTransferStatus.TRANSACTION_CREATION_ERROR;
         }
         /**/
@@ -297,7 +295,7 @@ public class WalletDao {
         namedParameters.put("walletId", String.valueOf(walletOperationData.getWalletId()));
         Wallet wallet;
         try {
-            wallet = jdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
+            wallet = npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
                 Wallet result = new Wallet();
                 result.setId(rs.getInt("wallet_id"));
                 result.setCurrencyId(rs.getInt("currency_id"));
@@ -341,7 +339,7 @@ public class WalletDao {
                 put("walletId", String.valueOf(walletOperationData.getWalletId()));
             }
         };
-        if (jdbcTemplate.update(sql, params) <= 0) {
+        if (npJdbcTemplate.update(sql, params) <= 0) {
             return WalletTransferStatus.WALLET_UPDATE_ERROR;
         }
         /**/
@@ -413,7 +411,7 @@ public class WalletDao {
         namedParameters.put("order_id", orderId);
         namedParameters.put("currency_id", operationType == SELL ? currencyPair.getCurrency1().getId() : currencyPair.getCurrency2().getId());
         try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, getWalletsForOrderCancelDtoMapper(operationType));
+            return npJdbcTemplate.queryForObject(sql, namedParameters, getWalletsForOrderCancelDtoMapper(operationType));
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -452,7 +450,7 @@ public class WalletDao {
             put("currency1_id", currencyPair.getCurrency1().getId());
             put("currency2_id", currencyPair.getCurrency2().getId());
         }};
-        return jdbcTemplate.query(sql, namedParameters, (rs, rowNum) -> {
+        return npJdbcTemplate.query(sql, namedParameters, (rs, rowNum) -> {
             Integer operationTypeId = rs.getInt("operation_type_id");
             BigDecimal orderCreatorReservedAmount = operationTypeId == 3 ? rs.getBigDecimal("amount_base") :
                     BigDecimalProcessingUtil.doAction(rs.getBigDecimal("amount_convert"), rs.getBigDecimal("commission_fixed_amount"),
@@ -470,5 +468,10 @@ public class WalletDao {
                     rs.getBigDecimal("company_commission")
             );
         });
+    }
+
+    //+
+    public List<WalletBalanceDto> getUserBalances(String userEmail) {
+        return npJdbcTemplate.query(GET_USER_BALANCES_SQL, Collections.singletonMap("email", userEmail), WalletBalanceRowMapper.map());
     }
 }

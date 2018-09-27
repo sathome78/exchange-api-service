@@ -1,7 +1,12 @@
 package me.exrates.openapi.models.enums;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.util.Arrays;
 
+@Getter
+@AllArgsConstructor
 public enum UserRole implements RealCheckableRole {
 
     ADMINISTRATOR(1),
@@ -16,34 +21,19 @@ public enum UserRole implements RealCheckableRole {
     BOT_TRADER(10, false, false),
     ICO_MARKET_MAKER(11);
 
-    private final int role;
-
-    private final boolean showExtendedOrderInfo;
-
-    private final boolean isReal;
-
-    UserRole(int role, boolean showExtendedOrderInfo, boolean isReal) {
-        this.role = role;
-        this.showExtendedOrderInfo = showExtendedOrderInfo;
-        this.isReal = isReal;
-    }
+    private int role;
+    private boolean showExtendedOrderInfo;
+    private boolean isReal;
 
     UserRole(int role) {
         this(role, true, true);
     }
 
-    public int getRole() {
-        return role;
-    }
-
-    public boolean showExtendedOrderInfo() {
-        return showExtendedOrderInfo;
-    }
-
     public static UserRole convert(int id) {
-        return Arrays.stream(UserRole.class.getEnumConstants())
+        return Arrays.stream(UserRole.values())
                 .filter(e -> e.role == id)
-                .findAny().orElse(USER);
+                .findAny()
+                .orElse(USER);
     }
 
     @Override

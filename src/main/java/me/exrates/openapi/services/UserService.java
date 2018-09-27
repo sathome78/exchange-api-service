@@ -1,8 +1,7 @@
 package me.exrates.openapi.services;
 
 
-import lombok.extern.log4j.Log4j2;
-import me.exrates.openapi.repositories.UserDao;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.AbsentFinPasswordException;
 import me.exrates.openapi.exceptions.AuthenticationNotAvailableException;
 import me.exrates.openapi.exceptions.NotConfirmedFinPasswordException;
@@ -11,8 +10,7 @@ import me.exrates.openapi.models.TemporalToken;
 import me.exrates.openapi.models.User;
 import me.exrates.openapi.models.enums.TokenType;
 import me.exrates.openapi.models.enums.UserRole;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import me.exrates.openapi.repositories.UserDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
@@ -25,23 +23,27 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Log4j2
+import static java.util.Objects.isNull;
+import static java.util.stream.Collectors.toSet;
+import static me.exrates.openapi.models.enums.UserRole.USER;
+
+@Slf4j
 @Service
 public class UserService {
 
-    @Autowired
-    private UserDao userDao;
+    private final UserRole ROLE_DEFAULT_COMMISSION = USER;
+
+    private final UserDao userDao;
+    private final MessageSource messageSource;
 
     @Autowired
-    private MessageSource messageSource;
-
-    private final Set<String> USER_ROLES = Stream.of(UserRole.values()).map(UserRole::name).collect(Collectors.toSet());
-    private final UserRole ROLE_DEFAULT_COMMISSION = UserRole.USER;
-
-    private static final Logger LOGGER = LogManager.getLogger(UserService.class);
+    public UserService(UserDao userDao,
+                       MessageSource messageSource) {
+        this.userDao = userDao;
+        this.messageSource = messageSource;
+    }
 
     /*
      * for checking if there are open tokens of concrete type for the user
@@ -97,17 +99,6 @@ public class UserService {
     }
 
     //+
-    public UserRole getUserRoleFromSecurityContext() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String grantedAuthority = authentication.getAuthorities().
-                stream().map(GrantedAuthority::getAuthority)
-                .filter(USER_ROLES::contains)
-                .findFirst().orElse(ROLE_DEFAULT_COMMISSION.name());
-        LOGGER.debug("Granted authority: " + grantedAuthority);
-        return UserRole.valueOf(grantedAuthority);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public String getEmailById(Integer id) {
         return userDao.getEmailById(id);
@@ -125,11 +116,37 @@ public class UserService {
     }
 
     //+
+    @Transactional(readOnly = true)
+    public int getAuthenticatedUserId() {
+        final String userEmail = getUserEmailFromSecurityContext();
+
+        return userDao.getIdByEmail(userEmail);
+    }
+
+    //+
+    public UserRole getUserRoleFromSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Set<String> roles = Stream.of(UserRole.values())
+                .map(UserRole::name)
+                .collect(toSet());
+
+        String grantedAuthority = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(roles::contains)
+                .findFirst()
+                .orElse(USER.name());
+
+        log.debug("Granted authority: {}", grantedAuthority);
+        return UserRole.valueOf(grantedAuthority);
+    }
+
+    //+
     public String getUserEmailFromSecurityContext() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (isNull(authentication)) {
             throw new AuthenticationNotAvailableException();
         }
-        return auth.getName();
+        return authentication.getName();
     }
 }

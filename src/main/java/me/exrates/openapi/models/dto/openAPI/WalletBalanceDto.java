@@ -1,21 +1,23 @@
 package me.exrates.openapi.models.dto.openAPI;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-import me.exrates.openapi.models.serializer.BigDecimalToDoubleSerializer;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@ToString
+@Data
+@Builder(builderClassName = "Builder", toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class WalletBalanceDto {
 
+    @JsonProperty("currency_name")
     private String currencyName;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("active_balance")
     private BigDecimal activeBalance;
-    @JsonSerialize(using = BigDecimalToDoubleSerializer.class)
+    @JsonProperty("reserved_balance")
     private BigDecimal reservedBalance;
 }

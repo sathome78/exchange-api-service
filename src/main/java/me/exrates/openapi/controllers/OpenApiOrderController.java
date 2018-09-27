@@ -82,9 +82,7 @@ public class OpenApiOrderController {
      * @apiSuccess {Integer} orderCreationResult.auto_accepted_quantity Number of orders accepted automatically (not shown if no orders were auto-accepted)
      * @apiSuccess {Number} orderCreationResult.partially_accepted_amount Amount that was accepted partially (shown only in case of partial accept)
      */
-    @PreAuthorize("hasAuthority('TRADE')")
-    @RequestMapping(value = "/create", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto) {
         String currencyPairName = convert(orderParamsDto.getCurrencyPair());
         String userEmail = userService.getUserEmailFromSecurityContext();
@@ -106,7 +104,6 @@ public class OpenApiOrderController {
      * RequestBody: Map{order_id=123}
      * @apiSuccess {Map} success Cancellation result
      */
-    @PreAuthorize("hasAuthority('TRADE')")
     @PostMapping(value = "/cancel", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrder(@RequestBody Map<String, String> params) {
         final Integer orderId = Integer.parseInt(retrieveParamFormBody(params, "order_id", true));
@@ -126,7 +123,6 @@ public class OpenApiOrderController {
      * /openapi/v1/orders/cancel/btc_usd/all
      * @apiSuccess {Map} success Cancellation result
      */
-    @PreAuthorize("hasAuthority('TRADE')")
     @PostMapping(value = "/cancel/{currency_pair}/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrdersByCurrencyPair(@PathVariable("currency_pair") String currencyPair) {
         final String transformedCurrencyPair = convert(currencyPair);
@@ -146,7 +142,6 @@ public class OpenApiOrderController {
      * /openapi/v1/orders/cancel/all
      * @apiSuccess {Map} success Cancellation result
      */
-    @PreAuthorize("hasAuthority('TRADE')")
     @PostMapping(value = "/cancel/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelAllOrders() {
         orderService.cancelAllOpenOrders();
@@ -166,7 +161,6 @@ public class OpenApiOrderController {
      * RequestBody: Map{order_id=123}
      * @apiSuccess {Map} success=true Acceptance result
      */
-    @PreAuthorize("hasAuthority('TRADE')")
     @RequestMapping(value = "/accept", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public Map<String, Boolean> acceptOrder(@RequestBody Map<String, String> params) {
@@ -200,69 +194,5 @@ public class OpenApiOrderController {
                                          @RequestParam("currency_pair") String currencyPair) {
         String currencyPairName = convert(currencyPair);
         return orderService.getOpenOrders(currencyPairName, orderType);
-    }
-
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    @ExceptionHandler(value = AccessDeniedException.class)
-    public OpenApiError accessDeniedExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.ACCESS_DENIED, req.getRequestURL(), exception);
-    }
-
-    @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler({MethodArgumentNotValidException.class, OrderParamsWrongException.class, MethodArgumentTypeMismatchException.class})
-    @ResponseBody
-    public OpenApiError mismatchArgumentsErrorHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INVALID_PARAM_VALUE, req.getRequestURL(), exception);
-    }
-
-    @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseBody
-    public OpenApiError jsonMappingExceptionHandler(HttpServletRequest req, HttpMessageNotReadableException exception) {
-        return new OpenApiError(ErrorCode.REQUEST_NOT_READABLE, req.getRequestURL(), "Invalid request format");
-    }
-
-    @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    @ResponseBody
-    public OpenApiError missingServletRequestParameterHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.MISSING_REQUIRED_PARAM, req.getRequestURL(), exception);
-    }
-
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(CurrencyPairNotFoundException.class)
-    @ResponseBody
-    public OpenApiError currencyPairNotFoundExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.CURRENCY_PAIR_NOT_FOUND, req.getRequestURL(), exception);
-    }
-
-
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(InvalidCurrencyPairFormatException.class)
-    @ResponseBody
-    public OpenApiError invalidCurrencyPairFormatExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INVALID_CURRENCY_PAIR_FORMAT, req.getRequestURL(), exception);
-    }
-
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(AlreadyAcceptedOrderException.class)
-    @ResponseBody
-    public OpenApiError alreadyAcceptedOrderExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.ALREADY_ACCEPTED_ORDER, req.getRequestURL(), exception);
-    }
-
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(OrderNotFoundException.class)
-    @ResponseBody
-    public OpenApiError orderNotFoundExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.ORDER_NOT_FOUND, req.getRequestURL(), exception);
-    }
-
-
-    @ResponseStatus(INTERNAL_SERVER_ERROR)
-    @ExceptionHandler(Exception.class)
-    @ResponseBody
-    public OpenApiError OtherErrorsHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getRequestURL(), "An internal error occured");
     }
 }

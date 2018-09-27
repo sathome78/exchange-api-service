@@ -1,14 +1,10 @@
 package me.exrates.openapi.controllers;
 
-import me.exrates.openapi.controllers.advice.OpenApiError;
-import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
-import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
 import me.exrates.openapi.models.dto.CandleChartItemReducedDto;
 import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.openAPI.CurrencyPairInfoItem;
 import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
 import me.exrates.openapi.models.dto.openAPI.TickerDto;
-import me.exrates.openapi.models.enums.ErrorCode;
 import me.exrates.openapi.models.enums.IntervalType;
 import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.vo.BackDealInterval;
@@ -19,28 +15,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.toList;
 import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
+import static me.exrates.openapi.utils.ValidationUtil.validateLimit;
 
 @SuppressWarnings("DanglingJavadoc")
 @RestController
@@ -184,7 +171,7 @@ public class OpenApiPublicController {
                                                                                           @PathVariable("currency_2") String currency2,
                                                                                           @RequestParam(value = "order_type", required = false) OrderType orderType,
                                                                                           @RequestParam(required = false, defaultValue = "50") Integer limit) {
-        if (nonNull(limit) && limit <= 0) {
+        if (!validateLimit(limit)) {
             return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
         }
 
@@ -216,15 +203,15 @@ public class OpenApiPublicController {
      * @apiSuccess {String}     data.order_type         Order type (BUY or SELL)
      */
     @GetMapping(value = "/history/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<TradeHistoryDto>>> getTradeHistory(@PathVariable("currency_1") String currency1,
-                                                                               @PathVariable("currency_2") String currency2,
-                                                                               @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-                                                                               @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-                                                                               @RequestParam(required = false, defaultValue = "50") Integer limit) {
+    public ResponseEntity<BaseResponse<List<TradeHistoryDto>>> getTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
+                                                                                             @PathVariable("currency_2") String currency2,
+                                                                                             @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                                                                                             @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                                                                                             @RequestParam(defaultValue = "50") Integer limit) {
         if (fromDate.isAfter(toDate)) {
             return ResponseEntity.badRequest().body(BaseResponse.error("From date is after to date"));
         }
-        if (nonNull(limit) && limit <= 0) {
+        if (!validateLimit(limit)) {
             return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
         }
 
@@ -313,43 +300,5 @@ public class OpenApiPublicController {
                 .map(CandleChartItemReducedDto::new)
                 .collect(toList());
         return ResponseEntity.ok(BaseResponse.success(resultList));
-    }
-
-    @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    @ResponseBody
-    public OpenApiError mismatchArgumentsErrorHandler(HttpServletRequest req, MethodArgumentTypeMismatchException exception) {
-        String detail = "Invalid param value : " + exception.getParameter().getParameterName();
-        return new OpenApiError(ErrorCode.INVALID_PARAM_VALUE, req.getRequestURL(), detail);
-    }
-
-    @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    @ResponseBody
-    public OpenApiError missingServletRequestParameterHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.MISSING_REQUIRED_PARAM, req.getRequestURL(), exception);
-    }
-
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(CurrencyPairNotFoundException.class)
-    @ResponseBody
-    public OpenApiError currencyPairNotFoundExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.CURRENCY_PAIR_NOT_FOUND, req.getRequestURL(), exception);
-    }
-
-
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(InvalidCurrencyPairFormatException.class)
-    @ResponseBody
-    public OpenApiError invalidCurrencyPairFormatExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INVALID_CURRENCY_PAIR_FORMAT, req.getRequestURL(), exception);
-    }
-
-
-    @ResponseStatus(INTERNAL_SERVER_ERROR)
-    @ExceptionHandler(Exception.class)
-    @ResponseBody
-    public OpenApiError OtherErrorsHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getRequestURL(), exception);
     }
 }

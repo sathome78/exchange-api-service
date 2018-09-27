@@ -1,10 +1,10 @@
 package me.exrates.openapi.repositories;
 
-import me.exrates.openapi.repositories.mappers.CurrencyPairInfoItemRowMapper;
-import me.exrates.openapi.repositories.mappers.CurrencyPairRowMapper;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
 import me.exrates.openapi.models.dto.openAPI.CurrencyPairInfoItem;
+import me.exrates.openapi.repositories.mappers.CurrencyPairInfoItemRowMapper;
+import me.exrates.openapi.repositories.mappers.CurrencyPairRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -21,8 +21,12 @@ public class CurrencyDao {
 
     private static final String FIND_ACTIVE_CURRENCY_PAIRS_SQL = "SELECT cp.name FROM CURRENCY_PAIR cp WHERE cp.hidden != 1 ORDER BY cp.name ASC";
 
+    private final NamedParameterJdbcTemplate npJdbcTemplate;
+
     @Autowired
-    private NamedParameterJdbcTemplate npJdbcTemplate;
+    public CurrencyDao(NamedParameterJdbcTemplate npJdbcTemplate) {
+        this.npJdbcTemplate = npJdbcTemplate;
+    }
 
     //+
     public CurrencyPair findCurrencyPairById(int currencyPairId) {

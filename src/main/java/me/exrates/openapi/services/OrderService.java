@@ -2,8 +2,6 @@ package me.exrates.openapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.components.TransactionDescription;
-import me.exrates.openapi.repositories.CommissionDao;
-import me.exrates.openapi.repositories.OrderDao;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.AttemptToAcceptBotOrderException;
 import me.exrates.openapi.exceptions.IncorrectCurrentUserException;
@@ -39,7 +37,7 @@ import me.exrates.openapi.models.dto.WalletsAndCommissionsForOrderCreationDto;
 import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
 import me.exrates.openapi.models.dto.WalletsForOrderCancelDto;
 import me.exrates.openapi.models.dto.mobileApiDto.OrderCreationParamsDto;
-import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionsDto;
+import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
 import me.exrates.openapi.models.dto.openAPI.UserOrdersDto;
@@ -59,6 +57,8 @@ import me.exrates.openapi.models.enums.WalletTransferStatus;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.models.vo.ProfileData;
 import me.exrates.openapi.models.vo.WalletOperationData;
+import me.exrates.openapi.repositories.CommissionDao;
+import me.exrates.openapi.repositories.OrderDao;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -215,9 +215,12 @@ public class OrderService {
         if (orderCreateDto.getExchangeRate().compareTo(BigDecimal.ZERO) <= 0) {
             errors.put("exrate_" + errors.size(), "order.fillfield");
         }
+        final CurrencyPair currencyPair = orderCreateDto.getCurrencyPair();
+        final OperationType operationType = orderCreateDto.getOperationType();
+        final UserRole userRole = userService.getUserRoleFromSecurityContext();
 
-        CurrencyPairLimitDto currencyPairLimit = currencyService.findLimitForRoleByCurrencyPairAndType(orderCreateDto.getCurrencyPair().getId(),
-                orderCreateDto.getOperationType());
+        CurrencyPairLimitDto currencyPairLimit = currencyService.findLimitForRoleByCurrencyPairAndType(currencyPair, operationType, userRole);
+
         if (orderCreateDto.getOrderBaseType() != null && orderCreateDto.getOrderBaseType().equals(OrderBaseType.STOP_LIMIT)) {
             if (orderCreateDto.getStop() == null || orderCreateDto.getStop().compareTo(BigDecimal.ZERO) <= 0) {
                 errors.put("stop_" + errors.size(), "order.fillfield");
@@ -886,13 +889,6 @@ public class OrderService {
 
     //+
     @Transactional(readOnly = true)
-    public CommissionsDto getAllCommissions() {
-        UserRole userRole = userService.getUserRoleFromSecurityContext();
-        return orderDao.getAllCommissions(userRole);
-    }
-
-    //+
-    @Transactional(readOnly = true)
     public WalletsAndCommissionsForOrderCreationDto getWalletAndCommission(String email, Currency currency,
                                                                            OperationType operationType) {
         UserRole userRole;
@@ -1018,18 +1014,10 @@ public class OrderService {
     }
 
     //+
-    public List<UserOrdersDto> getUserOpenOrders(@Nullable String currencyPairName) {
-        Integer userId = userService.getIdByEmail(userService.getUserEmailFromSecurityContext());
-        Integer currencyPairId = currencyPairName == null ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
-        return orderDao.getUserOpenOrders(userId, currencyPairId);
-
-    }
-
-    //+
     public List<UserOrdersDto> getUserOrdersHistory(@Nullable String currencyPairName,
                                                     @Nullable Integer limit, @Nullable Integer offset) {
         Integer userId = userService.getIdByEmail(userService.getUserEmailFromSecurityContext());
-        Integer currencyPairId = currencyPairName == null ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
+        Integer currencyPairId = currencyPairName == null ? null : currencyService.findCurrencyPairByName(currencyPairName);
         int queryLimit = limit == null ? ORDERS_QUERY_DEFAULT_LIMIT : limit;
         int queryOffset = offset == null ? 0 : offset;
         return orderDao.getUserOrdersHistory(userId, currencyPairId, queryLimit, queryOffset);
@@ -1037,59 +1025,9 @@ public class OrderService {
 
     //+
     public List<OpenOrderDto> getOpenOrders(String currencyPairName, OrderType orderType) {
-        Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
+        Integer currencyPairId = currencyService.findCurrencyPairByName(currencyPairName);
         return orderDao.getOpenOrders(currencyPairId, orderType);
     }
-
-    @Transactional(readOnly = true)
-    public List<UserOrdersDto> getUserClosedOrders(@Null String currencyPairName,
-                                                   @Null Integer limit,
-                                                   @Null Integer offset) {
-        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
-
-        Integer currencyPairId = isNull(currencyPairName) ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
-        int queryLimit = limit == null ? ORDERS_QUERY_DEFAULT_LIMIT : limit;
-        int queryOffset = offset == null ? 0 : offset;
-
-        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CLOSED, queryLimit, queryOffset);
-    }
-
-    @Transactional(readOnly = true)
-    public List<UserOrdersDto> getUserCanceledOrders(@Null String currencyPairName,
-                                                     @Null Integer limit,
-                                                     @Null Integer offset) {
-        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
-
-        Integer currencyPairId = isNull(currencyPairName) ? null : currencyService.findCurrencyPairIdByName(currencyPairName);
-        int queryLimit = limit == null ? ORDERS_QUERY_DEFAULT_LIMIT : limit;
-        int queryOffset = offset == null ? 0 : offset;
-
-        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CANCELLED, queryLimit, queryOffset);
-    }
-
-    @Transactional(readOnly = true)
-    public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(String currencyPairName,
-                                                                       @NotNull LocalDate fromDate,
-                                                                       @NotNull LocalDate toDate,
-                                                                       @Null Integer limit) {
-        final Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
-        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
-
-        return orderDao.getUserTradeHistoryByCurrencyPair(
-                userId,
-                currencyPairId,
-                LocalDateTime.of(fromDate, LocalTime.MIN),
-                LocalDateTime.of(toDate, LocalTime.MAX),
-                limit);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TransactionDto> getOrderTransactions(Integer orderId) {
-        final Integer userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
-
-        return orderDao.getOrderTransactions(userId, orderId);
-    }
-
 
     //+
     @Transactional(readOnly = true)
@@ -1107,7 +1045,7 @@ public class OrderService {
     public Map<OrderType, List<OrderBookItem>> getOrderBook(String pairName,
                                                             @Null OrderType orderType,
                                                             @Null Integer limit) {
-        CurrencyPair currencyPair = currencyService.findCurrencyPairIdByName(pairName);
+        CurrencyPair currencyPair = currencyService.findCurrencyPairByName(pairName);
 
         return nonNull(orderType)
                 ? Collections.singletonMap(orderType, orderDao.getOrderBookItemsByType(currencyPair, orderType, limit))
@@ -1122,7 +1060,7 @@ public class OrderService {
                                                  @NotNull LocalDate fromDate,
                                                  @NotNull LocalDate toDate,
                                                  @Null Integer limit) {
-        CurrencyPair currencyPair = currencyService.findCurrencyPairIdByName(pairName);
+        CurrencyPair currencyPair = currencyService.findCurrencyPairByName(pairName);
 
         return orderDao.getTradeHistory(
                 currencyPair,
@@ -1139,8 +1077,72 @@ public class OrderService {
         return orderDao.getDataForCandleChart(currencyPair, interval);
     }
 
+    //+
+    @Transactional(readOnly = true)
+    public List<UserOrdersDto> getUserOpenOrders(@Null String pairName,
+                                                 @NotNull Integer limit) {
+        final int userId = userService.getAuthenticatedUserId();
+
+        CurrencyPair currencyPair = isNull(pairName) ? null : currencyService.findCurrencyPairByName(pairName);
+
+        return orderDao.getUserOrdersByStatus(userId, currencyPair, OrderStatus.OPENED, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserOrdersDto> getUserClosedOrders(@Null String pairName,
+                                                   @NotNull Integer limit) {
+        final int userId = userService.getAuthenticatedUserId();
+
+        CurrencyPair currencyPair = isNull(pairName) ? null : currencyService.findCurrencyPairByName(pairName);
+
+        return orderDao.getUserOrdersByStatus(userId, currencyPair, OrderStatus.CLOSED, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserOrdersDto> getUserCanceledOrders(@Null String pairName,
+                                                     @NotNull Integer limit) {
+        final int userId = userService.getAuthenticatedUserId();
+
+        CurrencyPair currencyPair = isNull(pairName) ? null : currencyService.findCurrencyPairByName(pairName);
+
+        return orderDao.getUserOrdersByStatus(userId, currencyPair, OrderStatus.CANCELLED, limit);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public CommissionDto getAllCommissions() {
+        UserRole userRole = userService.getUserRoleFromSecurityContext();
+
+        return orderDao.getAllCommissions(userRole);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(String currencyPairName,
+                                                                       @NotNull LocalDate fromDate,
+                                                                       @NotNull LocalDate toDate,
+                                                                       @NotNull Integer limit) {
+        CurrencyPair currencyPair = currencyService.findCurrencyPairByName(currencyPairName);
+        final int userId = userService.getAuthenticatedUserId();
+
+        return orderDao.getUserTradeHistoryByCurrencyPair(
+                userId,
+                currencyPair,
+                LocalDateTime.of(fromDate, LocalTime.MIN),
+                LocalDateTime.of(toDate, LocalTime.MAX),
+                limit);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public List<TransactionDto> getOrderTransactions(Integer orderId) {
+        final int userId = userService.getAuthenticatedUserId();
+
+        return orderDao.getOrderTransactions(userId, orderId);
+    }
+
     private void validateCurrencyPair(String pairName) {
-        currencyService.findCurrencyPairIdByName(pairName);
+        currencyService.findCurrencyPairByName(pairName);
     }
 
     private List<CoinmarketApiDto> getCoinmarketDataForActivePairs(String pairName) {

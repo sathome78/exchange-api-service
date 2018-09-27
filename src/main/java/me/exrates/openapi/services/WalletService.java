@@ -1,7 +1,6 @@
 package me.exrates.openapi.services;
 
-import lombok.extern.log4j.Log4j2;
-import me.exrates.openapi.repositories.WalletDao;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.dto.OrderDetailDto;
 import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
@@ -11,6 +10,7 @@ import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
 import me.exrates.openapi.models.enums.WalletTransferStatus;
 import me.exrates.openapi.models.vo.WalletOperationData;
+import me.exrates.openapi.repositories.WalletDao;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,15 +20,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Log4j2
+@Slf4j
 @Service
-@Transactional
 public class WalletService {
 
+    private final WalletDao walletDao;
+    private final UserService userService;
+
     @Autowired
-    private WalletDao walletDao;
-    @Autowired
-    private UserService userService;
+    public WalletService(WalletDao walletDao,
+                         UserService userService) {
+        this.walletDao = walletDao;
+        this.userService = userService;
+    }
 
     //+
     public int getWalletId(int userId, int currencyId) {
@@ -72,13 +76,6 @@ public class WalletService {
     }
 
     //+
-    @Transactional(readOnly = true)
-    public List<WalletBalanceDto> getBalancesForUser() {
-        String userEmail = userService.getUserEmailFromSecurityContext();
-        return walletDao.getBalancesForUser(userEmail);
-    }
-
-    //+
     @Transactional
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
         return walletDao.getOrderRelatedDataAndBlock(orderId);
@@ -94,5 +91,13 @@ public class WalletService {
     @Transactional
     public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
         return walletDao.getWalletForOrderByOrderIdAndOperationTypeAndBlock(orderId, operationType);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public List<WalletBalanceDto> getUserBalances() {
+        final String userEmail = userService.getUserEmailFromSecurityContext();
+
+        return walletDao.getUserBalances(userEmail);
     }
 }

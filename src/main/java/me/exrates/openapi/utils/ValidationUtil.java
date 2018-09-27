@@ -2,16 +2,13 @@ package me.exrates.openapi.utils;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import me.exrates.openapi.exceptions.InvalidNumberParamException;
 
 import static java.util.Objects.nonNull;
 
 @NoArgsConstructor(access = AccessLevel.NONE)
 public final class ValidationUtil {
 
-    public static void validateNaturalInt(Integer number) {
-        if (nonNull(number) && number <= 0) {
-            throw new InvalidNumberParamException(String.format("Number shouldn't be equals to zero or be negative: %s", number));
-        }
+    public static boolean validateLimit(Integer limit) {
+        return !nonNull(limit) || limit > 0;
     }
 }

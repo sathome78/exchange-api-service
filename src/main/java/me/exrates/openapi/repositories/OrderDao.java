@@ -1,9 +1,6 @@
 package me.exrates.openapi.repositories;
 
-import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
-import me.exrates.openapi.repositories.jdbc.OrderRowMapper;
-import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
-import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
+import com.google.common.collect.Maps;
 import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.ExOrder;
@@ -13,7 +10,7 @@ import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.TransactionDto;
 import me.exrates.openapi.models.dto.UserTradeHistoryDto;
 import me.exrates.openapi.models.dto.WalletsAndCommissionsForOrderCreationDto;
-import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionsDto;
+import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
 import me.exrates.openapi.models.dto.openAPI.UserOrdersDto;
@@ -21,13 +18,19 @@ import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderBaseType;
 import me.exrates.openapi.models.enums.OrderStatus;
 import me.exrates.openapi.models.enums.OrderType;
-import me.exrates.openapi.models.enums.TransactionStatus;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.vo.BackDealInterval;
+import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
+import me.exrates.openapi.repositories.jdbc.OrderRowMapper;
+import me.exrates.openapi.repositories.mappers.CommissionRowMapper;
+import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
+import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
+import me.exrates.openapi.repositories.mappers.TransactionRowMapper;
+import me.exrates.openapi.repositories.mappers.UserOrdersRowMapper;
+import me.exrates.openapi.repositories.mappers.UserTradeHistoryRowMapper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -35,9 +38,10 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Null;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,19 +80,61 @@ public class OrderDao {
             " AND o.date_acception BETWEEN :start_date AND :end_date" +
             " ORDER BY o.date_acception ASC";
 
-    private final NamedParameterJdbcTemplate npJdbcTemplate;
+    private static final String GET_USER_ORDERS_BY_STATUS_SQL = "SELECT o.id AS order_id, o.amount_base AS amount, o.exrate AS price, " +
+            "cp.name AS currency_pair_name, o.operation_type_id, o.date_creation AS created, o.date_acception AS accepted" +
+            " FROM EXORDERS o" +
+            " JOIN CURRENCY_PAIR cp ON o.currency_pair_id = cp.id " +
+            " WHERE o.user_id = :user_id AND o.status_id = :status_id";
 
-    private final RowMapper<UserOrdersDto> userOrdersRowMapper = (rs, row) -> {
-        int id = rs.getInt("order_id");
-        String currencyPairName = rs.getString("currency_pair_name");
-        String orderType = OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))).name();
-        LocalDateTime dateCreation = rs.getTimestamp("date_creation").toLocalDateTime();
-        Timestamp timestampAcceptance = rs.getTimestamp("date_acception");
-        LocalDateTime dateAcceptance = timestampAcceptance == null ? null : timestampAcceptance.toLocalDateTime();
-        BigDecimal amount = rs.getBigDecimal("amount_base");
-        BigDecimal price = rs.getBigDecimal("exrate");
-        return new UserOrdersDto(id, currencyPairName, amount, orderType, price, dateCreation, dateAcceptance);
-    };
+    private static final String GET_ALL_COMMISSIONS_SQL = "SELECT SUM(sell_commission) as sell_commission, SUM(buy_commission) AS buy_commission, " +
+            "SUM(input_commission) AS input_commission, SUM(output_commission) AS output_commission, SUM(transfer_commission) AS transfer_commission" +
+            "  FROM " +
+            "      ((SELECT sell.value AS sell_commission, 0 AS buy_commission, 0 AS input_commission, 0 AS output_commission, 0 AS transfer_commission " +
+            "      FROM COMMISSION sell " +
+            "      WHERE sell.operation_type = 3 AND sell.user_role = :user_role " +
+            "      ORDER BY sell.date DESC LIMIT 1)  " +
+            "    UNION " +
+            "      (SELECT 0 AS sell_commission, buy.value AS buy_commission, 0 AS input_commission, 0 AS output_commission, 0 AS transfer_commission " +
+            "      FROM COMMISSION buy " +
+            "      WHERE buy.operation_type = 4  AND buy.user_role = :user_role " +
+            "      ORDER BY buy.date DESC LIMIT 1) " +
+            "    UNION " +
+            "      (SELECT 0 AS sell_commission, 0 AS buy_commission, input.value AS input_commission, 0 AS output_commission, 0 AS transfer_commission  " +
+            "      FROM COMMISSION input " +
+            "      WHERE input.operation_type = 1  AND input.user_role = :user_role " +
+            "      ORDER BY input.date DESC LIMIT 1) " +
+            "    UNION " +
+            "      (SELECT 0 AS sell_commission, 0 AS buy_commission, 0 AS input_commission, output.value AS output_commission, 0 AS transfer_commission  " +
+            "      FROM COMMISSION output " +
+            "      WHERE output.operation_type = 2 AND output.user_role = :user_role  " +
+            "      ORDER BY output.date DESC LIMIT 1) " +
+            "    UNION " +
+            "      (SELECT 0 AS sell_commission, 0 AS buy_commission, 0 AS input_commission, 0 AS output_commission, transfer.value AS transfer_commission " +
+            "      FROM COMMISSION transfer " +
+            "      WHERE transfer.operation_type = 9 AND transfer.user_role = :user_role  " +
+            "      ORDER BY transfer.date DESC LIMIT 1) " +
+            "  ) COMMISSION";
+
+    private static final String GET_USER_TRADE_HISTORY_BY_CURRENCY_PAIR_SQL = "SELECT o.id as order_id, o.user_id as user_id, o.date_creation as created, " +
+            "o.date_acception as accepted, o.amount_base as amount, o.exrate as price, o.amount_convert as sum, c.value as commission, o.operation_type_id" +
+            " FROM EXORDERS o" +
+            " JOIN COMMISSION c on o.commission_id = c.id" +
+            " WHERE (o.user_id = :user_id OR o.user_acceptor_id = :user_id) AND o.currency_pair_id = :currency_pair_id" +
+            " AND o.status_id = :status_id AND o.date_acception BETWEEN :start_date AND :end_date" +
+            " ORDER BY o.date_acception LIMIT :limit";
+
+    private static final String GET_ORDER_TRANSACTIONS_SQL = "SELECT t.id, t.user_wallet_id, t.amount, t.commission_amount AS commission, " +
+            "cur.name AS currency, t.datetime AS time, t.operation_type_id, o.status_id" +
+            " FROM TRANSACTION t" +
+            " JOIN CURRENCY cur on t.currency_id = cur.id" +
+            " JOIN EXORDERS o on o.id = t.source_id" +
+            " WHERE (o.user_id = :user_id OR o.user_acceptor_id = :user_id)" +
+            " AND t.source_id = :order_id" +
+            " AND t.source_type = :source_type" +
+            " AND (t.operation_type_id = :operation_type_1 OR t.operation_type_id = :operation_type_2)" +
+            " ORDER BY t.id";
+
+    private final NamedParameterJdbcTemplate npJdbcTemplate;
 
     @Autowired
     public OrderDao(NamedParameterJdbcTemplate npJdbcTemplate) {
@@ -155,54 +201,6 @@ public class OrderDao {
         namedParameters.put("id", String.valueOf(exOrder.getId()));
         int result = npJdbcTemplate.update(sql, namedParameters);
         return result > 0;
-    }
-
-    //+
-    public CommissionsDto getAllCommissions(UserRole userRole) {
-        final String sql =
-                "  SELECT SUM(sell_commission) as sell_commission, SUM(buy_commission) as buy_commission, " +
-                        "SUM(input_commission) as input_commission, SUM(output_commission) as output_commission, SUM(transfer_commission) as transfer_commission" +
-                        "  FROM " +
-                        "      ((SELECT SELL.value as sell_commission, 0 as buy_commission, 0 as input_commission, 0 as output_commission, " +
-                        " 0 as transfer_commission " +
-                        "      FROM COMMISSION SELL " +
-                        "      WHERE operation_type = 3 AND user_role = :user_role " +
-                        "      ORDER BY date DESC LIMIT 1)  " +
-                        "    UNION " +
-                        "      (SELECT 0, BUY.value, 0, 0, 0 " +
-                        "      FROM COMMISSION BUY " +
-                        "      WHERE operation_type = 4  AND user_role = :user_role " +
-                        "      ORDER BY date DESC LIMIT 1) " +
-                        "    UNION " +
-                        "      (SELECT 0, 0, INPUT.value, 0, 0  " +
-                        "      FROM COMMISSION INPUT " +
-                        "      WHERE operation_type = 1  AND user_role = :user_role " +
-                        "      ORDER BY date DESC LIMIT 1) " +
-                        "    UNION " +
-                        "      (SELECT 0, 0, 0, OUTPUT.value, 0  " +
-                        "      FROM COMMISSION OUTPUT " +
-                        "      WHERE operation_type = 2 AND user_role = :user_role  " +
-                        "      ORDER BY date DESC LIMIT 1) " +
-                        "    UNION " +
-                        "      (SELECT 0, 0, 0, 0, TRANSFER.value " +
-                        "      FROM COMMISSION TRANSFER " +
-                        "      WHERE operation_type = 9 AND user_role = :user_role  " +
-                        "      ORDER BY date DESC LIMIT 1) " +
-                        "  ) COMMISSION";
-        try {
-            Map<String, Integer> params = Collections.singletonMap("user_role", userRole.getRole());
-            return npJdbcTemplate.queryForObject(sql, params, (rs, row) -> {
-                CommissionsDto commissionsDto = new CommissionsDto();
-                commissionsDto.setSellCommission(rs.getBigDecimal("sell_commission"));
-                commissionsDto.setBuyCommission(rs.getBigDecimal("buy_commission"));
-                commissionsDto.setInputCommission(rs.getBigDecimal("input_commission"));
-                commissionsDto.setOutputCommission(rs.getBigDecimal("output_commission"));
-                commissionsDto.setTransferCommission(rs.getBigDecimal("transfer_commission"));
-                return commissionsDto;
-            });
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
     }
 
     //+
@@ -330,57 +328,14 @@ public class OrderDao {
     }
 
     //+
-    public List<UserOrdersDto> getUserOpenOrders(Integer userId, @Nullable Integer currencyPairId) {
-
-
-        String currencyPairSql = currencyPairId == null ? "" : " AND EO.currency_pair_id = :currency_pair_id ";
-        String sql = "SELECT EO.id AS order_id, EO.amount_base, EO.exrate, CP.name AS currency_pair_name, EO.operation_type_id, " +
-                " EO.date_creation, EO.date_acception FROM EXORDERS EO " +
-                " JOIN CURRENCY_PAIR CP ON EO.currency_pair_id = CP.id " +
-                " WHERE EO.user_id = :user_id AND EO.status_id = :status_id " + currencyPairSql +
-                " ORDER BY EO.date_creation DESC ";
-        Map<String, Object> params = new HashMap<>();
-        params.put("user_id", userId);
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OPENED.getStatus());
-
-        return npJdbcTemplate.query(sql, params, userOrdersRowMapper);
-    }
-
-    public List<UserOrdersDto> getUserOrdersByStatus(Integer userId,
-                                                     Integer currencyPairId,
-                                                     OrderStatus status,
-                                                     int limit,
-                                                     int offset) {
-        String currencyPairSql = nonNull(currencyPairId) ? " AND EO.currency_pair_id = :currency_pair_id " : StringUtils.EMPTY;
-        String limitSql = limit > 0 ? " LIMIT :limit " : StringUtils.EMPTY;
-        String offsetSql = (limit > 0 && offset > 0) ? "OFFSET :offset" : StringUtils.EMPTY;
-
-        String sql = "SELECT EO.id AS order_id, EO.amount_base, EO.exrate, CP.name AS currency_pair_name, EO.operation_type_id, " +
-                " EO.date_creation, EO.date_acception FROM EXORDERS EO " +
-                " JOIN CURRENCY_PAIR CP ON EO.currency_pair_id = CP.id " +
-                " WHERE (EO.user_id = :user_id OR EO.user_acceptor_id = :user_id) AND EO.status_id = :status_id " + currencyPairSql +
-                " ORDER BY EO.date_creation DESC " + limitSql + offsetSql;
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("user_id", userId);
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", status.getStatus());
-        params.put("limit", limit);
-        params.put("offset", offset);
-
-        return npJdbcTemplate.query(sql, params, userOrdersRowMapper);
-    }
-
-    //+
     public List<UserOrdersDto> getUserOrdersHistory(Integer userId, @Nullable Integer currencyPairId, int limit, int offset) {
 
         String limitSql = limit > 0 ? " LIMIT :limit " : "";
         String offsetSql = limit > 0 && offset > 0 ? "OFFSET :offset" : "";
 
         String currencyPairSql = currencyPairId == null ? "" : " AND EO.currency_pair_id = :currency_pair_id ";
-        String sql = "SELECT EO.id AS order_id, EO.amount_base, EO.exrate, CP.name AS currency_pair_name, EO.operation_type_id, " +
-                " EO.date_creation, EO.date_acception FROM EXORDERS EO " +
+        String sql = "SELECT EO.id AS order_id, EO.amount_base AS amount, EO.exrate AS price, CP.name AS currency_pair_name, EO.operation_type_id, " +
+                " EO.date_creation AS created, EO.date_acception AS accepted FROM EXORDERS EO " +
                 " JOIN CURRENCY_PAIR CP ON EO.currency_pair_id = CP.id " +
                 " WHERE (EO.user_id = :user_id OR EO.user_acceptor_id = :user_id) AND EO.status_id = :status_id " + currencyPairSql +
                 " ORDER BY EO.date_creation DESC " + limitSql + offsetSql;
@@ -391,7 +346,7 @@ public class OrderDao {
         params.put("limit", limit);
         params.put("offset", offset);
 
-        return npJdbcTemplate.query(sql, params, userOrdersRowMapper);
+        return npJdbcTemplate.query(sql, params, UserOrdersRowMapper.map());
     }
 
     //+
@@ -484,91 +439,6 @@ public class OrderDao {
         });
     }
 
-    public List<TransactionDto> getOrderTransactions(Integer userId, Integer orderId) {
-        String sql = "SELECT t.id, " +
-                "t.user_wallet_id, " +
-                "t.amount, " +
-                "t.commission_amount AS commission, " +
-                "cur.name AS currency, " +
-                "t.datetime AS time, " +
-                "t.operation_type_id, " +
-                "o.status_id" +
-                " FROM TRANSACTION t" +
-                " JOIN CURRENCY cur on t.currency_id = cur.id" +
-                " JOIN EXORDERS o on o.id = t.source_id" +
-                " WHERE (o.user_id = :user_id OR o.user_acceptor_id = :user_id)" +
-                " AND t.source_id = :order_id" +
-                " AND t.source_type = :source_type" +
-                " AND (t.operation_type_id = :operation_type_1 OR t.operation_type_id = :operation_type_2)" +
-                " ORDER BY t.id";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("user_id", userId);
-        params.put("order_id", orderId);
-        params.put("source_type", ORDER.name());
-        params.put("operation_type_1", INPUT.getType());
-        params.put("operation_type_2", OUTPUT.getType());
-
-        return npJdbcTemplate.query(sql, params, (rs, row) -> TransactionDto.builder()
-                .transactionId(rs.getInt("id"))
-                .walletId(rs.getInt("user_wallet_id"))
-                .amount(rs.getBigDecimal("amount"))
-                .commission(rs.getBigDecimal("commission"))
-                .currency(rs.getString("currency"))
-                .time(rs.getTimestamp("time").toLocalDateTime())
-                .operationType(OperationType.convert(rs.getInt("operation_type_id")))
-                .status(TransactionStatus.convert(rs.getInt("status_id")))
-                .build());
-    }
-
-    public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(Integer userId,
-                                                                       Integer currencyPairId,
-                                                                       LocalDateTime fromDate,
-                                                                       LocalDateTime toDate,
-                                                                       Integer limit) {
-        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
-
-        String sql = "SELECT o.id as order_id, " +
-                "o.user_id as user_id, " +
-                "o.date_creation as created, " +
-                "o.date_acception as accepted, " +
-                "o.amount_base as amount, " +
-                "o.exrate as price, " +
-                "o.amount_convert as sum, " +
-                "c.value as commission, " +
-                "o.operation_type_id" +
-                " FROM EXORDERS o" +
-                " JOIN COMMISSION c on o.commission_id = c.id" +
-                " WHERE (o.user_id = :user_id OR o.user_acceptor_id = :user_id) AND o.currency_pair_id = :currency_pair_id" +
-                " AND o.status_id = :status_id AND o.date_acception BETWEEN :start_date AND :end_date" +
-                " ORDER BY o.date_acception ASC"
-                + limitSql;
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("status_id", CLOSED.getStatus());
-        params.put("user_id", userId);
-        params.put("currency_pair_id", currencyPairId);
-        params.put("start_date", fromDate);
-        params.put("end_date", toDate);
-        params.put("limit", limit);
-
-        return npJdbcTemplate.query(sql, params, (rs, row) -> {
-            UserTradeHistoryDto userTradeHistoryDto = new UserTradeHistoryDto();
-            userTradeHistoryDto.setUserId(userId);
-            userTradeHistoryDto.setIsMaker(userId == rs.getInt("user_id"));
-            userTradeHistoryDto.setOrderId(rs.getInt("order_id"));
-            userTradeHistoryDto.setDateCreation(rs.getTimestamp("created").toLocalDateTime());
-            userTradeHistoryDto.setDateAcceptance(rs.getTimestamp("accepted").toLocalDateTime());
-            userTradeHistoryDto.setAmount(rs.getBigDecimal("amount"));
-            userTradeHistoryDto.setPrice(rs.getBigDecimal("price"));
-            userTradeHistoryDto.setTotal(rs.getBigDecimal("sum"));
-            userTradeHistoryDto.setCommission(rs.getBigDecimal("commission"));
-            userTradeHistoryDto.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))));
-            return userTradeHistoryDto;
-        });
-    }
-
-
     //+
     public List<CoinmarketApiDto> getCoinmarketData(String pairName) {
         return npJdbcTemplate.execute(
@@ -581,7 +451,7 @@ public class OrderDao {
         String directionSql = orderType == OrderType.BUY ? " DESC" : StringUtils.EMPTY;
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
-        Map<String, Object> params = new HashMap<>();
+        Map<String, Object> params = Maps.newHashMap();
         params.put("currency_pair_id", currencyPair.getId());
         params.put("status_id", OPENED.getStatus());
         params.put("operation_type_id", orderType.getOperationType().getType());
@@ -594,7 +464,7 @@ public class OrderDao {
     public List<OrderBookItem> getOrderBookItems(CurrencyPair currencyPair, Integer limit) {
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
-        Map<String, Object> params = new HashMap<>();
+        Map<String, Object> params = Maps.newHashMap();
         params.put("currency_pair_id", currencyPair.getId());
         params.put("status_id", OPENED.getStatus());
         params.put("limit", limit);
@@ -609,7 +479,7 @@ public class OrderDao {
                                                  Integer limit) {
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
-        Map<String, Object> params = new HashMap<>();
+        Map<String, Object> params = Maps.newHashMap();
         params.put("status_id", CLOSED.getStatus());
         params.put("currency_pair_id", currencyPair.getId());
         params.put("start_date", fromDate);
@@ -624,5 +494,57 @@ public class OrderDao {
         return npJdbcTemplate.execute(
                 String.format(CALL_GET_DATA_FOR_CANDLE_SQL, backDealInterval.getIntervalValue(), backDealInterval.getIntervalType().name(), currencyPair.getId()),
                 StoredProcedureCallback.getDataForCandleChartCallback());
+    }
+
+    //+
+    public List<UserOrdersDto> getUserOrdersByStatus(Integer userId,
+                                                     @Null CurrencyPair currencyPair,
+                                                     OrderStatus status,
+                                                     @NotNull int limit) {
+        String currencyPairSql = nonNull(currencyPair) ? " AND o.currency_pair_id = :currency_pair_id" : StringUtils.EMPTY;
+        String orderBySql = " ORDER BY o.date_creation DESC";
+        String limitSql = " LIMIT :limit";
+
+        Map<String, Object> params = Maps.newHashMap();
+        params.put("user_id", userId);
+        params.put("currency_pair_id", currencyPair.getId());
+        params.put("status_id", status.getStatus());
+        params.put("limit", limit);
+
+        return npJdbcTemplate.query(GET_USER_ORDERS_BY_STATUS_SQL + currencyPairSql + orderBySql + limitSql, params, UserOrdersRowMapper.map());
+    }
+
+    //+
+    public CommissionDto getAllCommissions(UserRole userRole) {
+        return npJdbcTemplate.queryForObject(GET_ALL_COMMISSIONS_SQL, Collections.singletonMap("user_role", userRole.getRole()), CommissionRowMapper.map());
+    }
+
+    //+
+    public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(Integer userId,
+                                                                       CurrencyPair currencyPair,
+                                                                       LocalDateTime fromDate,
+                                                                       LocalDateTime toDate,
+                                                                       int limit) {
+        Map<String, Object> params = Maps.newHashMap();
+        params.put("user_id", userId);
+        params.put("status_id", CLOSED.getStatus());
+        params.put("currency_pair_id", currencyPair.getId());
+        params.put("start_date", fromDate);
+        params.put("end_date", toDate);
+        params.put("limit", limit);
+
+        return npJdbcTemplate.query(GET_USER_TRADE_HISTORY_BY_CURRENCY_PAIR_SQL, params, UserTradeHistoryRowMapper.map(userId));
+    }
+
+    //+
+    public List<TransactionDto> getOrderTransactions(Integer userId, Integer orderId) {
+        Map<String, Object> params = Maps.newHashMap();
+        params.put("user_id", userId);
+        params.put("order_id", orderId);
+        params.put("source_type", ORDER.name());
+        params.put("operation_type_1", INPUT.getType());
+        params.put("operation_type_2", OUTPUT.getType());
+
+        return npJdbcTemplate.query(GET_ORDER_TRANSACTIONS_SQL, params, TransactionRowMapper.map());
     }
 }
