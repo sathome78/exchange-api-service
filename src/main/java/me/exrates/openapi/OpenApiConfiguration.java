@@ -3,7 +3,6 @@ package me.exrates.openapi;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.configurations.RedisConfiguration;
 import me.exrates.openapi.configurations.ResourcesServerConfiguration;
 import me.exrates.openapi.configurations.WebSecurityConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -22,8 +21,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ComponentScan
 @Import({
         WebSecurityConfiguration.class,
-        ResourcesServerConfiguration.class,
-        RedisConfiguration.class
+        ResourcesServerConfiguration.class
 })
 public class OpenApiConfiguration implements WebMvcConfigurer {
 

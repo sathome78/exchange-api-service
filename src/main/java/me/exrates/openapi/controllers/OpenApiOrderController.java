@@ -82,14 +82,14 @@ public class OpenApiOrderController {
      * @apiSuccess {Integer} orderCreationResult.auto_accepted_quantity Number of orders accepted automatically (not shown if no orders were auto-accepted)
      * @apiSuccess {Number} orderCreationResult.partially_accepted_amount Amount that was accepted partially (shown only in case of partial accept)
      */
-    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto) {
-        String currencyPairName = convert(orderParamsDto.getCurrencyPair());
-        String userEmail = userService.getUserEmailFromSecurityContext();
-        OrderCreationResultDto resultDto = orderService.prepareAndCreateOrderRest(currencyPairName, orderParamsDto.getOrderType().getOperationType(),
-                orderParamsDto.getAmount(), orderParamsDto.getPrice(), userEmail);
-        return new ResponseEntity<>(new OrderCreationResultOpenApiDto(resultDto), HttpStatus.CREATED);
-    }
+//    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+//    public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto) {
+//        String currencyPairName = convert(orderParamsDto.getCurrencyPair());
+//        String userEmail = userService.getUserEmailFromSecurityContext();
+//        OrderCreationResultDto resultDto = orderService.prepareAndCreateOrderRest(currencyPairName, orderParamsDto.getOrderType().getOperationType(),
+//                orderParamsDto.getAmount(), orderParamsDto.getPrice(), userEmail);
+//        return new ResponseEntity<>(new OrderCreationResultOpenApiDto(resultDto), HttpStatus.CREATED);
+//    }
 
     /**
      * @api {post} /openapi/v1/orders/cancel Cancel order by order id
@@ -123,13 +123,13 @@ public class OpenApiOrderController {
      * /openapi/v1/orders/cancel/btc_usd/all
      * @apiSuccess {Map} success Cancellation result
      */
-    @PostMapping(value = "/cancel/{currency_pair}/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrdersByCurrencyPair(@PathVariable("currency_pair") String currencyPair) {
-        final String transformedCurrencyPair = convert(currencyPair);
-
-        orderService.cancelOpenOrdersByCurrencyPair(transformedCurrencyPair);
-        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
-    }
+//    @PostMapping(value = "/cancel/{currency_pair}/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+//    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrdersByCurrencyPair(@PathVariable("currency_pair") String currencyPair) {
+//        final String transformedCurrencyPair = convert(currencyPair);
+//
+//        orderService.cancelOpenOrdersByCurrencyPair(transformedCurrencyPair);
+//        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
+//    }
 
     /**
      * @api {post} /openapi/v1/orders/cancel/all Cancel all open orders
@@ -189,10 +189,10 @@ public class OpenApiOrderController {
      * @apiSuccess {Number} data.amount Amount in base currency
      * @apiSuccess {Number} data.price Exchange rate
      */
-    @GetMapping(value = "/open/{order_type}", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public List<OpenOrderDto> openOrders(@PathVariable("order_type") OrderType orderType,
-                                         @RequestParam("currency_pair") String currencyPair) {
-        String currencyPairName = convert(currencyPair);
-        return orderService.getOpenOrders(currencyPairName, orderType);
-    }
+//    @GetMapping(value = "/open/{order_type}", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+//    public List<OpenOrderDto> openOrders(@PathVariable("order_type") OrderType orderType,
+//                                         @RequestParam("currency_pair") String currencyPair) {
+//        String currencyPairName = convert(currencyPair);
+//        return orderService.getOpenOrders(currencyPairName, orderType);
+//    }
 }

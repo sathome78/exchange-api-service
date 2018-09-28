@@ -2,7 +2,7 @@ package me.exrates.openapi.configurations;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
@@ -19,7 +19,7 @@ public class ResourcesServerConfiguration extends ResourceServerConfigurerAdapte
     private static final String RESOURCE_ID = "api-service";
 
     @Autowired
-    private JedisConnectionFactory connectionFactory;
+    private RedisConnectionFactory connectionFactory;
 
     @Override
     public void configure(ResourceServerSecurityConfigurer resources) {

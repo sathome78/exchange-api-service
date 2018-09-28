@@ -1,12 +1,5 @@
 package me.exrates.openapi.controllers.advice;
 
-import com.outrunner.entry.exceptions.DataBaseErrorException;
-import com.outrunner.entry.exceptions.ValidationException;
-import com.outrunner.entry.exceptions.providers.OrderPayException;
-import com.outrunner.entry.exceptions.providers.ProviderErrorException;
-import com.outrunner.entry.exceptions.providers.ProviderNotFoundJourneyException;
-import com.outrunner.entry.models.response.ExceptionResponse;
-import com.outrunner.entry.models.response.ValidationExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
@@ -17,7 +10,6 @@ import me.exrates.openapi.models.enums.ErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -27,8 +19,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -104,38 +94,38 @@ public class ExceptionHandlerAdvice {
         return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getServletPath(), exception);
     }
 
-    @ResponseBody
-    @ResponseStatus(value = HttpStatus.UNPROCESSABLE_ENTITY)
-    @ExceptionHandler(ValidationException.class)
-    public ValidationExceptionResponse handleValidationException(HttpServletRequest req,
-                                                                 ValidationException exception) {
-        List<String> errors = exception.getErrors()
-                .stream()
-                .map(error -> {
-                    if (error instanceof FieldError) {
-                        FieldError fieldError = (FieldError) error;
-                        return String.format("%s: %s", fieldError.getField(), error.getDefaultMessage());
-                    } else {
-                        return error.getDefaultMessage();
-                    }
-                })
-                .collect(Collectors.toList());
-        return new ValidationExceptionResponse(req.getServletPath(), "Validation failed",
-                HttpStatus.UNPROCESSABLE_ENTITY.value(), errors);
-    }
-
-
-    @ResponseBody
-    @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
-    @ExceptionHandler({OrderPayException.class,
-            RuntimeException.class,
-            Exception.class,
-            ProviderErrorException.class,
-            ProviderNotFoundJourneyException.class,
-            DataBaseErrorException.class})
-    public ExceptionResponse handleException(HttpServletRequest req, Exception exception) {
-        log.error("Internal error", exception);
-        return new ExceptionResponse(req.getServletPath(), ApiResponseStatus.getStatusCode(exception),
-                "Internal server error: " + exception.getMessage());
-    }
+//    @ResponseBody
+//    @ResponseStatus(value = HttpStatus.UNPROCESSABLE_ENTITY)
+//    @ExceptionHandler(ValidationException.class)
+//    public ValidationExceptionResponse handleValidationException(HttpServletRequest req,
+//                                                                 ValidationException exception) {
+//        List<String> errors = exception.getErrors()
+//                .stream()
+//                .map(error -> {
+//                    if (error instanceof FieldError) {
+//                        FieldError fieldError = (FieldError) error;
+//                        return String.format("%s: %s", fieldError.getField(), error.getDefaultMessage());
+//                    } else {
+//                        return error.getDefaultMessage();
+//                    }
+//                })
+//                .collect(Collectors.toList());
+//        return new ValidationExceptionResponse(req.getServletPath(), "Validation failed",
+//                HttpStatus.UNPROCESSABLE_ENTITY.value(), errors);
+//    }
+//
+//
+//    @ResponseBody
+//    @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
+//    @ExceptionHandler({OrderPayException.class,
+//            RuntimeException.class,
+//            Exception.class,
+//            ProviderErrorException.class,
+//            ProviderNotFoundJourneyException.class,
+//            DataBaseErrorException.class})
+//    public ExceptionResponse handleException(HttpServletRequest req, Exception exception) {
+//        log.error("Internal error", exception);
+//        return new ExceptionResponse(req.getServletPath(), ApiResponseStatus.getStatusCode(exception),
+//                "Internal server error: " + exception.getMessage());
+//    }
 }

@@ -31,3 +31,4 @@ spring:
 
 referral:
   url: localhost:8080/register?ref=
+
