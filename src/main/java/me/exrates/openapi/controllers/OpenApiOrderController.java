@@ -1,53 +1,28 @@
 package me.exrates.openapi.controllers;
 
-import me.exrates.openapi.controllers.advice.OpenApiError;
-import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
-import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
-import me.exrates.openapi.exceptions.OrderNotFoundException;
-import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
-import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
+import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
-import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.models.dto.openAPI.OrderCreationResultOpenApiDto;
 import me.exrates.openapi.models.dto.openAPI.OrderParamsDto;
-import me.exrates.openapi.models.enums.ErrorCode;
-import me.exrates.openapi.models.enums.OrderType;
-import me.exrates.openapi.models.web.BaseResponse;
 import me.exrates.openapi.services.OrderService;
 import me.exrates.openapi.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 import static me.exrates.openapi.utils.RestApiUtils.retrieveParamFormBody;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 
 @RestController
 @RequestMapping("/orders")
@@ -83,7 +58,11 @@ public class OpenApiOrderController {
      * @apiSuccess {Number} orderCreationResult.partially_accepted_amount Amount that was accepted partially (shown only in case of partial accept)
      */
 //    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-//    public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto) {
+//    public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto,
+//                                                                     Errors result) {
+//        if (result.hasErrors()) {
+//            throw new ValidationException(result.getAllErrors());
+//        }
 //        String currencyPairName = convert(orderParamsDto.getCurrencyPair());
 //        String userEmail = userService.getUserEmailFromSecurityContext();
 //        OrderCreationResultDto resultDto = orderService.prepareAndCreateOrderRest(currencyPairName, orderParamsDto.getOrderType().getOperationType(),
@@ -105,11 +84,11 @@ public class OpenApiOrderController {
      * @apiSuccess {Map} success Cancellation result
      */
     @PostMapping(value = "/cancel", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelOrder(@RequestBody Map<String, String> params) {
+    public ResponseEntity<Map<String, Boolean>> cancelOrder(@RequestBody Map<String, String> params) {
         final Integer orderId = Integer.parseInt(retrieveParamFormBody(params, "order_id", true));
 
         orderService.cancelOrder(orderId);
-        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
+        return ResponseEntity.ok(Collections.singletonMap("success", true));
     }
 
     /**
@@ -143,9 +122,9 @@ public class OpenApiOrderController {
      * @apiSuccess {Map} success Cancellation result
      */
     @PostMapping(value = "/cancel/all", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<BaseResponse<Map<String, Boolean>>> cancelAllOrders() {
+    public ResponseEntity<Map<String, Boolean>> cancelAllOrders() {
         orderService.cancelAllOpenOrders();
-        return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
+        return ResponseEntity.ok(Collections.singletonMap("success", true));
     }
 
     /**

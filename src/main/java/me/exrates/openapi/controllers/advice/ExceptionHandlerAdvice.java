@@ -4,12 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
 import me.exrates.openapi.exceptions.OrderNotFoundException;
+import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
 import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
 import me.exrates.openapi.models.enums.ErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -20,6 +22,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import javax.servlet.http.HttpServletRequest;
 
+import static java.util.stream.Collectors.joining;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
@@ -33,7 +36,7 @@ public class ExceptionHandlerAdvice {
     @ExceptionHandler({MethodArgumentNotValidException.class, OrderParamsWrongException.class, MethodArgumentTypeMismatchException.class})
     public OpenApiError mismatchArgumentsErrorHandler(HttpServletRequest req, Exception exception) {
         if (exception instanceof MethodArgumentTypeMismatchException) {
-            String detail = "Invalid param value : " + ((MethodArgumentTypeMismatchException) exception).getParameter().getParameterName();
+            String detail = "Invalid parameter value : " + ((MethodArgumentTypeMismatchException) exception).getParameter().getParameterName();
             return new OpenApiError(ErrorCode.INVALID_PARAM_VALUE, req.getServletPath(), detail);
         }
         return new OpenApiError(ErrorCode.INVALID_PARAM_VALUE, req.getServletPath(), exception);
@@ -89,43 +92,27 @@ public class ExceptionHandlerAdvice {
 
     @ResponseBody
     @ResponseStatus(INTERNAL_SERVER_ERROR)
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler({Exception.class, RuntimeException.class})
     public OpenApiError OtherErrorsHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getServletPath(), exception);
+        return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getServletPath(), String.format("Internal server error: %s", exception.getMessage()));
     }
 
-//    @ResponseBody
-//    @ResponseStatus(value = HttpStatus.UNPROCESSABLE_ENTITY)
-//    @ExceptionHandler(ValidationException.class)
-//    public ValidationExceptionResponse handleValidationException(HttpServletRequest req,
-//                                                                 ValidationException exception) {
-//        List<String> errors = exception.getErrors()
-//                .stream()
-//                .map(error -> {
-//                    if (error instanceof FieldError) {
-//                        FieldError fieldError = (FieldError) error;
-//                        return String.format("%s: %s", fieldError.getField(), error.getDefaultMessage());
-//                    } else {
-//                        return error.getDefaultMessage();
-//                    }
-//                })
-//                .collect(Collectors.toList());
-//        return new ValidationExceptionResponse(req.getServletPath(), "Validation failed",
-//                HttpStatus.UNPROCESSABLE_ENTITY.value(), errors);
-//    }
-//
-//
-//    @ResponseBody
-//    @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)
-//    @ExceptionHandler({OrderPayException.class,
-//            RuntimeException.class,
-//            Exception.class,
-//            ProviderErrorException.class,
-//            ProviderNotFoundJourneyException.class,
-//            DataBaseErrorException.class})
-//    public ExceptionResponse handleException(HttpServletRequest req, Exception exception) {
-//        log.error("Internal error", exception);
-//        return new ExceptionResponse(req.getServletPath(), ApiResponseStatus.getStatusCode(exception),
-//                "Internal server error: " + exception.getMessage());
-//    }
+    @ResponseBody
+    @ResponseStatus(value = HttpStatus.UNPROCESSABLE_ENTITY)
+    @ExceptionHandler(ValidationException.class)
+    public OpenApiError handleValidationException(HttpServletRequest req,
+                                                  ValidationException exception) {
+        String errors = exception.getErrors()
+                .stream()
+                .map(error -> {
+                    if (error instanceof FieldError) {
+                        FieldError fieldError = (FieldError) error;
+                        return String.format("%s: %s", fieldError.getField(), error.getDefaultMessage());
+                    } else {
+                        return error.getDefaultMessage();
+                    }
+                })
+                .collect(joining(", "));
+        return new OpenApiError(ErrorCode.UNPROCESSABLE_ENTITY, req.getServletPath(), String.format("Validation failed: %s", errors));
+    }
 }

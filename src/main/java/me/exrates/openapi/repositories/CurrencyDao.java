@@ -88,13 +88,13 @@ public class CurrencyDao {
     }
 
     //+
-    public CurrencyPair findActiveCurrencyPairByName(String pairName) {
-        Map<String, String> params = Collections.singletonMap("pair_name", pairName);
+    public Integer findActiveCurrencyPairIdByName(String pairName) {
+        Map<String, Object> params = Collections.singletonMap("pair_name", pairName);
 
-        return npJdbcTemplate.queryForObject(FIND_ACTIVE_CURRENCY_PAIR_BY_NAME_SQL, params, CurrencyPairRowMapper.map());
+        return npJdbcTemplate.queryForObject(FIND_ACTIVE_CURRENCY_PAIR_BY_NAME_SQL, params, Integer.class);
     }
 
-    //+
+    //+z
     public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
         return npJdbcTemplate.query(FIND_ACTIVE_CURRENCY_PAIRS_SQL, CurrencyPairInfoItemRowMapper.map());
     }

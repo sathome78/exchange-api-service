@@ -1,5 +1,7 @@
 package me.exrates.openapi.controllers;
 
+import me.exrates.openapi.exceptions.WrongDateOrderException;
+import me.exrates.openapi.exceptions.WrongLimitException;
 import me.exrates.openapi.models.dto.CandleChartItemReducedDto;
 import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.openAPI.CurrencyPairInfoItem;
@@ -8,7 +10,6 @@ import me.exrates.openapi.models.dto.openAPI.TickerDto;
 import me.exrates.openapi.models.enums.IntervalType;
 import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.vo.BackDealInterval;
-import me.exrates.openapi.models.web.BaseResponse;
 import me.exrates.openapi.services.CurrencyService;
 import me.exrates.openapi.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,15 +83,15 @@ public class OpenApiPublicController {
      * ]
      */
     @GetMapping(value = "/ticker/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<TickerDto>>> getTicker(@PathVariable("currency_1") String currency1,
-                                                                   @PathVariable("currency_2") String currency2) {
+    public ResponseEntity<List<TickerDto>> getTicker(@PathVariable("currency_1") String currency1,
+                                                     @PathVariable("currency_2") String currency2) {
         String pairName = convert(currency1, currency2);
 
         List<TickerDto> result = orderService.getDailyCoinmarketData(pairName).stream()
                 .map(TickerDto::new)
                 .collect(toList());
 
-        return ResponseEntity.ok(BaseResponse.success(result));
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -143,12 +144,12 @@ public class OpenApiPublicController {
      * ]
      */
     @GetMapping(value = "/tickers", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<TickerDto>>> getTickers() {
+    public ResponseEntity<List<TickerDto>> getTickers() {
         List<TickerDto> result = orderService.getDailyCoinmarketData(null).stream()
                 .map(TickerDto::new)
                 .collect(toList());
 
-        return ResponseEntity.ok(BaseResponse.success(result));
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -167,17 +168,17 @@ public class OpenApiPublicController {
      * @apiSuccess {Number}     data.rate               Exchange rate
      */
     @GetMapping(value = "/order_book/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<Map<OrderType, List<OrderBookItem>>>> getOrderBook(@PathVariable("currency_1") String currency1,
-                                                                                          @PathVariable("currency_2") String currency2,
-                                                                                          @RequestParam(value = "order_type", required = false) OrderType orderType,
-                                                                                          @RequestParam(required = false, defaultValue = "50") Integer limit) {
+    public ResponseEntity<Map<OrderType, List<OrderBookItem>>> getOrderBook(@PathVariable("currency_1") String currency1,
+                                                                            @PathVariable("currency_2") String currency2,
+                                                                            @RequestParam(value = "order_type", required = false) OrderType orderType,
+                                                                            @RequestParam(required = false, defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
+            throw new WrongLimitException("Limit value equals or less than zero");
         }
 
         String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getOrderBook(pairName, orderType, limit)));
+        return ResponseEntity.ok(orderService.getOrderBook(pairName, orderType, limit));
     }
 
     /**
@@ -203,21 +204,21 @@ public class OpenApiPublicController {
      * @apiSuccess {String}     data.order_type         Order type (BUY or SELL)
      */
     @GetMapping(value = "/history/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<TradeHistoryDto>>> getTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
-                                                                                             @PathVariable("currency_2") String currency2,
-                                                                                             @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-                                                                                             @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-                                                                                             @RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<TradeHistoryDto>> getTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
+                                                                               @PathVariable("currency_2") String currency2,
+                                                                               @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                                                                               @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                                                                               @RequestParam(defaultValue = "50") Integer limit) {
         if (fromDate.isAfter(toDate)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("From date is after to date"));
+            throw new WrongDateOrderException("From date is after to date");
         }
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
+            throw new WrongLimitException("Limit value equals or less than zero");
         }
 
         String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getTradeHistory(pairName, fromDate, toDate, limit)));
+        return ResponseEntity.ok(orderService.getTradeHistory(pairName, fromDate, toDate, limit));
     }
 
     /**
@@ -234,8 +235,8 @@ public class OpenApiPublicController {
      * @apiSuccess {String}  data.url_symbol  URL symbol (name to be passed as URL parameter or path variable)
      */
     @GetMapping(value = "/currency_pairs", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<CurrencyPairInfoItem>>> findActiveCurrencyPairs() {
-        return ResponseEntity.ok(BaseResponse.success(currencyService.findActiveCurrencyPairs()));
+    public ResponseEntity<List<CurrencyPairInfoItem>> findActiveCurrencyPairs() {
+        return ResponseEntity.ok(currencyService.findActiveCurrencyPairs());
     }
 
     /**
@@ -289,16 +290,16 @@ public class OpenApiPublicController {
      * @apiUse InternalServerError
      */
     @GetMapping(value = "/candle_chart/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<CandleChartItemReducedDto>>> getCandleChartData(@PathVariable("currency_1") String currency1,
-                                                                                            @PathVariable("currency_2") String currency2,
-                                                                                            @RequestParam(value = "interval_type") IntervalType intervalType,
-                                                                                            @RequestParam(value = "interval_value") Integer intervalValue) {
+    public ResponseEntity<List<CandleChartItemReducedDto>> getCandleChartData(@PathVariable("currency_1") String currency1,
+                                                                              @PathVariable("currency_2") String currency2,
+                                                                              @RequestParam(value = "interval_type") IntervalType intervalType,
+                                                                              @RequestParam(value = "interval_value") Integer intervalValue) {
         String pairName = convert(currency1, currency2);
         BackDealInterval interval = new BackDealInterval(intervalValue, intervalType);
 
         List<CandleChartItemReducedDto> resultList = orderService.getDataForCandleChart(pairName, interval).stream()
                 .map(CandleChartItemReducedDto::new)
                 .collect(toList());
-        return ResponseEntity.ok(BaseResponse.success(resultList));
+        return ResponseEntity.ok(resultList);
     }
 }

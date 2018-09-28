@@ -1,12 +1,13 @@
 package me.exrates.openapi.controllers;
 
+import me.exrates.openapi.exceptions.WrongDateOrderException;
+import me.exrates.openapi.exceptions.WrongLimitException;
 import me.exrates.openapi.models.dto.TransactionDto;
 import me.exrates.openapi.models.dto.UserTradeHistoryDto;
 import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 import me.exrates.openapi.models.dto.openAPI.OpenApiCommissionDto;
 import me.exrates.openapi.models.dto.openAPI.UserOrdersDto;
 import me.exrates.openapi.models.dto.openAPI.WalletBalanceDto;
-import me.exrates.openapi.models.web.BaseResponse;
 import me.exrates.openapi.services.OrderService;
 import me.exrates.openapi.services.WalletService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,8 +61,8 @@ public class OpenApiUserController {
      * @apiSuccess {Number} data.reserved_balance   Balance reserved for orders or withdraw
      */
     @GetMapping(value = "/balances", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<WalletBalanceDto>>> getUserBalances() {
-        return ResponseEntity.ok(BaseResponse.success(walletService.getUserBalances()));
+    public ResponseEntity<List<WalletBalanceDto>> getUserBalances() {
+        return ResponseEntity.ok(walletService.getUserBalances());
     }
 
     /**
@@ -84,16 +85,16 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
     @GetMapping(value = "/orders/opened/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserOrdersDto>>> getUserOpenOrdersByCurrencyPair(@PathVariable("currency_1") String currency1,
-                                                                                             @PathVariable("currency_2") String currency2,
-                                                                                             @RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserOrdersDto>> getUserOpenOrdersByCurrencyPair(@PathVariable("currency_1") String currency1,
+                                                                               @PathVariable("currency_2") String currency2,
+                                                                               @RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value should not be equals or less than zero"));
+            throw new WrongLimitException("Limit value should not be equals or less than zero");
         }
 
         String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserOpenOrders(pairName, limit)));
+        return ResponseEntity.ok(orderService.getUserOpenOrders(pairName, limit));
     }
 
     /**
@@ -116,11 +117,11 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
     @GetMapping(value = "/orders/opened", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserOrdersDto>>> getUserOpenOrders(@RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserOrdersDto>> getUserOpenOrders(@RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value should not be equals or less than zero"));
+            throw new WrongLimitException("Limit value should not be equals or less than zero");
         }
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserOpenOrders(null, limit)));
+        return ResponseEntity.ok(orderService.getUserOpenOrders(null, limit));
     }
 
     /**
@@ -143,16 +144,16 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
     @GetMapping(value = "/orders/closed/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserOrdersDto>>> getUserClosedOrdersByCurrencyPair(@PathVariable("currency_1") String currency1,
-                                                                                               @PathVariable("currency_2") String currency2,
-                                                                                               @RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserOrdersDto>> getUserClosedOrdersByCurrencyPair(@PathVariable("currency_1") String currency1,
+                                                                                 @PathVariable("currency_2") String currency2,
+                                                                                 @RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value should not be equals or less than zero"));
+            throw new WrongLimitException("Limit value should not be equals or less than zero");
         }
 
         String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserClosedOrders(pairName, limit)));
+        return ResponseEntity.ok(orderService.getUserClosedOrders(pairName, limit));
     }
 
     /**
@@ -175,11 +176,11 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
     @GetMapping(value = "/orders/closed", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserOrdersDto>>> getUserClosedOrdersByCurrencyPair(@RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserOrdersDto>> getUserClosedOrdersByCurrencyPair(@RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value should not be equals or less than zero"));
+            throw new WrongLimitException("Limit value should not be equals or less than zero");
         }
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserClosedOrders(null, limit)));
+        return ResponseEntity.ok(orderService.getUserClosedOrders(null, limit));
     }
 
     /**
@@ -202,16 +203,16 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
     @GetMapping(value = "/orders/canceled/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserOrdersDto>>> userCanceledOrders(@PathVariable("currency_1") String currency1,
-                                                                                @PathVariable("currency_2") String currency2,
-                                                                                @RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserOrdersDto>> userCanceledOrders(@PathVariable("currency_1") String currency1,
+                                                                  @PathVariable("currency_2") String currency2,
+                                                                  @RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value should not be equals or less than zero"));
+            throw new WrongLimitException("Limit value should not be equals or less than zero");
         }
 
         String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserCanceledOrders(pairName, limit)));
+        return ResponseEntity.ok(orderService.getUserCanceledOrders(pairName, limit));
     }
 
     /**
@@ -234,11 +235,11 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
     @GetMapping(value = "/orders/canceled", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserOrdersDto>>> userCanceledOrders(@RequestParam(defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserOrdersDto>> userCanceledOrders(@RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value should not be equals or less than zero"));
+            throw new WrongLimitException("Limit value should not be equals or less than zero");
         }
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserCanceledOrders(null, limit)));
+        return ResponseEntity.ok(orderService.getUserCanceledOrders(null, limit));
     }
 
     /**
@@ -258,10 +259,10 @@ public class OpenApiUserController {
      * @apiSuccess {Number} data.transfer   Commission for transfer operations
      */
     @GetMapping(value = "/commissions", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<BaseResponse<OpenApiCommissionDto>> getCommissions() {
+    public ResponseEntity<OpenApiCommissionDto> getCommissions() {
         CommissionDto allCommissions = orderService.getAllCommissions();
 
-        return ResponseEntity.ok(BaseResponse.success(new OpenApiCommissionDto(allCommissions)));
+        return ResponseEntity.ok(new OpenApiCommissionDto(allCommissions));
     }
 
     /**
@@ -289,21 +290,21 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.order_type         Order type (BUY or SELL)
      */
     @GetMapping(value = "/history/trades/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<UserTradeHistoryDto>>> getUserTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
-                                                                                                     @PathVariable("currency_2") String currency2,
-                                                                                                     @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-                                                                                                     @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-                                                                                                     @RequestParam(required = false, defaultValue = "50") Integer limit) {
+    public ResponseEntity<List<UserTradeHistoryDto>> getUserTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
+                                                                                       @PathVariable("currency_2") String currency2,
+                                                                                       @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                                                                                       @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                                                                                       @RequestParam(required = false, defaultValue = "50") Integer limit) {
         if (fromDate.isAfter(toDate)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("From date is before to date"));
+            throw new WrongDateOrderException("From date is before to date");
         }
         if (!validateLimit(limit)) {
-            return ResponseEntity.badRequest().body(BaseResponse.error("Limit value equals or less than zero"));
+            throw new WrongLimitException("Limit value equals or less than zero");
         }
 
         String pairName = convert(currency1, currency2);
 
-        return ResponseEntity.ok(BaseResponse.success(orderService.getUserTradeHistoryByCurrencyPair(pairName, fromDate, toDate, limit)));
+        return ResponseEntity.ok(orderService.getUserTradeHistoryByCurrencyPair(pairName, fromDate, toDate, limit));
     }
 
     /**
@@ -326,7 +327,7 @@ public class OpenApiUserController {
      * @apiSuccess {String}     data.transaction_status     Transaction status
      */
     @GetMapping(value = "/history/{order_id}/transactions", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<BaseResponse<List<TransactionDto>>> getOrderTransactions(@PathVariable(value = "order_id") Integer orderId) {
-        return ResponseEntity.ok(BaseResponse.success(orderService.getOrderTransactions(orderId)));
+    public ResponseEntity<List<TransactionDto>> getOrderTransactions(@PathVariable(value = "order_id") Integer orderId) {
+        return ResponseEntity.ok(orderService.getOrderTransactions(orderId));
     }
 }

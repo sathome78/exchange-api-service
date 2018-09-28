@@ -10,9 +10,14 @@ spring:
     active: dev
   #     - with-flyway-migration
   datasource:
+    driver-class-name: com.mysql.jdbc.Driver
     url: jdbc:mysql://localhost:3306/birzha?characterEncoding=UTF-8&autoReconnect=true&useSSL=false
     username: root
     password: root
+#    driver-class-name: com.mysql.jdbc.Driver
+#    url: jdbc:mysql://prodex-replicatest.cedlveyttji9.us-east-2.rds.amazonaws.com:3306/birzha?useSSL=false
+#    username: devprod
+#    password: Fh24soaf8sy3
     hikari:
       connection-timeout: 10000
       idle-timeout: 180000
@@ -25,9 +30,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
   redis:
     host: 172.10.10.236
     port: 6379
 
 referral:
   url: localhost:8080/register?ref=
+
+logging:
+  level:
+    org:
+      hibernate:
+        type: debug

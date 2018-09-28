@@ -10,9 +10,12 @@ spring:
     active: dev
   #     - with-flyway-migration
   datasource:
-    url: jdbc:mysql://localhost:3306/birzha?characterEncoding=UTF-8&autoReconnect=true&useSSL=false
-    username: root
-    password: root
+#    url: jdbc:mysql://localhost:3306/birzha?characterEncoding=UTF-8&autoReconnect=true&useSSL=false
+#    username: root
+#    password: root
+    url: jdbc:mysql://prodex-replicatest.cedlveyttji9.us-east-2.rds.amazonaws.com:3306/birzha?useSSL=false
+    username: devprod
+    password: Fh24soaf8sy3
     hikari:
       connection-timeout: 10000
       idle-timeout: 180000

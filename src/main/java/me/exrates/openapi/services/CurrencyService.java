@@ -54,14 +54,14 @@ public class CurrencyService {
 
     //+
     @Transactional(readOnly = true)
-    public CurrencyPair findCurrencyPairByName(String pairName) {
+    public Integer findCurrencyPairIdByName(String pairName) {
         log.debug("Try to find currency pair with name: {}", pairName);
-        CurrencyPair currencyPair = currencyDao.findActiveCurrencyPairByName(pairName);
-        if (isNull(currencyPair)) {
+        Integer currencyPairId = currencyDao.findActiveCurrencyPairIdByName(pairName);
+        if (isNull(currencyPairId)) {
             throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
         }
         log.debug("Currency pair found");
-        return currencyPair;
+        return currencyPairId;
     }
 
     //+

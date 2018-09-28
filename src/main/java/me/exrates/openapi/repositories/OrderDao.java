@@ -425,12 +425,12 @@ public class OrderDao {
     }
 
     //+
-    public List<OrderBookItem> getOrderBookItemsByType(CurrencyPair currencyPair, OrderType orderType, Integer limit) {
+    public List<OrderBookItem> getOrderBookItemsByType(Integer currencyPairId, OrderType orderType, Integer limit) {
         String directionSql = orderType == OrderType.BUY ? " DESC" : StringUtils.EMPTY;
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
         Map<String, Object> params = Maps.newHashMap();
-        params.put("currency_pair_id", currencyPair.getId());
+        params.put("currency_pair_id", currencyPairId);
         params.put("status_id", OPENED.getStatus());
         params.put("operation_type_id", orderType.getOperationType().getType());
         params.put("limit", limit);
@@ -439,11 +439,11 @@ public class OrderDao {
     }
 
     //+
-    public List<OrderBookItem> getOrderBookItems(CurrencyPair currencyPair, Integer limit) {
+    public List<OrderBookItem> getOrderBookItems(Integer currencyPairId, Integer limit) {
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
         Map<String, Object> params = Maps.newHashMap();
-        params.put("currency_pair_id", currencyPair.getId());
+        params.put("currency_pair_id", currencyPairId);
         params.put("status_id", OPENED.getStatus());
         params.put("limit", limit);
 
@@ -451,7 +451,7 @@ public class OrderDao {
     }
 
     //+
-    public List<TradeHistoryDto> getTradeHistory(CurrencyPair currencyPair,
+    public List<TradeHistoryDto> getTradeHistory(Integer currencyPairId,
                                                  LocalDateTime fromDate,
                                                  LocalDateTime toDate,
                                                  Integer limit) {
@@ -459,7 +459,7 @@ public class OrderDao {
 
         Map<String, Object> params = Maps.newHashMap();
         params.put("status_id", CLOSED.getStatus());
-        params.put("currency_pair_id", currencyPair.getId());
+        params.put("currency_pair_id", currencyPairId);
         params.put("start_date", fromDate);
         params.put("end_date", toDate);
         params.put("limit", limit);
@@ -476,16 +476,16 @@ public class OrderDao {
 
     //+
     public List<UserOrdersDto> getUserOrdersByStatus(Integer userId,
-                                                     @Null CurrencyPair currencyPair,
+                                                     @Null Integer currencyPairId,
                                                      OrderStatus status,
                                                      @NotNull int limit) {
-        String currencyPairSql = nonNull(currencyPair) ? " AND o.currency_pair_id = :currency_pair_id" : StringUtils.EMPTY;
+        String currencyPairSql = nonNull(currencyPairId) ? " AND o.currency_pair_id = :currency_pair_id" : StringUtils.EMPTY;
         String orderBySql = " ORDER BY o.date_creation DESC";
         String limitSql = " LIMIT :limit";
 
         Map<String, Object> params = Maps.newHashMap();
         params.put("user_id", userId);
-        params.put("currency_pair_id", currencyPair.getId());
+        params.put("currency_pair_id", currencyPairId);
         params.put("status_id", status.getStatus());
         params.put("limit", limit);
 
@@ -499,14 +499,14 @@ public class OrderDao {
 
     //+
     public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(Integer userId,
-                                                                       CurrencyPair currencyPair,
+                                                                       Integer currencyPairId,
                                                                        LocalDateTime fromDate,
                                                                        LocalDateTime toDate,
                                                                        int limit) {
         Map<String, Object> params = Maps.newHashMap();
         params.put("user_id", userId);
         params.put("status_id", CLOSED.getStatus());
-        params.put("currency_pair_id", currencyPair.getId());
+        params.put("currency_pair_id", currencyPairId);
         params.put("start_date", fromDate);
         params.put("end_date", toDate);
         params.put("limit", limit);
