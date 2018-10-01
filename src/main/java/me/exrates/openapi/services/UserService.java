@@ -2,26 +2,17 @@ package me.exrates.openapi.services;
 
 
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.exceptions.AbsentFinPasswordException;
 import me.exrates.openapi.exceptions.AuthenticationNotAvailableException;
-import me.exrates.openapi.exceptions.NotConfirmedFinPasswordException;
-import me.exrates.openapi.exceptions.WrongFinPasswordException;
-import me.exrates.openapi.models.TemporalToken;
 import me.exrates.openapi.models.User;
-import me.exrates.openapi.models.enums.TokenType;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.repositories.UserDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -51,39 +42,14 @@ public class UserService {
     }
 
     //+
-    public String getPreferedLang(int userId) {
-        return userDao.getPreferredLang(userId);
-    }
-
-    //+
-    public String getPreferedLangByEmail(String email) {
-        return userDao.getPreferredLangByEmail(email);
-    }
-
-    //+
-    public Locale getUserLocaleForMobile(String email) {
-        String lang = getPreferedLangByEmail(email);
-        //adaptation for locales available in mobile app
-        if (!("ru".equalsIgnoreCase(lang) || "en".equalsIgnoreCase(lang))) {
-            lang = "en";
-        }
-        return new Locale(lang);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public String getEmailById(Integer id) {
         return userDao.getEmailById(id);
     }
 
     //+
-    public UserRole getUserRoleFromDB(String email) {
-        return userDao.getUserRoleByEmail(email);
-    }
-
-    //+
     @Transactional
-    public UserRole getUserRoleFromDB(Integer userId) {
+    public UserRole getUserRoleFromDatabase(Integer userId) {
         return userDao.getUserRoleById(userId);
     }
 
@@ -110,6 +76,12 @@ public class UserService {
 
         log.debug("Granted authority: {}", grantedAuthority);
         return UserRole.valueOf(grantedAuthority);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public UserRole getUserRoleFromDatabase(String email) {
+        return userDao.getUserRoleByEmail(email);
     }
 
     //+

@@ -1,6 +1,5 @@
 package me.exrates.openapi.repositories;
 
-import com.google.common.collect.Maps;
 import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.ExOrder;
@@ -9,7 +8,7 @@ import me.exrates.openapi.models.dto.CoinmarketApiDto;
 import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.TransactionDto;
 import me.exrates.openapi.models.dto.UserTradeHistoryDto;
-import me.exrates.openapi.models.dto.WalletsAndCommissionsForOrderCreationDto;
+import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
 import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
@@ -21,13 +20,14 @@ import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
-import me.exrates.openapi.repositories.jdbc.OrderRowMapper;
+import me.exrates.openapi.repositories.mappers.OrderRowMapper;
 import me.exrates.openapi.repositories.mappers.CommissionRowMapper;
 import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
 import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
 import me.exrates.openapi.repositories.mappers.TransactionRowMapper;
 import me.exrates.openapi.repositories.mappers.UserOrdersRowMapper;
 import me.exrates.openapi.repositories.mappers.UserTradeHistoryRowMapper;
+import me.exrates.openapi.repositories.mappers.WalletsAndCommissionsRowMapper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -35,7 +35,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 import javax.validation.constraints.NotNull;
@@ -43,11 +42,9 @@ import javax.validation.constraints.Null;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static java.util.Objects.nonNull;
 import static me.exrates.openapi.models.enums.OperationType.INPUT;
@@ -134,11 +131,27 @@ public class OrderDao {
             " AND (t.operation_type_id = :operation_type_1 OR t.operation_type_id = :operation_type_2)" +
             " ORDER BY t.id";
 
-    private final NamedParameterJdbcTemplate npJdbcTemplate;
+    private static final String GET_WALLET_AND_COMMISSION_SQL = "SELECT u.id AS user_id, w.id AS wallet_id, w.active_balance, " +
+            "com.id AS commission_id, com.value AS commission_value" +
+            " FROM USER u" +
+            " LEFT JOIN WALLET w ON (w.user_id = u.id) AND (w.currency_id = :currency_id)" +
+            " LEFT JOIN ((SELECT c.id, c.value" +
+            "              FROM COMMISSION c" +
+            "              WHERE c.operation_type = :operation_type_id AND c.user_role = :user_role" +
+            "              ORDER BY c.date DESC" +
+            "              LIMIT 1) AS com) ON (1 = 1) " +
+            " WHERE u.email = :email";
+
+    private static final String GET_LOWEST_OPEN_ORDER_PRICE_BY_CURRENCY_PAIR_AND_OPERATION_TYPE_SQL = "SELECT o.exrate" +
+            " FROM EXORDERS o" +
+            " WHERE o.status_id = 2 AND o.currency_pair_id = :currency_pair_id AND o.operation_type_id = :operation_type_id" +
+            " ORDER BY o.exrate ASC LIMIT 1";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public OrderDao(NamedParameterJdbcTemplate npJdbcTemplate) {
-        this.npJdbcTemplate = npJdbcTemplate;
+    public OrderDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     //+
@@ -160,7 +173,7 @@ public class OrderDao {
                 .addValue("status_id", OrderStatus.INPROCESS.getStatus())
                 .addValue("order_source_id", exOrder.getSourceId())
                 .addValue("base_type", exOrder.getOrderBaseType().name());
-        int result = npJdbcTemplate.update(sql, parameters, keyHolder);
+        int result = jdbcTemplate.update(sql, parameters, keyHolder);
         int id = (int) keyHolder.getKey().longValue();
         if (result <= 0) {
             id = 0;
@@ -174,7 +187,7 @@ public class OrderDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("id", String.valueOf(orderId));
         try {
-            return npJdbcTemplate.queryForObject(sql, namedParameters, new OrderRowMapper());
+            return jdbcTemplate.queryForObject(sql, namedParameters, OrderRowMapper.map());
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -186,7 +199,7 @@ public class OrderDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("status_id", String.valueOf(status.getStatus()));
         namedParameters.put("id", String.valueOf(orderId));
-        int result = npJdbcTemplate.update(sql, namedParameters);
+        int result = jdbcTemplate.update(sql, namedParameters);
         return result > 0;
     }
 
@@ -199,39 +212,8 @@ public class OrderDao {
         namedParameters.put("user_acceptor_id", String.valueOf(exOrder.getUserAcceptorId()));
         namedParameters.put("status_id", String.valueOf(exOrder.getStatus().getStatus()));
         namedParameters.put("id", String.valueOf(exOrder.getId()));
-        int result = npJdbcTemplate.update(sql, namedParameters);
+        int result = jdbcTemplate.update(sql, namedParameters);
         return result > 0;
-    }
-
-    //+
-    public WalletsAndCommissionsForOrderCreationDto getWalletAndCommission(String email, Currency currency,
-                                                                           OperationType operationType, UserRole userRole) {
-        String sql = "SELECT USER.id AS user_id, WALLET.id AS wallet_id, WALLET.active_balance, COMM.id AS commission_id, COMM.value AS commission_value" +
-                "  FROM USER " +
-                "    LEFT JOIN WALLET ON (WALLET.user_id=USER.id) AND (WALLET.currency_id = :currency_id) " +
-                "    LEFT JOIN ((SELECT COMMISSION.id, COMMISSION.value " +
-                "           FROM COMMISSION " +
-                "           WHERE COMMISSION.operation_type=:operation_type_id AND COMMISSION.user_role = :user_role ORDER BY COMMISSION.date " +
-                "           DESC LIMIT 1) AS COMM) ON (1=1) " +
-                "  WHERE USER.email = :email";
-        Map<String, Object> namedParameters = new HashMap<>();
-        namedParameters.put("email", email);
-        namedParameters.put("operation_type_id", operationType.getType());
-        namedParameters.put("currency_id", currency.getId());
-        namedParameters.put("user_role", userRole.getRole());
-        try {
-            return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
-                WalletsAndCommissionsForOrderCreationDto walletsAndCommissionsForOrderCreationDto = new WalletsAndCommissionsForOrderCreationDto();
-                walletsAndCommissionsForOrderCreationDto.setUserId(rs.getInt("user_id"));
-                walletsAndCommissionsForOrderCreationDto.setSpendWalletId(rs.getInt("wallet_id"));
-                walletsAndCommissionsForOrderCreationDto.setSpendWalletActiveBalance(rs.getBigDecimal("active_balance"));
-                walletsAndCommissionsForOrderCreationDto.setCommissionId(rs.getInt("commission_id"));
-                walletsAndCommissionsForOrderCreationDto.setCommissionValue(rs.getBigDecimal("commission_value"));
-                return walletsAndCommissionsForOrderCreationDto;
-            });
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
     }
 
     //+
@@ -246,7 +228,7 @@ public class OrderDao {
             Map<String, Object> namedParameters = new HashMap<>();
             namedParameters.put("order_id", orderId);
             try {
-                npJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
+                jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
             } catch (EmptyResultDataAccessException e) {
                 return false;
             }
@@ -286,9 +268,9 @@ public class OrderDao {
             put("acceptor_role_id", userAcceptorRoleId);
             put("order_base_type", orderBaseType.name());
         }};
-        npJdbcTemplate.execute(sqlSetVar, PreparedStatement::execute);
+        jdbcTemplate.execute(sqlSetVar, PreparedStatement::execute);
 
-        return npJdbcTemplate.query(sql, params, (rs, row) -> {
+        return jdbcTemplate.query(sql, params, (rs, row) -> {
             ExOrder exOrder = new ExOrder();
             exOrder.setId(rs.getInt("id"));
             exOrder.setUserId(rs.getInt("user_id"));
@@ -317,7 +299,7 @@ public class OrderDao {
         params.put("currency_pair_id", currencyPairId);
         params.put("status_id", OPENED.getStatus());
         params.put("operation_type_id", orderType.getOperationType().type);
-        return npJdbcTemplate.query(sql, params, (rs, row) -> {
+        return jdbcTemplate.query(sql, params, (rs, row) -> {
             OpenOrderDto item = new OpenOrderDto();
             item.setId(rs.getInt("id"));
             item.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))).name());
@@ -325,20 +307,6 @@ public class OrderDao {
             item.setPrice(rs.getBigDecimal("exrate"));
             return item;
         });
-    }
-
-    //+
-    public Optional<BigDecimal> getLowestOpenOrderPriceByCurrencyPairAndOperationType(int currencyPairId, int operationTypeId) {
-        String sql = "SELECT exrate FROM EXORDERS WHERE status_id = 2 AND currency_pair_id = :currency_pair_id AND operation_type_id = :operation_type_id " +
-                "ORDER BY exrate ASC  LIMIT 1";
-        Map<String, Integer> namedParameters = new HashMap<>();
-        namedParameters.put("currency_pair_id", currencyPairId);
-        namedParameters.put("operation_type_id", operationTypeId);
-        try {
-            return Optional.of(npJdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class));
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
     }
 
     public List<ExOrder> getAllOpenedOrdersByUserId(Integer userId) {
@@ -360,7 +328,7 @@ public class OrderDao {
         params.put("user_id", userId);
         params.put("status_id", OPENED.getStatus());
 
-        return npJdbcTemplate.query(sql, params, (rs, row) -> {
+        return jdbcTemplate.query(sql, params, (rs, row) -> {
             ExOrder exOrder = new ExOrder();
             exOrder.setId(rs.getInt("id"));
             exOrder.setUserId(userId);
@@ -399,7 +367,7 @@ public class OrderDao {
         params.put("currency_pair", currencyPair);
         params.put("status_id", OPENED.getStatus());
 
-        return npJdbcTemplate.query(sql, params, (rs, row) -> {
+        return jdbcTemplate.query(sql, params, (rs, row) -> {
             ExOrder exOrder = new ExOrder();
             exOrder.setId(rs.getInt("id"));
             exOrder.setUserId(userId);
@@ -419,7 +387,7 @@ public class OrderDao {
 
     //+
     public List<CoinmarketApiDto> getCoinmarketData(String pairName) {
-        return npJdbcTemplate.execute(
+        return jdbcTemplate.execute(
                 String.format(CALL_GET_COINMARKETCAP_STATISTICS_PROCEDURE_SQL, pairName),
                 StoredProcedureCallback.getCoinmarketDataCallback());
     }
@@ -429,25 +397,27 @@ public class OrderDao {
         String directionSql = orderType == OrderType.BUY ? " DESC" : StringUtils.EMPTY;
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OPENED.getStatus());
-        params.put("operation_type_id", orderType.getOperationType().getType());
-        params.put("limit", limit);
-
-        return npJdbcTemplate.query(GET_ORDER_BOOK_ITEMS_BY_TYPE_SQL + directionSql + limitSql, params, OrderBookItemRowMapper.map());
+        return jdbcTemplate.query(
+                GET_ORDER_BOOK_ITEMS_BY_TYPE_SQL + directionSql + limitSql,
+                Map.of(
+                        "currency_pair_id", currencyPairId,
+                        "status_id", OPENED.getStatus(),
+                        "operation_type_id", orderType.getOperationType().getType(),
+                        "limit", limit),
+                OrderBookItemRowMapper.map());
     }
 
     //+
     public List<OrderBookItem> getOrderBookItems(Integer currencyPairId, Integer limit) {
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OPENED.getStatus());
-        params.put("limit", limit);
-
-        return npJdbcTemplate.query(GET_ORDER_BOOK_ITEMS_SQL + limitSql, params, OrderBookItemRowMapper.map());
+        return jdbcTemplate.query(
+                GET_ORDER_BOOK_ITEMS_SQL + limitSql,
+                Map.of(
+                        "currency_pair_id", currencyPairId,
+                        "status_id", OPENED.getStatus(),
+                        "limit", limit),
+                OrderBookItemRowMapper.map());
     }
 
     //+
@@ -457,20 +427,25 @@ public class OrderDao {
                                                  Integer limit) {
         String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
 
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("status_id", CLOSED.getStatus());
-        params.put("currency_pair_id", currencyPairId);
-        params.put("start_date", fromDate);
-        params.put("end_date", toDate);
-        params.put("limit", limit);
-
-        return npJdbcTemplate.query(GET_TRADE_HISTORY_SQL + limitSql, params, TradeHistoryRowMapper.map());
+        return jdbcTemplate.query(
+                GET_TRADE_HISTORY_SQL + limitSql,
+                Map.of(
+                        "status_id", CLOSED.getStatus(),
+                        "currency_pair_id", currencyPairId,
+                        "start_date", fromDate,
+                        "end_date", toDate,
+                        "limit", limit),
+                TradeHistoryRowMapper.map());
     }
 
     //+
     public List<CandleChartItemDto> getDataForCandleChart(CurrencyPair currencyPair, BackDealInterval backDealInterval) {
-        return npJdbcTemplate.execute(
-                String.format(CALL_GET_DATA_FOR_CANDLE_SQL, backDealInterval.getIntervalValue(), backDealInterval.getIntervalType().name(), currencyPair.getId()),
+        return jdbcTemplate.execute(
+                String.format(
+                        CALL_GET_DATA_FOR_CANDLE_SQL,
+                        backDealInterval.getIntervalValue(),
+                        backDealInterval.getIntervalType().name(),
+                        currencyPair.getId()),
                 StoredProcedureCallback.getDataForCandleChartCallback());
     }
 
@@ -483,18 +458,22 @@ public class OrderDao {
         String orderBySql = " ORDER BY o.date_creation DESC";
         String limitSql = " LIMIT :limit";
 
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("user_id", userId);
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", status.getStatus());
-        params.put("limit", limit);
-
-        return npJdbcTemplate.query(GET_USER_ORDERS_BY_STATUS_SQL + currencyPairSql + orderBySql + limitSql, params, UserOrdersRowMapper.map());
+        return jdbcTemplate.query(
+                GET_USER_ORDERS_BY_STATUS_SQL + currencyPairSql + orderBySql + limitSql,
+                Map.of(
+                        "user_id", userId,
+                        "currency_pair_id", currencyPairId,
+                        "status_id", status.getStatus(),
+                        "limit", limit),
+                UserOrdersRowMapper.map());
     }
 
     //+
     public CommissionDto getAllCommissions(UserRole userRole) {
-        return npJdbcTemplate.queryForObject(GET_ALL_COMMISSIONS_SQL, Collections.singletonMap("user_role", userRole.getRole()), CommissionRowMapper.map());
+        return jdbcTemplate.queryForObject(
+                GET_ALL_COMMISSIONS_SQL,
+                Map.of("user_role", userRole.getRole()),
+                CommissionRowMapper.map());
     }
 
     //+
@@ -503,26 +482,53 @@ public class OrderDao {
                                                                        LocalDateTime fromDate,
                                                                        LocalDateTime toDate,
                                                                        int limit) {
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("user_id", userId);
-        params.put("status_id", CLOSED.getStatus());
-        params.put("currency_pair_id", currencyPairId);
-        params.put("start_date", fromDate);
-        params.put("end_date", toDate);
-        params.put("limit", limit);
-
-        return npJdbcTemplate.query(GET_USER_TRADE_HISTORY_BY_CURRENCY_PAIR_SQL, params, UserTradeHistoryRowMapper.map(userId));
+        return jdbcTemplate.query(
+                GET_USER_TRADE_HISTORY_BY_CURRENCY_PAIR_SQL,
+                Map.of(
+                        "user_id", userId,
+                        "status_id", CLOSED.getStatus(),
+                        "currency_pair_id", currencyPairId,
+                        "start_date", fromDate,
+                        "end_date", toDate,
+                        "limit", limit),
+                UserTradeHistoryRowMapper.map(userId));
     }
 
     //+
     public List<TransactionDto> getOrderTransactions(Integer userId, Integer orderId) {
-        Map<String, Object> params = Maps.newHashMap();
-        params.put("user_id", userId);
-        params.put("order_id", orderId);
-        params.put("source_type", ORDER.name());
-        params.put("operation_type_1", INPUT.getType());
-        params.put("operation_type_2", OUTPUT.getType());
+        return jdbcTemplate.query(
+                GET_ORDER_TRANSACTIONS_SQL,
+                Map.of(
+                        "user_id", userId,
+                        "order_id", orderId,
+                        "source_type", ORDER.name(),
+                        "operation_type_1", INPUT.getType(),
+                        "operation_type_2", OUTPUT.getType()),
+                TransactionRowMapper.map());
+    }
 
-        return npJdbcTemplate.query(GET_ORDER_TRANSACTIONS_SQL, params, TransactionRowMapper.map());
+    //+
+    public WalletsAndCommissionsDto getWalletAndCommission(String email,
+                                                           Currency currency,
+                                                           OperationType operationType,
+                                                           UserRole userRole) {
+        return jdbcTemplate.queryForObject(
+                GET_WALLET_AND_COMMISSION_SQL,
+                Map.of(
+                        "email", email,
+                        "operation_type_id", operationType.getType(),
+                        "currency_id", currency.getId(),
+                        "user_role", userRole.getRole()),
+                WalletsAndCommissionsRowMapper.map());
+    }
+
+    //+
+    public BigDecimal getLowestOpenOrderPriceByCurrencyPairAndOperationType(int currencyPairId, int operationTypeId) {
+        return jdbcTemplate.queryForObject(
+                GET_LOWEST_OPEN_ORDER_PRICE_BY_CURRENCY_PAIR_AND_OPERATION_TYPE_SQL,
+                Map.of(
+                        "currency_pair_id", currencyPairId,
+                        "operation_type_id", operationTypeId),
+                BigDecimal.class);
     }
 }

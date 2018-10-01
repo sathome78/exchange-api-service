@@ -13,8 +13,7 @@ import java.util.Optional;
 @Repository
 public class UserAlertsDao {
 
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private static RowMapper<AlertDto> getWalletsForOrderCancelDtoMapper = (rs, idx) -> {
         AlertDto alertDto = AlertDto
@@ -30,6 +29,11 @@ public class UserAlertsDao {
                 .ifPresent(alertDto::setLenghtOfWorks);
         return alertDto;
     };
+
+    @Autowired
+    public UserAlertsDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public boolean updateAlert(AlertDto alertDto) {
         String sql = "UPDATE SERVICE_ALERTS SA SET SA.enable = :enable, " +

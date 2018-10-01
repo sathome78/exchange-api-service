@@ -1,9 +1,10 @@
 package me.exrates.openapi.controllers;
 
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
 import me.exrates.openapi.models.dto.openAPI.OrderCreationResultOpenApiDto;
-import me.exrates.openapi.models.dto.openAPI.OrderParamsDto;
+import me.exrates.openapi.models.dto.openAPI.OrderParametersDto;
 import me.exrates.openapi.services.OrderService;
 import me.exrates.openapi.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
@@ -24,6 +26,7 @@ import java.util.Map;
 import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 import static me.exrates.openapi.utils.RestApiUtils.retrieveParamFormBody;
 
+@Slf4j
 @RestController
 @RequestMapping("/orders")
 public class OpenApiOrderController {
@@ -57,18 +60,23 @@ public class OpenApiOrderController {
      * @apiSuccess {Integer} orderCreationResult.auto_accepted_quantity Number of orders accepted automatically (not shown if no orders were auto-accepted)
      * @apiSuccess {Number} orderCreationResult.partially_accepted_amount Amount that was accepted partially (shown only in case of partial accept)
      */
-//    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-//    public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@RequestBody @Valid OrderParamsDto orderParamsDto,
-//                                                                     Errors result) {
-//        if (result.hasErrors()) {
-//            throw new ValidationException(result.getAllErrors());
-//        }
-//        String currencyPairName = convert(orderParamsDto.getCurrencyPair());
-//        String userEmail = userService.getUserEmailFromSecurityContext();
-//        OrderCreationResultDto resultDto = orderService.prepareAndCreateOrderRest(currencyPairName, orderParamsDto.getOrderType().getOperationType(),
-//                orderParamsDto.getAmount(), orderParamsDto.getPrice(), userEmail);
-//        return new ResponseEntity<>(new OrderCreationResultOpenApiDto(resultDto), HttpStatus.CREATED);
-//    }
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@Valid @RequestBody OrderParametersDto orderParametersDto,
+                                                                     Errors result) {
+        if (result.hasErrors()) {
+            throw new ValidationException(result.getAllErrors());
+        }
+        String pairName = convert(orderParametersDto.getCurrency1(), orderParametersDto.getCurrency2());
+
+        OrderCreationResultDto resultDto = orderService.prepareAndCreateOrder(
+                pairName,
+                orderParametersDto.getOrderType().getOperationType(),
+                orderParametersDto.getAmount(),
+                orderParametersDto.getPrice());
+
+        return ResponseEntity.ok(new OrderCreationResultOpenApiDto(resultDto));
+    }
 
     /**
      * @api {post} /openapi/v1/orders/cancel Cancel order by order id

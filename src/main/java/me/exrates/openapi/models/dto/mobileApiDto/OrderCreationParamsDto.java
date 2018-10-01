@@ -1,10 +1,18 @@
 package me.exrates.openapi.models.dto.mobileApiDto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.exrates.openapi.models.enums.OperationType;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderCreationParamsDto {
 
     @NotNull
@@ -15,53 +23,4 @@ public class OrderCreationParamsDto {
     private BigDecimal amount;
     @NotNull
     private BigDecimal rate;
-
-    public OrderCreationParamsDto(Integer currencyPairId, OperationType orderType, BigDecimal amount, BigDecimal rate) {
-        this.currencyPairId = currencyPairId;
-        this.orderType = orderType;
-        this.amount = amount;
-        this.rate = rate;
-    }
-
-    public Integer getCurrencyPairId() {
-        return currencyPairId;
-    }
-
-    public void setCurrencyPairId(Integer currencyPairId) {
-        this.currencyPairId = currencyPairId;
-    }
-
-    public OperationType getOrderType() {
-        return orderType;
-    }
-
-    public void setOrderType(OperationType orderType) {
-        this.orderType = orderType;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public BigDecimal getRate() {
-        return rate;
-    }
-
-    public void setRate(BigDecimal rate) {
-        this.rate = rate;
-    }
-
-    @Override
-    public String toString() {
-        return "OrderCreationParamsDto{" +
-                "currencyPairId=" + currencyPairId +
-                ", orderType=" + orderType +
-                ", amount=" + amount +
-                ", rate=" + rate +
-                '}';
-    }
 }

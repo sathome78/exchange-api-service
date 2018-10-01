@@ -1,9 +1,6 @@
 package me.exrates.openapi.services;
 
 import lombok.extern.log4j.Log4j2;
-import me.exrates.openapi.repositories.ReferralLevelDao;
-import me.exrates.openapi.repositories.ReferralTransactionDao;
-import me.exrates.openapi.repositories.ReferralUserGraphDao;
 import me.exrates.openapi.models.Commission;
 import me.exrates.openapi.models.CompanyWallet;
 import me.exrates.openapi.models.Currency;
@@ -12,12 +9,13 @@ import me.exrates.openapi.models.ReferralLevel;
 import me.exrates.openapi.models.ReferralTransaction;
 import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.enums.ActionType;
-import me.exrates.openapi.models.enums.NotificationEvent;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.ReferralTransactionStatusEnum;
 import me.exrates.openapi.models.enums.TransactionSourceType;
 import me.exrates.openapi.models.vo.WalletOperationData;
-import me.exrates.openapi.utils.BigDecimalProcessingUtil;
+import me.exrates.openapi.repositories.ReferralLevelDao;
+import me.exrates.openapi.repositories.ReferralTransactionDao;
+import me.exrates.openapi.repositories.ReferralUserGraphDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,32 +34,32 @@ import static me.exrates.openapi.utils.BigDecimalProcessingUtil.doAction;
 @Service
 public class ReferralService {
 
-    @Autowired
-    private ReferralLevelDao referralLevelDao;
-    @Autowired
-    private ReferralUserGraphDao referralUserGraphDao;
-    @Autowired
-    private ReferralTransactionDao referralTransactionDao;
-    @Autowired
-    private WalletService walletService;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private CompanyWalletService companyWalletService;
-    @Autowired
-    private NotificationService notificationService;
-    @Autowired
-    private CommissionService commissionService;
+    private final ReferralLevelDao referralLevelDao;
+    private final ReferralUserGraphDao referralUserGraphDao;
+    private final ReferralTransactionDao referralTransactionDao;
+    private final WalletService walletService;
+    private final UserService userService;
+    private final CompanyWalletService companyWalletService;
+    private final CommissionService commissionService;
 
     private Commission commission;
 
-    /**
-     * URL following format  - xxx/register?ref=
-     * where xxx is replaced by the domain name depending on the maven profile
-     */
-    private
-    @Value("${referral.url}")
-    String referralUrl;
+    @Autowired
+    public ReferralService(ReferralLevelDao referralLevelDao,
+                           ReferralUserGraphDao referralUserGraphDao,
+                           ReferralTransactionDao referralTransactionDao,
+                           WalletService walletService,
+                           UserService userService,
+                           CompanyWalletService companyWalletService,
+                           CommissionService commissionService) {
+        this.referralLevelDao = referralLevelDao;
+        this.referralUserGraphDao = referralUserGraphDao;
+        this.referralTransactionDao = referralTransactionDao;
+        this.walletService = walletService;
+        this.userService = userService;
+        this.companyWalletService = companyWalletService;
+        this.commissionService = commissionService;
+    }
 
     @PostConstruct
     public void init() {
@@ -108,9 +106,6 @@ public class ReferralService {
                 wod.setSourceId(createdRefTransaction.getId());
                 walletService.walletBalanceChange(wod);
                 companyWalletService.withdrawReservedBalance(cWallet, amount);
-                notificationService.createLocalizedNotification(parent, NotificationEvent.IN_OUT,
-                        "referral.title", "referral.message",
-                        new Object[]{BigDecimalProcessingUtil.formatNonePoint(amount, false), currency.getName()});
             } else {
                 break;
             }

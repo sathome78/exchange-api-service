@@ -1,6 +1,6 @@
 package me.exrates.openapi.repositories;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.StopOrder;
 import me.exrates.openapi.models.enums.OrderStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,12 +13,16 @@ import org.springframework.stereotype.Repository;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Repository
-@Log4j2
 public class StopOrderDao {
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Autowired
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    public StopOrderDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     //+
     public Integer create(StopOrder order) {
@@ -27,7 +31,7 @@ public class StopOrderDao {
                 "  VALUES " +
                 "  (:user_id, :currency_pair_id, :operation_type_id, :stop_rate, :limit_rate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id)";
         log.debug(sql);
-        log.debug(order);
+        log.debug("{}", order);
         KeyHolder keyHolder = new GeneratedKeyHolder();
         MapSqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("user_id", order.getUserId())
@@ -40,7 +44,7 @@ public class StopOrderDao {
                 .addValue("commission_id", order.getComissionId())
                 .addValue("commission_fixed_amount", order.getCommissionFixedAmount())
                 .addValue("status_id", OrderStatus.INPROCESS.getStatus());
-        int result = namedParameterJdbcTemplate.update(sql, parameters, keyHolder);
+        int result = jdbcTemplate.update(sql, parameters, keyHolder);
         int id = (int) keyHolder.getKey().longValue();
         if (result <= 0) {
             id = 0;
@@ -54,7 +58,7 @@ public class StopOrderDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("status_id", String.valueOf(status.getStatus()));
         namedParameters.put("id", String.valueOf(orderId));
-        int result = namedParameterJdbcTemplate.update(sql, namedParameters);
+        int result = jdbcTemplate.update(sql, namedParameters);
         return result > 0;
     }
 }

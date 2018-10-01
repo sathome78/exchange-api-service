@@ -22,8 +22,12 @@ public class CommissionDao {
         return commission;
     };
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Autowired
-    NamedParameterJdbcTemplate jdbcTemplate;
+    public CommissionDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     //+
     public Commission getCommission(OperationType operationType, UserRole userRole) {

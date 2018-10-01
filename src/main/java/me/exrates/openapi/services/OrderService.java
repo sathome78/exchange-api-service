@@ -1,6 +1,7 @@
 package me.exrates.openapi.services;
 
 import lombok.extern.slf4j.Slf4j;
+import me.exrates.openapi.components.OrderValidator;
 import me.exrates.openapi.components.TransactionDescription;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.AttemptToAcceptBotOrderException;
@@ -20,20 +21,17 @@ import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.ExOrder;
 import me.exrates.openapi.models.Transaction;
-import me.exrates.openapi.models.User;
 import me.exrates.openapi.models.UserRoleSettings;
 import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.dto.CandleChartItemDto;
 import me.exrates.openapi.models.dto.CoinmarketApiDto;
-import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
 import me.exrates.openapi.models.dto.OrderCreateDto;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
 import me.exrates.openapi.models.dto.OrderDetailDto;
-import me.exrates.openapi.models.dto.OrderValidationDto;
 import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.TransactionDto;
 import me.exrates.openapi.models.dto.UserTradeHistoryDto;
-import me.exrates.openapi.models.dto.WalletsAndCommissionsForOrderCreationDto;
+import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
 import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
 import me.exrates.openapi.models.dto.WalletsForOrderCancelDto;
 import me.exrates.openapi.models.dto.mobileApiDto.OrderCreationParamsDto;
@@ -105,7 +103,6 @@ public class OrderService {
     private ScheduledExecutorService coinmarketScheduler = Executors.newSingleThreadScheduledExecutor();
 
     private final Object autoAcceptLock = new Object();
-    private final Object restOrderCreationLock = new Object();
 
     private final OrderDao orderDao;
     private final CommissionDao commissionDao;
@@ -119,6 +116,7 @@ public class OrderService {
     private final TransactionDescription transactionDescription;
     private final StopOrderService stopOrderService;
     private final UserRoleService userRoleService;
+    private final OrderValidator validator;
 
     @Autowired
     public OrderService(OrderDao orderDao,
@@ -132,7 +130,8 @@ public class OrderService {
                         ReferralService referralService,
                         TransactionDescription transactionDescription,
                         StopOrderService stopOrderService,
-                        UserRoleService userRoleService) {
+                        UserRoleService userRoleService,
+                        OrderValidator validator) {
         this.orderDao = orderDao;
         this.commissionDao = commissionDao;
         this.transactionService = transactionService;
@@ -145,6 +144,7 @@ public class OrderService {
         this.transactionDescription = transactionDescription;
         this.stopOrderService = stopOrderService;
         this.userRoleService = userRoleService;
+        this.validator = validator;
     }
 
     @PostConstruct
@@ -156,149 +156,67 @@ public class OrderService {
     }
 
     //+
-    public OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair, OperationType orderType, String userEmail, BigDecimal amount, BigDecimal rate, OrderBaseType baseType) {
-        return prepareNewOrder(activeCurrencyPair, orderType, userEmail, amount, rate, null, baseType);
+    private OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair,
+                                           OperationType orderType,
+                                           BigDecimal amount,
+                                           BigDecimal rate,
+                                           OrderBaseType baseType) {
+        return prepareNewOrder(activeCurrencyPair, orderType, amount, rate, null, baseType);
     }
 
     //+
-    public OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair, OperationType orderType, String userEmail, BigDecimal amount, BigDecimal rate, Integer sourceId, OrderBaseType baseType) {
-        Currency spendCurrency = null;
-        if (orderType == OperationType.SELL) {
-            spendCurrency = activeCurrencyPair.getCurrency1();
-        } else if (orderType == OperationType.BUY) {
-            spendCurrency = activeCurrencyPair.getCurrency2();
+    private OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair,
+                                           OperationType orderType,
+                                           BigDecimal amount,
+                                           BigDecimal rate,
+                                           Integer sourceId,
+                                           OrderBaseType baseType) {
+        Currency spendCurrency;
+        switch (orderType) {
+            case SELL:
+                spendCurrency = activeCurrencyPair.getCurrency1();
+                break;
+            case BUY:
+                spendCurrency = activeCurrencyPair.getCurrency2();
+                break;
+            default:
+                spendCurrency = null;
+                break;
         }
-        WalletsAndCommissionsForOrderCreationDto walletsAndCommissions = getWalletAndCommission(userEmail, spendCurrency, orderType);
-        /**/
-        OrderCreateDto orderCreateDto = new OrderCreateDto();
-        orderCreateDto.setOperationType(orderType);
-        orderCreateDto.setCurrencyPair(activeCurrencyPair);
-        orderCreateDto.setAmount(amount);
-        orderCreateDto.setExchangeRate(rate);
-        orderCreateDto.setUserId(walletsAndCommissions.getUserId());
-        orderCreateDto.setCurrencyPair(activeCurrencyPair);
-        orderCreateDto.setSourceId(sourceId);
-        orderCreateDto.setOrderBaseType(baseType);
-        /*todo get 0 comission values from db*/
+
+        WalletsAndCommissionsDto walletsAndCommissions = getWalletAndCommission(spendCurrency, orderType);
+
+        OrderCreateDto.Builder builder = OrderCreateDto.builder()
+                .operationType(orderType)
+                .currencyPair(activeCurrencyPair)
+                .amount(amount)
+                .exchangeRate(rate)
+                .userId(walletsAndCommissions.getUserId())
+                .currencyPair(activeCurrencyPair)
+                .sourceId(sourceId)
+                .orderBaseType(baseType);
+
+        //todo: get 0 commission values from db
         if (baseType == OrderBaseType.ICO) {
-            walletsAndCommissions.setCommissionValue(BigDecimal.ZERO);
-            walletsAndCommissions.setCommissionId(24);
+            walletsAndCommissions = walletsAndCommissions.toBuilder()
+                    .commissionValue(BigDecimal.ZERO)
+                    .commissionId(24)
+                    .build();
         }
         if (orderType == OperationType.SELL) {
-            orderCreateDto.setWalletIdCurrencyBase(walletsAndCommissions.getSpendWalletId());
-            orderCreateDto.setCurrencyBaseBalance(walletsAndCommissions.getSpendWalletActiveBalance());
-            orderCreateDto.setComissionForSellId(walletsAndCommissions.getCommissionId());
-            orderCreateDto.setComissionForSellRate(walletsAndCommissions.getCommissionValue());
+            builder
+                    .walletIdCurrencyBase(walletsAndCommissions.getSpendWalletId())
+                    .currencyBaseBalance(walletsAndCommissions.getSpendWalletActiveBalance())
+                    .comissionForSellId(walletsAndCommissions.getCommissionId())
+                    .comissionForSellRate(walletsAndCommissions.getCommissionValue());
         } else if (orderType == OperationType.BUY) {
-            orderCreateDto.setWalletIdCurrencyConvert(walletsAndCommissions.getSpendWalletId());
-            orderCreateDto.setCurrencyConvertBalance(walletsAndCommissions.getSpendWalletActiveBalance());
-            orderCreateDto.setComissionForBuyId(walletsAndCommissions.getCommissionId());
-            orderCreateDto.setComissionForBuyRate(walletsAndCommissions.getCommissionValue());
+            builder
+                    .walletIdCurrencyConvert(walletsAndCommissions.getSpendWalletId())
+                    .currencyConvertBalance(walletsAndCommissions.getSpendWalletActiveBalance())
+                    .comissionForBuyId(walletsAndCommissions.getCommissionId())
+                    .comissionForBuyRate(walletsAndCommissions.getCommissionValue());
         }
-        /**/
-        orderCreateDto.calculateAmounts();
-        return orderCreateDto;
-    }
-
-    //+
-    public OrderValidationDto validateOrder(OrderCreateDto orderCreateDto) {
-        OrderValidationDto orderValidationDto = new OrderValidationDto();
-        Map<String, Object> errors = orderValidationDto.getErrors();
-        Map<String, Object[]> errorParams = orderValidationDto.getErrorParams();
-        if (orderCreateDto.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            errors.put("amount_" + errors.size(), "order.fillfield");
-        }
-        if (orderCreateDto.getExchangeRate().compareTo(BigDecimal.ZERO) <= 0) {
-            errors.put("exrate_" + errors.size(), "order.fillfield");
-        }
-        final CurrencyPair currencyPair = orderCreateDto.getCurrencyPair();
-        final OperationType operationType = orderCreateDto.getOperationType();
-        final UserRole userRole = userService.getUserRoleFromSecurityContext();
-
-        CurrencyPairLimitDto currencyPairLimit = currencyService.findLimitForRoleByCurrencyPairAndType(currencyPair, operationType, userRole);
-
-        if (orderCreateDto.getOrderBaseType() != null && orderCreateDto.getOrderBaseType().equals(OrderBaseType.STOP_LIMIT)) {
-            if (orderCreateDto.getStop() == null || orderCreateDto.getStop().compareTo(BigDecimal.ZERO) <= 0) {
-                errors.put("stop_" + errors.size(), "order.fillfield");
-            } else {
-                if (orderCreateDto.getStop().compareTo(currencyPairLimit.getMinRate()) < 0) {
-                    String key = "stop_" + errors.size();
-                    errors.put(key, "order.minrate");
-                    errorParams.put(key, new Object[]{currencyPairLimit.getMinRate()});
-                }
-                if (orderCreateDto.getStop().compareTo(currencyPairLimit.getMaxRate()) > 0) {
-                    String key = "stop_" + errors.size();
-                    errors.put(key, "order.maxrate");
-                    errorParams.put(key, new Object[]{currencyPairLimit.getMaxRate()});
-                }
-            }
-        }
-        /*------------------*/
-        if (orderCreateDto.getCurrencyPair().getPairType() == CurrencyPairType.ICO) {
-            validateIcoOrder(errors, orderCreateDto);
-        }
-        /*------------------*/
-        if (orderCreateDto.getAmount() != null) {
-            if (orderCreateDto.getAmount().compareTo(currencyPairLimit.getMaxAmount()) > 0) {
-                String key1 = "amount_" + errors.size();
-                errors.put(key1, "order.maxvalue");
-                errorParams.put(key1, new Object[]{BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMaxAmount(), false)});
-                String key2 = "amount_" + errors.size();
-                errors.put(key2, "order.valuerange");
-                errorParams.put(key2, new Object[]{BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMinAmount(), false),
-                        BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMaxAmount(), false)});
-            }
-            if (orderCreateDto.getAmount().compareTo(currencyPairLimit.getMinAmount()) < 0) {
-                String key1 = "amount_" + errors.size();
-                errors.put(key1, "order.minvalue");
-                errorParams.put(key1, new Object[]{BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMinAmount(), false)});
-                String key2 = "amount_" + errors.size();
-                errors.put(key2, "order.valuerange");
-                errorParams.put(key2, new Object[]{BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMinAmount(), false),
-                        BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMaxAmount(), false)});
-            }
-        }
-        if (orderCreateDto.getExchangeRate() != null) {
-            if (orderCreateDto.getExchangeRate().compareTo(BigDecimal.ZERO) < 1) {
-                errors.put("exrate_" + errors.size(), "order.zerorate");
-            }
-            if (orderCreateDto.getExchangeRate().compareTo(currencyPairLimit.getMinRate()) < 0) {
-                String key = "exrate_" + errors.size();
-                errors.put(key, "order.minrate");
-                errorParams.put(key, new Object[]{BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMinRate(), false)});
-            }
-            if (orderCreateDto.getExchangeRate().compareTo(currencyPairLimit.getMaxRate()) > 0) {
-                String key = "exrate_" + errors.size();
-                errors.put(key, "order.maxrate");
-                errorParams.put(key, new Object[]{BigDecimalProcessingUtil.formatNonePoint(currencyPairLimit.getMaxRate(), false)});
-            }
-
-        }
-        if ((orderCreateDto.getAmount() != null) && (orderCreateDto.getExchangeRate() != null)) {
-            boolean ifEnoughMoney = orderCreateDto.getSpentWalletBalance().compareTo(BigDecimal.ZERO) > 0 && orderCreateDto.getSpentAmount().compareTo(orderCreateDto.getSpentWalletBalance()) <= 0;
-            if (!ifEnoughMoney) {
-                errors.put("balance_" + errors.size(), "validation.orderNotEnoughMoney");
-            }
-        }
-        return orderValidationDto;
-    }
-
-    //+
-    private void validateIcoOrder(Map<String, Object> errors, OrderCreateDto orderCreateDto) {
-        if (orderCreateDto.getOrderBaseType() != OrderBaseType.ICO) {
-            throw new RuntimeException("unsupported type of order");
-        }
-        if (orderCreateDto.getOperationType() == OperationType.SELL) {
-            SecurityContextHolder.getContext().getAuthentication().getAuthorities()
-                    .stream()
-                    .filter(p -> p.getAuthority().equals(UserRole.ICO_MARKET_MAKER.name())).findAny().orElseThrow(() -> new RuntimeException("not allowed"));
-        }
-        if (orderCreateDto.getOperationType() == OperationType.BUY) {
-            Optional<BigDecimal> lastRate = orderDao.getLowestOpenOrderPriceByCurrencyPairAndOperationType(orderCreateDto.getCurrencyPair().getId(), OperationType.SELL.type);
-            if (!lastRate.isPresent() || orderCreateDto.getExchangeRate().compareTo(lastRate.get()) < 0) {
-                errors.put("exrate_" + errors.size(), "order_ico.no_orders_for_rate");
-            }
-        }
+        return builder.build().calculateAmounts();
     }
 
     //+
@@ -372,24 +290,28 @@ public class OrderService {
 
     //+
     @Transactional
-    public OrderCreateDto prepareOrderRest(OrderCreationParamsDto orderCreationParamsDto, String userEmail, Locale locale, OrderBaseType orderBaseType) {
-        CurrencyPair activeCurrencyPair = currencyService.findCurrencyPairById(orderCreationParamsDto.getCurrencyPairId());
-        OrderCreateDto orderCreateDto = prepareNewOrder(activeCurrencyPair, orderCreationParamsDto.getOrderType(),
-                userEmail, orderCreationParamsDto.getAmount(), orderCreationParamsDto.getRate(), orderBaseType);
-        log.debug("Order prepared" + orderCreateDto);
-        OrderValidationDto orderValidationDto = validateOrder(orderCreateDto);
-        Map<String, Object> errors = orderValidationDto.getErrors();
-        if (!errors.isEmpty()) {
-            errors.replaceAll((key, value) -> messageSource.getMessage(value.toString(), orderValidationDto.getErrorParams().get(key), locale));
-            throw new OrderParamsWrongException(errors.toString());
+    public OrderCreateDto prepareOrder(OrderCreationParamsDto orderCreationParamsDto, OrderBaseType orderBaseType) {
+        CurrencyPair activeCurrencyPair = currencyService.getCurrencyPairById(orderCreationParamsDto.getCurrencyPairId());
+
+        OrderCreateDto orderCreateDto = prepareNewOrder(activeCurrencyPair,
+                orderCreationParamsDto.getOrderType(),
+                orderCreationParamsDto.getAmount(),
+                orderCreationParamsDto.getRate(),
+                orderBaseType);
+
+        log.debug("Order prepared {}", orderCreateDto);
+        boolean isValid = validator.validate(orderCreateDto);
+
+        if (!isValid) {
+            throw new OrderParamsWrongException("Prepared order does not valid: " + orderCreateDto.toString());
         }
         return orderCreateDto;
     }
 
     //+
     @Transactional
-    public OrderCreationResultDto createPreparedOrderRest(OrderCreateDto orderCreateDto, Locale locale) {
-        Optional<OrderCreationResultDto> autoAcceptResult = autoAcceptOrders(orderCreateDto, locale);
+    public OrderCreationResultDto createPreparedOrder(OrderCreateDto orderCreateDto) {
+        Optional<OrderCreationResultDto> autoAcceptResult = autoAcceptOrders(orderCreateDto);
         log.info("Auto accept result: " + autoAcceptResult);
         if (autoAcceptResult.isPresent()) {
             return autoAcceptResult.get();
@@ -398,7 +320,7 @@ public class OrderService {
 
         Integer createdOrderId = createOrder(orderCreateDto, CREATE);
         if (createdOrderId <= 0) {
-            throw new NotCreatableOrderException(messageSource.getMessage("dberror.text", null, locale));
+            throw new NotCreatableOrderException("Unfortunately, the operation can not be performed at this time. Please try again later");
         }
         orderCreationResultDto.setCreatedOrderId(createdOrderId);
         log.info("Order creation result result: " + autoAcceptResult);
@@ -406,30 +328,14 @@ public class OrderService {
     }
 
     //+
-    @Transactional
-    public OrderCreationResultDto prepareAndCreateOrderRest(String currencyPairName, OperationType orderType,
-                                                            BigDecimal amount, BigDecimal exrate, String userEmail) {
-        synchronized (restOrderCreationLock) {
-            log.info(String.format("Start creating order: %s %s amount %s rate %s", currencyPairName, orderType.name(), amount, exrate));
-            Locale locale = userService.getUserLocaleForMobile(userEmail);
-            CurrencyPair currencyPair = currencyService.getCurrencyPairByName(currencyPairName);
-            if (currencyPair.getPairType() != CurrencyPairType.MAIN) {
-                throw new NotCreatableOrderException("This pair available only through website");
-            }
-            OrderCreateDto orderCreateDto = prepareOrderRest(new OrderCreationParamsDto(currencyPair.getId(), orderType, amount, exrate), userEmail, locale, OrderBaseType.LIMIT);
-            return createPreparedOrderRest(orderCreateDto, locale);
-        }
-    }
-
-    //+
     @Transactional(rollbackFor = Exception.class)
-    public Optional<OrderCreationResultDto> autoAcceptOrders(OrderCreateDto orderCreateDto, Locale locale) {
+    public Optional<OrderCreationResultDto> autoAcceptOrders(OrderCreateDto orderCreateDto) {
         synchronized (autoAcceptLock) {
             ProfileData profileData = new ProfileData(200);
             try {
                 boolean acceptSameRoleOnly = userRoleService.isOrderAcceptionAllowedForUser(orderCreateDto.getUserId());
                 List<ExOrder> acceptableOrders = orderDao.selectTopOrders(orderCreateDto.getCurrencyPair().getId(), orderCreateDto.getExchangeRate(),
-                        OperationType.getOpposite(orderCreateDto.getOperationType()), acceptSameRoleOnly, userService.getUserRoleFromDB(orderCreateDto.getUserId()).getRole(), orderCreateDto.getOrderBaseType());
+                        OperationType.getOpposite(orderCreateDto.getOperationType()), acceptSameRoleOnly, userService.getUserRoleFromDatabase(orderCreateDto.getUserId()).getRole(), orderCreateDto.getOrderBaseType());
                 profileData.setTime1();
                 log.debug("acceptableOrders - " + OperationType.getOpposite(orderCreateDto.getOperationType()) + " : " + acceptableOrders);
                 if (acceptableOrders.isEmpty()) {
@@ -453,20 +359,18 @@ public class OrderService {
                 OrderCreationResultDto orderCreationResultDto = new OrderCreationResultDto();
 
                 if (ordersForAccept.size() > 0) {
-                    acceptOrdersList(orderCreateDto.getUserId(), ordersForAccept.stream().map(ExOrder::getId).collect(toList()), locale);
+                    acceptOrdersList(orderCreateDto.getUserId(), ordersForAccept.stream().map(ExOrder::getId).collect(toList()));
                     orderCreationResultDto.setAutoAcceptedQuantity(ordersForAccept.size());
                 }
                 if (orderForPartialAccept != null) {
-                    BigDecimal partialAcceptResult = acceptPartially(orderCreateDto, orderForPartialAccept, cumulativeSum, locale);
+                    BigDecimal partialAcceptResult = acceptPartially(orderCreateDto, orderForPartialAccept, cumulativeSum);
                     orderCreationResultDto.setPartiallyAcceptedAmount(partialAcceptResult);
                     orderCreationResultDto.setPartiallyAcceptedOrderFullAmount(orderForPartialAccept.getAmountBase());
                 } else if (orderCreateDto.getAmount().compareTo(cumulativeSum) > 0 && orderCreateDto.getOrderBaseType() != OrderBaseType.ICO) {
-                    User user = userService.getUserById(orderCreateDto.getUserId());
                     profileData.setTime2();
                     OrderCreateDto remainderNew = prepareNewOrder(
                             orderCreateDto.getCurrencyPair(),
                             orderCreateDto.getOperationType(),
-                            user.getEmail(),
                             orderCreateDto.getAmount().subtract(cumulativeSum),
                             orderCreateDto.getExchangeRate(),
                             orderCreateDto.getOrderBaseType());
@@ -483,18 +387,28 @@ public class OrderService {
     }
 
     //+
-    private BigDecimal acceptPartially(OrderCreateDto newOrder, ExOrder orderForPartialAccept, BigDecimal cumulativeSum, Locale locale) {
+    private BigDecimal acceptPartially(OrderCreateDto newOrder, ExOrder orderForPartialAccept, BigDecimal cumulativeSum) {
         deleteOrderForPartialAccept(orderForPartialAccept.getId());
         BigDecimal amountForPartialAccept = newOrder.getAmount().subtract(cumulativeSum.subtract(orderForPartialAccept.getAmountBase()));
-        OrderCreateDto accepted = prepareNewOrder(newOrder.getCurrencyPair(), orderForPartialAccept.getOperationType(),
-                userService.getUserById(orderForPartialAccept.getUserId()).getEmail(), amountForPartialAccept,
-                orderForPartialAccept.getExRate(), orderForPartialAccept.getId(), newOrder.getOrderBaseType());
-        OrderCreateDto remainder = prepareNewOrder(newOrder.getCurrencyPair(), orderForPartialAccept.getOperationType(),
-                userService.getUserById(orderForPartialAccept.getUserId()).getEmail(), orderForPartialAccept.getAmountBase().subtract(amountForPartialAccept),
-                orderForPartialAccept.getExRate(), orderForPartialAccept.getId(), newOrder.getOrderBaseType());
+
+        OrderCreateDto accepted = prepareNewOrder(
+                newOrder.getCurrencyPair(),
+                orderForPartialAccept.getOperationType(),
+                amountForPartialAccept,
+                orderForPartialAccept.getExRate(),
+                orderForPartialAccept.getId(),
+                newOrder.getOrderBaseType());
+        OrderCreateDto remainder = prepareNewOrder(
+                newOrder.getCurrencyPair(),
+                orderForPartialAccept.getOperationType(),
+                orderForPartialAccept.getAmountBase().subtract(amountForPartialAccept),
+                orderForPartialAccept.getExRate(),
+                orderForPartialAccept.getId(),
+                newOrder.getOrderBaseType());
+
         int acceptedId = createOrder(accepted, CREATE);
         createOrder(remainder, OrderActionEnum.CREATE_SPLIT);
-        acceptOrder(newOrder.getUserId(), acceptedId, locale);
+        acceptOrder(newOrder.getUserId(), acceptedId);
         return amountForPartialAccept;
     }
 
@@ -526,37 +440,36 @@ public class OrderService {
     //+
     @Transactional
     public void acceptOrder(String userEmail, Integer orderId) {
-        Locale locale = userService.getUserLocaleForMobile(userEmail);
         Integer userId = userService.getIdByEmail(userEmail);
-        acceptOrdersList(userId, Collections.singletonList(orderId), locale);
+        acceptOrdersList(userId, Collections.singletonList(orderId));
     }
 
     //+
     @Transactional(rollbackFor = {Exception.class})
-    public void acceptOrdersList(int userAcceptorId, List<Integer> ordersList, Locale locale) {
+    public void acceptOrdersList(int userAcceptorId, List<Integer> ordersList) {
         if (orderDao.lockOrdersListForAcception(ordersList)) {
             for (Integer orderId : ordersList) {
-                acceptOrder(userAcceptorId, orderId, locale);
+                acceptOrder(userAcceptorId, orderId);
             }
         } else {
-            throw new OrderAcceptionException(messageSource.getMessage("order.lockerror", null, locale));
+            throw new OrderAcceptionException("The selected list the orders may not be grabbed for acceptance");
         }
     }
 
     //+
     @Transactional(rollbackFor = {Exception.class})
-    public void acceptOrder(int userAcceptorId, int orderId, Locale locale) {
+    public void acceptOrder(int userAcceptorId, int orderId) {
         try {
             ExOrder exOrder = this.getOrderById(orderId);
 
-            checkAcceptPermissionForUser(userAcceptorId, exOrder.getUserId(), locale);
+            checkAcceptPermissionForUser(userAcceptorId, exOrder.getUserId());
 
             WalletsForOrderAcceptionDto walletsForOrderAcceptionDto = walletService.getWalletsForOrderByOrderIdAndBlock(exOrder.getId(), userAcceptorId);
             String descriptionForCreator = transactionDescription.get(OrderStatus.convert(walletsForOrderAcceptionDto.getOrderStatusId()), ACCEPTED);
             String descriptionForAcceptor = transactionDescription.get(OrderStatus.convert(walletsForOrderAcceptionDto.getOrderStatusId()), ACCEPT);
             /**/
             if (walletsForOrderAcceptionDto.getOrderStatusId() != 2) {
-                throw new AlreadyAcceptedOrderException(messageSource.getMessage("order.alreadyacceptederror", null, locale));
+                throw new AlreadyAcceptedOrderException("The order is accepted already");
             }
             /**/
             int createdWalletId;
@@ -564,14 +477,14 @@ public class OrderService {
                 if (walletsForOrderAcceptionDto.getUserCreatorInWalletId() == 0) {
                     createdWalletId = walletService.createNewWallet(new Wallet(walletsForOrderAcceptionDto.getCurrencyBase(), userService.getUserById(exOrder.getUserId()), new BigDecimal(0)));
                     if (createdWalletId == 0) {
-                        throw new WalletCreationException(messageSource.getMessage("order.createwalleterror", new Object[]{exOrder.getUserId()}, locale));
+                        throw new WalletCreationException("Error while creating wallet required to perform the operation for user");
                     }
                     walletsForOrderAcceptionDto.setUserCreatorInWalletId(createdWalletId);
                 }
                 if (walletsForOrderAcceptionDto.getUserAcceptorInWalletId() == 0) {
                     createdWalletId = walletService.createNewWallet(new Wallet(walletsForOrderAcceptionDto.getCurrencyConvert(), userService.getUserById(userAcceptorId), new BigDecimal(0)));
                     if (createdWalletId == 0) {
-                        throw new WalletCreationException(messageSource.getMessage("order.createwalleterror", new Object[]{userAcceptorId}, locale));
+                        throw new WalletCreationException("Error while creating wallet required to perform the operation for user");
                     }
                     walletsForOrderAcceptionDto.setUserAcceptorInWalletId(createdWalletId);
                 }
@@ -580,14 +493,14 @@ public class OrderService {
                 if (walletsForOrderAcceptionDto.getUserCreatorInWalletId() == 0) {
                     createdWalletId = walletService.createNewWallet(new Wallet(walletsForOrderAcceptionDto.getCurrencyConvert(), userService.getUserById(exOrder.getUserId()), new BigDecimal(0)));
                     if (createdWalletId == 0) {
-                        throw new WalletCreationException(messageSource.getMessage("order.createwalleterror", new Object[]{exOrder.getUserId()}, locale));
+                        throw new WalletCreationException("Error while creating wallet required to perform the operation for user");
                     }
                     walletsForOrderAcceptionDto.setUserCreatorInWalletId(createdWalletId);
                 }
                 if (walletsForOrderAcceptionDto.getUserAcceptorInWalletId() == 0) {
                     createdWalletId = walletService.createNewWallet(new Wallet(walletsForOrderAcceptionDto.getCurrencyBase(), userService.getUserById(userAcceptorId), new BigDecimal(0)));
                     if (createdWalletId == 0) {
-                        throw new WalletCreationException(messageSource.getMessage("order.createwalleterror", new Object[]{userAcceptorId}, locale));
+                        throw new WalletCreationException("Error while creating wallet required to perform the operation for user");
                     }
                     walletsForOrderAcceptionDto.setUserAcceptorInWalletId(createdWalletId);
                 }
@@ -599,7 +512,7 @@ public class OrderService {
             comissionForCreator.setId(exOrder.getComissionId());
             /*calculate convert currency amount for acceptor - calculate at the current commission rate*/
             OperationType operationTypeForAcceptor = exOrder.getOperationType() == OperationType.BUY ? OperationType.SELL : OperationType.BUY;
-            Commission comissionForAcceptor = commissionDao.getCommission(operationTypeForAcceptor, userService.getUserRoleFromDB(userAcceptorId));
+            Commission comissionForAcceptor = commissionDao.getCommission(operationTypeForAcceptor, userService.getUserRoleFromDatabase(userAcceptorId));
             BigDecimal comissionRateForAcceptor = comissionForAcceptor.getValue();
             BigDecimal amountComissionForAcceptor = BigDecimalProcessingUtil.doAction(exOrder.getAmountConvert(), comissionRateForAcceptor, ActionType.MULTIPLY_PERCENT);
             BigDecimal amountWithComissionForAcceptor;
@@ -730,14 +643,14 @@ public class OrderService {
             exOrder.setStatus(OrderStatus.CLOSED);
             exOrder.setDateAcception(LocalDateTime.now());
             exOrder.setUserAcceptorId(userAcceptorId);
-            final Currency currency = currencyService.findCurrencyPairById(exOrder.getCurrencyPairId())
+            final Currency currency = currencyService.getCurrencyPairById(exOrder.getCurrencyPairId())
                     .getCurrency2();
 
             referralService.processReferral(exOrder, exOrder.getCommissionFixedAmount(), currency, exOrder.getUserId()); //Processing referral for Order Creator
             referralService.processReferral(exOrder, amountComissionForAcceptor, currency, exOrder.getUserAcceptorId()); //Processing referral for Order Acceptor
 
             if (!updateOrder(exOrder)) {
-                throw new OrderAcceptionException(messageSource.getMessage("orders.acceptsaveerror", null, locale));
+                throw new OrderAcceptionException("Error while saving order");
             }
         } catch (Exception e) {
             log.error("Error while accepting order with id = " + orderId + " exception: " + e.getLocalizedMessage());
@@ -746,17 +659,17 @@ public class OrderService {
     }
 
     //+
-    private void checkAcceptPermissionForUser(Integer acceptorId, Integer creatorId, Locale locale) {
-        UserRole acceptorRole = userService.getUserRoleFromDB(acceptorId);
-        UserRole creatorRole = userService.getUserRoleFromDB(creatorId);
+    private void checkAcceptPermissionForUser(Integer acceptorId, Integer creatorId) {
+        UserRole acceptorRole = userService.getUserRoleFromDatabase(acceptorId);
+        UserRole creatorRole = userService.getUserRoleFromDatabase(creatorId);
 
         UserRoleSettings creatorSettings = userRoleService.retrieveSettingsForRole(creatorRole.getRole());
         if (creatorSettings.isBotAcceptionAllowedOnly() && acceptorRole != UserRole.BOT_TRADER) {
-            throw new AttemptToAcceptBotOrderException(messageSource.getMessage("orders.acceptsaveerror", null, locale));
+            throw new AttemptToAcceptBotOrderException("Error while saving order");
         }
         if (userRoleService.isOrderAcceptionAllowedForUser(acceptorId)) {
             if (acceptorRole != creatorRole) {
-                throw new OrderAcceptionException(messageSource.getMessage("order.accept.wrongRole", new Object[]{creatorRole.name()}, locale));
+                throw new OrderAcceptionException("You are not allowed to accept orders created by ");
             }
         }
     }
@@ -835,8 +748,6 @@ public class OrderService {
             if (!currentUserEmail.equals(creatorEmail)) {
                 throw new IncorrectCurrentUserException(String.format("Creator email: %s and currentUser email: %s are different", creatorEmail, currentUserEmail));
             }
-
-            locale = userService.getUserLocaleForMobile(currentUserEmail);
         }
         try {
             WalletsForOrderCancelDto walletsForOrderCancelDto = walletService.getWalletForOrderByOrderIdAndOperationTypeAndBlock(
@@ -881,20 +792,6 @@ public class OrderService {
             throw new OrderDeletingException(result.toString());
         }
         return (Integer) result;
-    }
-
-    //+
-    @Transactional(readOnly = true)
-    public WalletsAndCommissionsForOrderCreationDto getWalletAndCommission(String email, Currency currency,
-                                                                           OperationType operationType) {
-        UserRole userRole;
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            userRole = userService.getUserRoleFromDB(email);
-        } else {
-            userRole = userService.getUserRoleFromSecurityContext();
-        }
-        return orderDao.getWalletAndCommission(email, currency, operationType, userRole);
     }
 
     //+
@@ -1125,6 +1022,44 @@ public class OrderService {
         final int userId = userService.getAuthenticatedUserId();
 
         return orderDao.getOrderTransactions(userId, orderId);
+    }
+
+    //+
+    @Transactional
+    public synchronized OrderCreationResultDto prepareAndCreateOrder(String pairName,
+                                                                     OperationType orderType,
+                                                                     BigDecimal amount,
+                                                                     BigDecimal exrate) {
+        log.info("Start creating order: {} {} amount {} rate {}", pairName, orderType.name(), amount, exrate);
+
+        CurrencyPair currencyPair = currencyService.getCurrencyPairByName(pairName);
+
+        if (currencyPair.getPairType() != CurrencyPairType.MAIN) {
+            throw new NotCreatableOrderException("This pair available only through website");
+        }
+        OrderCreationParamsDto parameters = OrderCreationParamsDto.builder()
+                .currencyPairId(currencyPair.getId())
+                .orderType(orderType)
+                .amount(amount)
+                .rate(exrate)
+                .build();
+
+        OrderCreateDto orderCreateDto = prepareOrder(parameters, OrderBaseType.LIMIT);
+        return createPreparedOrder(orderCreateDto);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public WalletsAndCommissionsDto getWalletAndCommission(Currency currency, OperationType operationType) {
+        String userEmail = userService.getUserEmailFromSecurityContext();
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        UserRole userRole = nonNull(authentication)
+                ? userService.getUserRoleFromSecurityContext()
+                : userService.getUserRoleFromDatabase(userEmail);
+
+        return orderDao.getWalletAndCommission(userEmail, currency, operationType, userRole);
     }
 
     private void validateCurrencyPair(String pairName) {

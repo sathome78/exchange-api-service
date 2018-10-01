@@ -46,8 +46,8 @@ public class ExOrder {
         this.exRate = orderCreateDto.getExchangeRate();
         this.amountBase = orderCreateDto.getAmount();
         this.amountConvert = orderCreateDto.getTotal();
-        this.comissionId = orderCreateDto.getComissionId();
-        this.commissionFixedAmount = orderCreateDto.getComission();
+        this.comissionId = orderCreateDto.getCommissionId();
+        this.commissionFixedAmount = orderCreateDto.getCommission();
         this.status = orderCreateDto.getStatus();
         this.currencyPair = orderCreateDto.getCurrencyPair();
         this.sourceId = orderCreateDto.getSourceId();
@@ -112,7 +112,7 @@ public class ExOrder {
                 ", exRate=" + exRate +
                 ", amountBase=" + amountBase +
                 ", amountConvert=" + amountConvert +
-                ", comissionId=" + comissionId +
+                ", commissionId=" + comissionId +
                 ", commissionFixedAmount=" + commissionFixedAmount +
                 ", userAcceptorId=" + userAcceptorId +
                 ", dateCreation=" + dateCreation +

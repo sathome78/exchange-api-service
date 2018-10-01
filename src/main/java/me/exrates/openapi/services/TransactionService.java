@@ -1,7 +1,7 @@
 package me.exrates.openapi.services;
 
-import me.exrates.openapi.repositories.TransactionDao;
 import me.exrates.openapi.models.Transaction;
+import me.exrates.openapi.repositories.TransactionDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,8 +11,12 @@ import java.util.List;
 @Service
 public class TransactionService {
 
+    private final TransactionDao transactionDao;
+
     @Autowired
-    private TransactionDao transactionDao;
+    public TransactionService(TransactionDao transactionDao) {
+        this.transactionDao = transactionDao;
+    }
 
     //+
     @Transactional

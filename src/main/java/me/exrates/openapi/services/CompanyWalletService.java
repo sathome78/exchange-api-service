@@ -1,11 +1,10 @@
 package me.exrates.openapi.services;
 
-import lombok.extern.log4j.Log4j2;
-import me.exrates.openapi.repositories.CompanyWalletDao;
 import me.exrates.openapi.exceptions.NotEnoughUserWalletMoneyException;
 import me.exrates.openapi.exceptions.WalletPersistException;
 import me.exrates.openapi.models.CompanyWallet;
 import me.exrates.openapi.models.Currency;
+import me.exrates.openapi.repositories.CompanyWalletDao;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,12 +15,15 @@ import java.math.BigDecimal;
 
 import static me.exrates.openapi.models.enums.ActionType.SUBTRACT;
 
-@Log4j2
 @Service
 public class CompanyWalletService {
 
+    private final CompanyWalletDao companyWalletDao;
+
     @Autowired
-    private CompanyWalletDao companyWalletDao;
+    public CompanyWalletService(CompanyWalletDao companyWalletDao) {
+        this.companyWalletDao = companyWalletDao;
+    }
 
     //+
     @Transactional(readOnly = true)

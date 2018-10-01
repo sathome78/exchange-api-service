@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import static java.util.Collections.singletonMap;
 
-@Log4j2
 @Repository
 public class ReferralUserGraphDao {
 

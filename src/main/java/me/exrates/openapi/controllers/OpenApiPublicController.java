@@ -236,7 +236,7 @@ public class OpenApiPublicController {
      */
     @GetMapping(value = "/currency_pairs", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<CurrencyPairInfoItem>> findActiveCurrencyPairs() {
-        return ResponseEntity.ok(currencyService.findActiveCurrencyPairs());
+        return ResponseEntity.ok(currencyService.getActiveCurrencyPairs());
     }
 
     /**

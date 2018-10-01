@@ -8,11 +8,14 @@ import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 @Data
-public class OrderParamsDto {
+public class OrderParametersDto {
 
     @NotNull
-    @JsonProperty("currency_pair")
-    private String currencyPair;
+    @JsonProperty("currency_1")
+    private String currency1;
+    @NotNull
+    @JsonProperty("currency_2")
+    private String currency2;
     @NotNull
     @JsonProperty("order_type")
     private OrderType orderType;

@@ -1,26 +1,24 @@
 package me.exrates.openapi.services;
 
-import lombok.extern.log4j.Log4j2;
-import me.exrates.openapi.repositories.UserAlertsDao;
 import me.exrates.openapi.models.dto.AlertDto;
 import me.exrates.openapi.models.enums.AlertType;
+import me.exrates.openapi.repositories.UserAlertsDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
 
-@Log4j2
 @Service
 public class UsersAlertsService {
 
+    private final UserAlertsDao userAlertsDao;
+
     @Autowired
-    private UserAlertsDao userAlertsDao;
+    public UsersAlertsService(UserAlertsDao userAlertsDao) {
+        this.userAlertsDao = userAlertsDao;
+    }
 
     @PostConstruct
     private void init() {

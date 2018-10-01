@@ -10,7 +10,6 @@ import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.repositories.CurrencyDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,32 +29,9 @@ public class CurrencyService {
     }
 
     //+
-    public CurrencyPair findCurrencyPairById(int currencyPairId) {
-        try {
-            return currencyDao.findCurrencyPairById(currencyPairId);
-        } catch (EmptyResultDataAccessException e) {
-            throw new CurrencyPairNotFoundException("Currency pair not found");
-        }
-    }
-
-    //+
-    public CurrencyPairLimitDto findLimitForRoleByCurrencyPairAndType(CurrencyPair currencyPair,
-                                                                      OperationType operationType,
-                                                                      UserRole userRole) {
-        OrderType orderType = OrderType.convert(operationType.getType());
-
-        return currencyDao.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
-    }
-
-    //+
-    public CurrencyPair getCurrencyPairByName(String pairName) {
-        return currencyDao.findCurrencyPairByName(pairName);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public Integer findCurrencyPairIdByName(String pairName) {
-        log.debug("Try to find currency pair with name: {}", pairName);
+        log.debug("Try to find currency pair by name: {}", pairName);
         Integer currencyPairId = currencyDao.findActiveCurrencyPairIdByName(pairName);
         if (isNull(currencyPairId)) {
             throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
@@ -66,7 +42,40 @@ public class CurrencyService {
 
     //+
     @Transactional(readOnly = true)
-    public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
+    public List<CurrencyPairInfoItem> getActiveCurrencyPairs() {
         return currencyDao.findActiveCurrencyPairs();
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public CurrencyPair getCurrencyPairByName(String pairName) {
+        log.debug("Try to find currency pair by name: {}", pairName);
+        CurrencyPair currencyPair = currencyDao.findCurrencyPairByName(pairName);
+        if (isNull(currencyPair)) {
+            throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
+        }
+        log.debug("Currency pair found");
+        return currencyPair;
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public CurrencyPair getCurrencyPairById(int currencyPairId) {
+        log.debug("Try to find currency pair by id: {}", currencyPairId);
+        CurrencyPair currencyPair = currencyDao.findCurrencyPairById(currencyPairId);
+        if (isNull(currencyPair)) {
+            throw new CurrencyPairNotFoundException(String.format("Currency pair with id: %s not found", currencyPairId));
+        }
+        log.debug("Currency pair found");
+        return currencyPair;
+    }
+
+    //+
+    public CurrencyPairLimitDto getLimitForRole(CurrencyPair currencyPair,
+                                                OperationType operationType,
+                                                UserRole userRole) {
+        OrderType orderType = OrderType.convert(operationType.getType());
+
+        return currencyDao.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
     }
 }

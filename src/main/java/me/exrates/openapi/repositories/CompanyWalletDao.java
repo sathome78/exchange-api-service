@@ -14,8 +14,12 @@ import java.util.Map;
 @Repository
 public class CompanyWalletDao {
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    public CompanyWalletDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     //+
     public CompanyWallet findByCurrencyId(Currency currency) {

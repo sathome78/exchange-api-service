@@ -1,6 +1,9 @@
 package me.exrates.openapi.models;
 
-import me.exrates.openapi.models.dto.ChangePasswordDto;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.enums.UserStatus;
 
@@ -8,6 +11,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class User {
 
     private int id;
@@ -26,150 +33,4 @@ public class User {
     private UserRole role = UserRole.USER;
     private String parentEmail;
     private List<UserFile> userFiles = Collections.emptyList();
-
-    public User(ChangePasswordDto dto) {
-        this.password = dto.getPassword();
-        this.confirmPassword = dto.getConfirmPassword();
-    }
-
-    public User() {
-    }
-
-    public UserRole getRole() {
-        return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
-    }
-
-    public boolean isReadRules() {
-        return readRules;
-    }
-
-    public void setReadRules(boolean readRules) {
-        this.readRules = readRules;
-    }
-
-    public String getConfirmPassword() {
-        return confirmPassword;
-    }
-
-    public void setConfirmPassword(String confirmPassword) {
-        this.confirmPassword = confirmPassword;
-    }
-
-    public String getIp() {
-        return ipaddress;
-    }
-
-    public void setIp(String ip) {
-        this.ipaddress = ip;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-
-    public UserStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(UserStatus status) {
-        this.status = status;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getFinpassword() {
-        return finpassword;
-    }
-
-    public void setFinpassword(String finpassword) {
-        this.finpassword = finpassword;
-    }
-
-    public Date getRegdate() {
-        return regdate;
-    }
-
-    public void setRegdate(Date regdate) {
-        this.regdate = regdate;
-    }
-
-    public String getConfirmFinPassword() {
-        return confirmFinPassword;
-    }
-
-    public void setConfirmFinPassword(String confirmFinPassword) {
-        this.confirmFinPassword = confirmFinPassword;
-    }
-
-    public String getParentEmail() {
-        return parentEmail;
-    }
-
-    public void setParentEmail(final String parentEmail) {
-        this.parentEmail = parentEmail;
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", nickname='" + nickname + '\'' +
-                ", email='" + email + '\'' +
-                ", phone='" + phone + '\'' +
-                ", status=" + status +
-                ", regdate=" + regdate +
-                ", ipaddress='" + ipaddress + '\'' +
-                ", readRules=" + readRules +
-                ", role=" + role +
-                ", parentEmail='" + parentEmail + '\'' +
-                ", userFiles=" + userFiles +
-                '}';
-    }
-
-    public UserStatus getUserStatus() {
-        return userStatus;
-    }
-
-    public void setUserStatus(UserStatus userStatus) {
-        this.userStatus = userStatus;
-    }
 }

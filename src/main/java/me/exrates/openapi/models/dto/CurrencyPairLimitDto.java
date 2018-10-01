@@ -1,19 +1,22 @@
 package me.exrates.openapi.models.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Getter @Setter
-@ToString
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class CurrencyPairLimitDto {
 
-  private Integer currencyPairId;
-  private String currencyPairName;
-  private BigDecimal minRate;
-  private BigDecimal maxRate;
-  private BigDecimal minAmount;
-  private BigDecimal maxAmount;
+    private Integer currencyPairId;
+    private String currencyPairName;
+    private BigDecimal minRate;
+    private BigDecimal maxRate;
+    private BigDecimal minAmount;
+    private BigDecimal maxAmount;
 }

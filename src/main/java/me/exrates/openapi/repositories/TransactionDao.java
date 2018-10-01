@@ -1,6 +1,6 @@
 package me.exrates.openapi.repositories;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.Commission;
 import me.exrates.openapi.models.CompanyWallet;
 import me.exrates.openapi.models.Currency;
@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Log4j2
+@Slf4j
 @Repository
 public class TransactionDao {
 
@@ -209,8 +209,12 @@ public class TransactionDao {
         return transaction;
     };
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    public TransactionDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public Transaction create(Transaction transaction) {
         final String sql = "INSERT INTO TRANSACTION (user_wallet_id, company_wallet_id, amount, commission_amount, " +

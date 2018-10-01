@@ -1,59 +1,24 @@
 package me.exrates.openapi.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
 import java.math.BigDecimal;
 
+@Data
 public class OrderCreationResultDto {
 
+    @JsonProperty("created_order_id")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer createdOrderId;
+    @JsonProperty("auto_accepted_quantity")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer autoAcceptedQuantity;
+    @JsonProperty("partially_accepted")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private BigDecimal partiallyAcceptedAmount;
+    @JsonProperty("partially_accepted_order_full_ammount")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private BigDecimal partiallyAcceptedOrderFullAmount;
-
-    public Integer getCreatedOrderId() {
-        return createdOrderId;
-    }
-
-    public void setCreatedOrderId(Integer createdOrderId) {
-        this.createdOrderId = createdOrderId;
-    }
-
-    public Integer getAutoAcceptedQuantity() {
-        return autoAcceptedQuantity;
-    }
-
-    public void setAutoAcceptedQuantity(Integer autoAcceptedQuantity) {
-        this.autoAcceptedQuantity = autoAcceptedQuantity;
-    }
-
-    public BigDecimal getPartiallyAcceptedAmount() {
-        return partiallyAcceptedAmount;
-    }
-
-    public void setPartiallyAcceptedAmount(BigDecimal partiallyAcceptedAmount) {
-        this.partiallyAcceptedAmount = partiallyAcceptedAmount;
-    }
-
-    public BigDecimal getPartiallyAcceptedOrderFullAmount() {
-        return partiallyAcceptedOrderFullAmount;
-    }
-
-    public void setPartiallyAcceptedOrderFullAmount(BigDecimal partiallyAcceptedOrderFullAmount) {
-        this.partiallyAcceptedOrderFullAmount = partiallyAcceptedOrderFullAmount;
-    }
-
-    @Override
-    public String toString() {
-        return "OrderCreationResultDto{" +
-                "createdOrderId=" + createdOrderId +
-                ", autoAcceptedQuantity=" + autoAcceptedQuantity +
-                ", partiallyAcceptedAmount=" + partiallyAcceptedAmount +
-                ", partiallyAcceptedOrderFullAmount=" + partiallyAcceptedOrderFullAmount +
-                '}';
-    }
 }

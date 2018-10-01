@@ -46,15 +46,15 @@ public class WalletDao {
 
     private final TransactionDao transactionDao;
     private final CurrencyDao currencyDao;
-    private final NamedParameterJdbcTemplate npJdbcTemplate;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public WalletDao(TransactionDao transactionDao,
                      CurrencyDao currencyDao,
-                     NamedParameterJdbcTemplate npJdbcTemplate) {
+                     NamedParameterJdbcTemplate jdbcTemplate) {
         this.transactionDao = transactionDao;
         this.currencyDao = currencyDao;
-        this.npJdbcTemplate = npJdbcTemplate;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     private RowMapper<WalletsForOrderCancelDto> getWalletsForOrderCancelDtoMapper(OperationType operationType) {
@@ -83,7 +83,7 @@ public class WalletDao {
         Map<String, String> namedParameters = new HashMap<>();
         namedParameters.put("walletId", String.valueOf(walletId));
         try {
-            return npJdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class);
+            return jdbcTemplate.queryForObject(sql, namedParameters, BigDecimal.class);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -96,7 +96,7 @@ public class WalletDao {
         namedParameters.put("userId", String.valueOf(userId));
         namedParameters.put("currencyId", String.valueOf(currencyId));
         try {
-            return npJdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
+            return jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
         } catch (EmptyResultDataAccessException e) {
             return 0;
         }
@@ -110,7 +110,7 @@ public class WalletDao {
                 .addValue("currId", wallet.getCurrencyId())
                 .addValue("userId", wallet.getUser().getId())
                 .addValue("activeBalance", wallet.getActiveBalance());
-        int result = npJdbcTemplate.update(sql, parameters, keyHolder);
+        int result = jdbcTemplate.update(sql, parameters, keyHolder);
         int id = (int) keyHolder.getKey().longValue();
         if (result <= 0) {
             id = 0;
@@ -167,7 +167,7 @@ public class WalletDao {
             namedParameters.put("user_acceptor_id", String.valueOf(userAcceptorId));
         }
         try {
-            return npJdbcTemplate.queryForObject(sql, namedParameters, (rs, i) -> {
+            return jdbcTemplate.queryForObject(sql, namedParameters, (rs, i) -> {
                 WalletsForOrderAcceptionDto walletsForOrderAcceptionDto = new WalletsForOrderAcceptionDto();
                 walletsForOrderAcceptionDto.setOrderId(rs.getInt("order_id"));
                 walletsForOrderAcceptionDto.setOrderStatusId(rs.getInt("order_status_id"));
@@ -216,7 +216,7 @@ public class WalletDao {
         namedParameters.put("walletId", String.valueOf(walletId));
         Wallet wallet;
         try {
-            wallet = npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
+            wallet = jdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
                 Wallet result = new Wallet();
                 result.setId(rs.getInt("wallet_id"));
                 result.setCurrencyId(rs.getInt("currency_id"));
@@ -245,7 +245,7 @@ public class WalletDao {
                 put("walletId", String.valueOf(walletId));
             }
         };
-        if (npJdbcTemplate.update(sql, params) <= 0) {
+        if (jdbcTemplate.update(sql, params) <= 0) {
             return WalletTransferStatus.WALLET_UPDATE_ERROR;
         }
         /**/
@@ -295,7 +295,7 @@ public class WalletDao {
         namedParameters.put("walletId", String.valueOf(walletOperationData.getWalletId()));
         Wallet wallet;
         try {
-            wallet = npJdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
+            wallet = jdbcTemplate.queryForObject(sql, namedParameters, (rs, rowNum) -> {
                 Wallet result = new Wallet();
                 result.setId(rs.getInt("wallet_id"));
                 result.setCurrencyId(rs.getInt("currency_id"));
@@ -339,7 +339,7 @@ public class WalletDao {
                 put("walletId", String.valueOf(walletOperationData.getWalletId()));
             }
         };
-        if (npJdbcTemplate.update(sql, params) <= 0) {
+        if (jdbcTemplate.update(sql, params) <= 0) {
             return WalletTransferStatus.WALLET_UPDATE_ERROR;
         }
         /**/
@@ -411,7 +411,7 @@ public class WalletDao {
         namedParameters.put("order_id", orderId);
         namedParameters.put("currency_id", operationType == SELL ? currencyPair.getCurrency1().getId() : currencyPair.getCurrency2().getId());
         try {
-            return npJdbcTemplate.queryForObject(sql, namedParameters, getWalletsForOrderCancelDtoMapper(operationType));
+            return jdbcTemplate.queryForObject(sql, namedParameters, getWalletsForOrderCancelDtoMapper(operationType));
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -450,7 +450,7 @@ public class WalletDao {
             put("currency1_id", currencyPair.getCurrency1().getId());
             put("currency2_id", currencyPair.getCurrency2().getId());
         }};
-        return npJdbcTemplate.query(sql, namedParameters, (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, namedParameters, (rs, rowNum) -> {
             Integer operationTypeId = rs.getInt("operation_type_id");
             BigDecimal orderCreatorReservedAmount = operationTypeId == 3 ? rs.getBigDecimal("amount_base") :
                     BigDecimalProcessingUtil.doAction(rs.getBigDecimal("amount_convert"), rs.getBigDecimal("commission_fixed_amount"),
@@ -472,6 +472,6 @@ public class WalletDao {
 
     //+
     public List<WalletBalanceDto> getUserBalances(String userEmail) {
-        return npJdbcTemplate.query(GET_USER_BALANCES_SQL, Collections.singletonMap("email", userEmail), WalletBalanceRowMapper.map());
+        return jdbcTemplate.query(GET_USER_BALANCES_SQL, Collections.singletonMap("email", userEmail), WalletBalanceRowMapper.map());
     }
 }

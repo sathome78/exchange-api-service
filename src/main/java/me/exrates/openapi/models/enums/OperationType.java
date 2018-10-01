@@ -1,27 +1,32 @@
 package me.exrates.openapi.models.enums;
 
+import com.google.common.collect.Maps;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import me.exrates.openapi.exceptions.model.UnsupportedOperationTypeException;
-import org.springframework.context.MessageSource;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
 import static me.exrates.openapi.models.enums.TransactionSourceType.REFILL;
 import static me.exrates.openapi.models.enums.TransactionSourceType.WITHDRAW;
 
+@Getter
+@ToString
 public enum OperationType {
+
     INPUT(1, REFILL) {{
         /*Addition of three digits is required for IDR input*/
-        currencyForAddRandomValueToAmount.put(10, new AdditionalRandomAmountParam() {{
-            currencyName = "IDR";
-            lowBound = 100;
-            highBound = 999;
-        }});
+        currencyForAddRandomValueToAmount.put(10, AdditionalRandomAmountParam.builder()
+                .currencyName("IDR")
+                .lowBound(100)
+                .highBound(999)
+                .build()
+        );
     }},
     OUTPUT(2, WITHDRAW),
     SELL(3),
@@ -32,27 +37,10 @@ public enum OperationType {
     MANUAL(8),
     USER_TRANSFER(9);
 
-    public class AdditionalRandomAmountParam {
-        public String currencyName;
-        public double lowBound;
-        public double highBound;
+    private int type;
+    private TransactionSourceType transactionSourceType;
 
-        @Override
-        public boolean equals(Object currencyName) {
-            return this.currencyName.equals((String) currencyName);
-        }
-
-        @Override
-        public int hashCode() {
-            return currencyName != null ? currencyName.hashCode() : 0;
-        }
-    }
-
-    public final int type;
-
-    TransactionSourceType transactionSourceType = null;
-
-    protected final Map<Integer, AdditionalRandomAmountParam> currencyForAddRandomValueToAmount = new HashMap<>();
+    protected final Map<Integer, AdditionalRandomAmountParam> currencyForAddRandomValueToAmount = Maps.newHashMap();
 
     OperationType(int type) {
         this.type = type;
@@ -63,25 +51,8 @@ public enum OperationType {
         this.transactionSourceType = transactionSourceType;
     }
 
-    public Optional<AdditionalRandomAmountParam> getRandomAmountParam(Integer currencyId) {
-        return Optional.ofNullable(currencyForAddRandomValueToAmount.get(currencyId));
-    }
-
-    public Optional<AdditionalRandomAmountParam> getRandomAmountParam(String currencyName) {
-        return currencyForAddRandomValueToAmount.values().stream()
-                .filter(e -> e.equals(currencyName))
-                .findAny();
-    }
-
-    public static List<OperationType> getInputOutputOperationsList() {
-        return new ArrayList<OperationType>() {{
-            add(INPUT);
-            add(OUTPUT);
-        }};
-    }
-
-    public static OperationType getOpposite(OperationType ot) {
-        switch (ot) {
+    public static OperationType getOpposite(OperationType operationType) {
+        switch (operationType) {
             case INPUT:
                 return OUTPUT;
             case OUTPUT:
@@ -91,16 +62,8 @@ public enum OperationType {
             case BUY:
                 return SELL;
             default:
-                return ot;
+                return operationType;
         }
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public TransactionSourceType getTransactionSourceType() {
-        return transactionSourceType;
     }
 
     public static OperationType convert(int id) {
@@ -117,7 +80,14 @@ public enum OperationType {
                 .orElseThrow(() -> new UnsupportedOperationTypeException("Not supported booking status: " + value));
     }
 
-    public String toString(MessageSource messageSource, Locale locale) {
-        return messageSource.getMessage("operationtype." + this.name(), null, locale);
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public class AdditionalRandomAmountParam {
+
+        public String currencyName;
+        public double lowBound;
+        public double highBound;
     }
 }

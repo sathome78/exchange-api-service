@@ -2,14 +2,12 @@ package me.exrates.openapi.models.dto.openAPI;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.Data;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
 
 import java.math.BigDecimal;
 
-@Getter
-@ToString
+@Data
 public class OrderCreationResultOpenApiDto {
 
     @JsonProperty("created_order_id")
