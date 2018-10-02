@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.enums.UserStatus;
 
@@ -12,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 @Data
+@ToString(exclude = {"userFiles"})
 @Builder(builderClassName = "Builder")
 @AllArgsConstructor
 @NoArgsConstructor

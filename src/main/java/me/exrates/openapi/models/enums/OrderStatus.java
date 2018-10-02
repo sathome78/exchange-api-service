@@ -1,9 +1,11 @@
 package me.exrates.openapi.models.enums;
 
+import lombok.Getter;
 import me.exrates.openapi.exceptions.model.UnsupportedOrderStatusException;
 
 import java.util.stream.Stream;
 
+@Getter
 public enum OrderStatus {
 
     INPROCESS(1),
@@ -14,19 +16,17 @@ public enum OrderStatus {
     DRAFT(6),
     SPLIT_CLOSED(7);
 
-    private final int status;
+    private int status;
 
     OrderStatus(int status) {
         this.status = status;
     }
 
     public static OrderStatus convert(int id) {
-        return Stream.of(OrderStatus.values()).filter(item -> item.getStatus() == id)
-                .findAny().orElseThrow(() -> new UnsupportedOrderStatusException(id));
-    }
-
-    public int getStatus() {
-        return status;
+        return Stream.of(OrderStatus.values())
+                .filter(item -> item.getStatus() == id)
+                .findAny()
+                .orElseThrow(() -> new UnsupportedOrderStatusException(id));
     }
 
     @Override

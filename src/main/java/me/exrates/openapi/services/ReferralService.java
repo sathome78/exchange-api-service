@@ -10,14 +10,13 @@ import me.exrates.openapi.models.ReferralTransaction;
 import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.enums.ActionType;
 import me.exrates.openapi.models.enums.OperationType;
-import me.exrates.openapi.models.enums.ReferralTransactionStatusEnum;
+import me.exrates.openapi.models.enums.ReferralTransactionStatus;
 import me.exrates.openapi.models.enums.TransactionSourceType;
 import me.exrates.openapi.models.vo.WalletOperationData;
 import me.exrates.openapi.repositories.ReferralLevelDao;
 import me.exrates.openapi.repositories.ReferralTransactionDao;
 import me.exrates.openapi.repositories.ReferralUserGraphDao;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +26,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static java.math.BigDecimal.ZERO;
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static me.exrates.openapi.models.vo.WalletOperationData.BalanceType.ACTIVE;
 import static me.exrates.openapi.utils.BigDecimalProcessingUtil.doAction;
 
@@ -67,23 +68,32 @@ public class ReferralService {
     }
 
     //+
+    @Transactional
+    public void setRefTransactionStatus(ReferralTransactionStatus status, int refTransactionId) {
+        referralTransactionDao.setRefTransactionStatus(status, refTransactionId);
+    }
+
+    //+
     @Transactional(propagation = Propagation.MANDATORY)
-    public void processReferral(final ExOrder exOrder, final BigDecimal commissionAmount, Currency currency, int userId) {
+    public void processReferral(final ExOrder order,
+                                final BigDecimal commissionAmount,
+                                Currency currency,
+                                int userId) {
         final List<ReferralLevel> levels = referralLevelDao.findAll();
-        CompanyWallet cWallet = companyWalletService.findByCurrency(currency);
+
+        CompanyWallet companyWallet = companyWalletService.findByCurrency(currency);
         Integer parent = null;
         for (ReferralLevel level : levels) {
-            if (parent == null) {
-                parent = referralUserGraphDao.getParent(userId);
-            } else {
-                parent = referralUserGraphDao.getParent(parent);
-            }
-            if (parent != null && !level.getPercent().equals(ZERO)) {
-                final ReferralTransaction referralTransaction = new ReferralTransaction();
-                referralTransaction.setExOrder(exOrder);
-                referralTransaction.setReferralLevel(level);
-                referralTransaction.setUserId(parent);
-                referralTransaction.setInitiatorId(userId);
+            parent = isNull(parent) ? referralUserGraphDao.getParent(userId) : referralUserGraphDao.getParent(parent);
+
+            if (nonNull(parent) && !level.getPercent().equals(BigDecimal.ZERO)) {
+                ReferralTransaction referralTransaction = ReferralTransaction.builder()
+                        .order(order)
+                        .referralLevel(level)
+                        .userId(parent)
+                        .initiatorId(userId)
+                        .build();
+
                 int walletId = walletService.getWalletId(parent, currency.getId()); // Mutable variable
                 if (walletId == 0) { // Wallet is absent, creating new wallet
                     final Wallet wallet = new Wallet();
@@ -105,16 +115,10 @@ public class ReferralService {
                 wod.setSourceType(TransactionSourceType.REFERRAL);
                 wod.setSourceId(createdRefTransaction.getId());
                 walletService.walletBalanceChange(wod);
-                companyWalletService.withdrawReservedBalance(cWallet, amount);
+                companyWalletService.withdrawReservedBalance(companyWallet, amount);
             } else {
                 break;
             }
         }
-    }
-
-    //+
-    @Transactional
-    public void setRefTransactionStatus(ReferralTransactionStatusEnum status, int refTransactionId) {
-        referralTransactionDao.setRefTransactionStatus(status, refTransactionId);
     }
 }

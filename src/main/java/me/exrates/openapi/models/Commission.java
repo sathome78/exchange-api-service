@@ -1,18 +1,18 @@
 package me.exrates.openapi.models;
 
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.UserRole;
 
 import java.math.BigDecimal;
 import java.util.Date;
 
-@Getter
-@Setter
-@ToString
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
 @NoArgsConstructor
 public class Commission {
 
@@ -24,14 +24,5 @@ public class Commission {
 
     public Commission(int id) {
         this.id = id;
-    }
-
-    public static Commission zeroComission() {
-        Commission commission = new Commission();
-        commission.setId(24);
-        commission.setOperationType(OperationType.OUTPUT);
-        commission.setValue(BigDecimal.ZERO);
-        commission.setDateOfChange(new Date());
-        return commission;
     }
 }

@@ -106,7 +106,8 @@ public class OrderValidator {
         }
 
         if (nonNull(orderCreateDto.getAmount()) && nonNull(orderCreateDto.getExchangeRate())) {
-            return orderCreateDto.getSpentWalletBalance().compareTo(BigDecimal.ZERO) > 0 && orderCreateDto.getSpentAmount().compareTo(orderCreateDto.getSpentWalletBalance()) <= 0;
+            return orderCreateDto.getSpentWalletBalance().compareTo(BigDecimal.ZERO) > 0
+                    && orderCreateDto.getSpentAmount().compareTo(orderCreateDto.getSpentWalletBalance()) <= 0;
         }
         return true;
     }

@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import me.exrates.openapi.models.CreditsOperation;
-import me.exrates.openapi.models.enums.invoice.WithdrawStatusEnum;
+import me.exrates.openapi.models.enums.invoice.WithdrawStatus;
 
 import java.math.BigDecimal;
 
@@ -35,7 +35,7 @@ public class WithdrawRequestCreateDto {
     private BigDecimal autoThresholdAmount;
     private BigDecimal merchantCommissionAmount;
 
-    public WithdrawRequestCreateDto(WithdrawRequestParamsDto withdrawRequestParamsDto, CreditsOperation creditsOperation, WithdrawStatusEnum status) {
+    public WithdrawRequestCreateDto(WithdrawRequestParamsDto withdrawRequestParamsDto, CreditsOperation creditsOperation, WithdrawStatus status) {
         this.userId = creditsOperation.getUser().getId();
         this.userEmail = creditsOperation.getUser().getEmail();
         this.userWalletId = creditsOperation.getWallet().getId();

@@ -1,7 +1,7 @@
 package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.ReferralTransaction;
-import me.exrates.openapi.models.enums.ReferralTransactionStatusEnum;
+import me.exrates.openapi.models.enums.ReferralTransactionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -29,7 +29,7 @@ public class ReferralTransactionDao {
         final KeyHolder keyHolder = new GeneratedKeyHolder();
         params.put("initiatorId", referralTransaction.getInitiatorId());
         params.put("userId", referralTransaction.getUserId());
-        params.put("orderId", referralTransaction.getExOrder().getId());
+        params.put("orderId", referralTransaction.getOrder().getId());
         params.put("refLevelId", referralTransaction.getReferralLevel().getId());
         jdbcTemplate.update(sql, new MapSqlParameterSource(params), keyHolder);
         referralTransaction.setId(keyHolder.getKey().intValue());
@@ -37,7 +37,7 @@ public class ReferralTransactionDao {
     }
 
     //+
-    public void setRefTransactionStatus(ReferralTransactionStatusEnum status, int refTransactionId) {
+    public void setRefTransactionStatus(ReferralTransactionStatus status, int refTransactionId) {
         String sql = "UPDATE REFERRAL_TRANSACTION " +
                 " SET status = :status" +
                 " WHERE id = :transaction_id ";

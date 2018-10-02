@@ -35,11 +35,6 @@ public class WalletService {
     }
 
     //+
-    public int getWalletId(int userId, int currencyId) {
-        return walletDao.getWalletId(userId, currencyId);
-    }
-
-    //+
     @Transactional(propagation = Propagation.NESTED)
     public BigDecimal getWalletABalance(int walletId) {
         return walletDao.getWalletABalance(walletId);
@@ -59,32 +54,9 @@ public class WalletService {
     }
 
     //+
-    @Transactional(propagation = Propagation.NESTED)
-    public int createNewWallet(Wallet wallet) {
-        return walletDao.createNewWallet(wallet);
-    }
-
-    //+
-    @Transactional
-    public WalletTransferStatus walletInnerTransfer(int walletId, BigDecimal amount, TransactionSourceType sourceType, int sourceId, String description) {
-        return walletDao.walletInnerTransfer(walletId, amount, sourceType, sourceId, description);
-    }
-
-    //+
-    public WalletTransferStatus walletBalanceChange(final WalletOperationData walletOperationData) {
-        return walletDao.walletBalanceChange(walletOperationData);
-    }
-
-    //+
     @Transactional
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
         return walletDao.getOrderRelatedDataAndBlock(orderId);
-    }
-
-    //+
-    @Transactional
-    public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
-        return walletDao.getWalletsForOrderByOrderIdAndBlock(orderId, userAcceptorId);
     }
 
     //+
@@ -99,5 +71,37 @@ public class WalletService {
         final String userEmail = userService.getUserEmailFromSecurityContext();
 
         return walletDao.getUserBalances(userEmail);
+    }
+
+    //+
+    @Transactional
+    public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
+        return walletDao.getWalletsForOrderByOrderIdAndBlock(orderId, userAcceptorId);
+    }
+
+    //+
+    @Transactional(propagation = Propagation.NESTED)
+    public int createNewWallet(Wallet wallet) {
+        return walletDao.createNewWallet(wallet);
+    }
+
+    //+
+    @Transactional
+    public WalletTransferStatus walletInnerTransfer(int walletId,
+                                                    BigDecimal amount,
+                                                    TransactionSourceType sourceType,
+                                                    int sourceId,
+                                                    String description) {
+        return walletDao.walletInnerTransfer(walletId, amount, sourceType, sourceId, description);
+    }
+
+    //+
+    public WalletTransferStatus walletBalanceChange(final WalletOperationData walletOperationData) {
+        return walletDao.walletBalanceChange(walletOperationData);
+    }
+
+    //+
+    public int getWalletId(int userId, int currencyId) {
+        return walletDao.getWalletId(userId, currencyId);
     }
 }

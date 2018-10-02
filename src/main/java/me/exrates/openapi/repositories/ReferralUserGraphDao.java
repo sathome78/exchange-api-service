@@ -1,29 +1,32 @@
 package me.exrates.openapi.repositories;
 
-import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import static java.util.Collections.singletonMap;
+import java.util.Map;
 
 @Repository
 public class ReferralUserGraphDao {
 
+    private static final String GET_PARENT_SQL = "SELECT rug.parent FROM REFERRAL_USER_GRAPH rug WHERE rug.child = :child";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public ReferralUserGraphDao(final NamedParameterJdbcTemplate jdbcTemplate) {
+    public ReferralUserGraphDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     //+
-    public Integer getParent(final Integer child) {
-        final String sql = "SELECT parent FROM REFERRAL_USER_GRAPH WHERE child = :child";
+    public Integer getParent(Integer child) {
         try {
-            return jdbcTemplate.queryForObject(sql, singletonMap("child", child), Integer.class);
-        } catch (EmptyResultDataAccessException e) {
+            return jdbcTemplate.queryForObject(
+                    GET_PARENT_SQL,
+                    Map.of("child", child),
+                    Integer.class);
+        } catch (EmptyResultDataAccessException ex) {
             return null;
         }
     }

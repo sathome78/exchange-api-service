@@ -26,20 +26,18 @@ public class CompanyWalletService {
     }
 
     //+
-    @Transactional(readOnly = true)
-    public CompanyWallet findByCurrency(Currency currency) {
-        return companyWalletDao.findByCurrencyId(currency);
+    @Transactional
+    public boolean substractCommissionBalanceById(Integer id, BigDecimal amount) {
+        return companyWalletDao.substarctCommissionBalanceById(id, amount);
     }
 
     //+
     @Transactional(propagation = Propagation.NESTED)
-    public void deposit(CompanyWallet companyWallet, BigDecimal amount, BigDecimal commissionAmount) {
-        final BigDecimal newBalance = companyWallet.getBalance().add(amount);
-        final BigDecimal newCommissionBalance = companyWallet.getCommissionBalance().add(commissionAmount);
-        companyWallet.setBalance(newBalance);
-        companyWallet.setCommissionBalance(newCommissionBalance);
+    public void deposit(CompanyWallet companyWallet, BigDecimal commissionAmount) {
+        companyWallet.setBalance(companyWallet.getBalance());
+        companyWallet.setCommissionBalance(companyWallet.getCommissionBalance().add(commissionAmount));
         if (!companyWalletDao.update(companyWallet)) {
-            throw new WalletPersistException("Failed deposit on company wallet " + companyWallet.toString());
+            throw new WalletPersistException("Failed to make deposit to company wallet: " + companyWallet.toString());
         }
     }
 
@@ -48,17 +46,17 @@ public class CompanyWalletService {
     public void withdrawReservedBalance(CompanyWallet companyWallet, BigDecimal amount) {
         BigDecimal newReservedBalance = BigDecimalProcessingUtil.doAction(companyWallet.getCommissionBalance(), amount, SUBTRACT);
         if (newReservedBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new NotEnoughUserWalletMoneyException("POTENTIAL HACKING! Not enough money on Company Account for operation!" + companyWallet.toString());
+            throw new NotEnoughUserWalletMoneyException("POTENTIAL HACKING! Not enough money on company account for operation!" + companyWallet.toString());
         }
         companyWallet.setCommissionBalance(newReservedBalance);
         if (!companyWalletDao.update(companyWallet)) {
-            throw new WalletPersistException("Failed withdraw on company wallet " + companyWallet.toString());
+            throw new WalletPersistException("Failed to withdraw from company wallet: " + companyWallet.toString());
         }
     }
 
     //+
-    @Transactional
-    public boolean substractCommissionBalanceById(Integer id, BigDecimal amount) {
-        return companyWalletDao.substarctCommissionBalanceById(id, amount);
+    @Transactional(readOnly = true)
+    public CompanyWallet findByCurrency(Currency currency) {
+        return companyWalletDao.findByCurrencyId(currency);
     }
 }

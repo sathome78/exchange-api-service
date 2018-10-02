@@ -2,6 +2,7 @@ package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.CompanyWallet;
 import me.exrates.openapi.models.Currency;
+import me.exrates.openapi.repositories.mappers.CompanyWalletRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -14,46 +15,19 @@ import java.util.Map;
 @Repository
 public class CompanyWalletDao {
 
+    private static final String UPDATE_COMPANY_WALLET = "UPDATE COMPANY_WALLET cw" +
+            " SET cw.balance = :balance, cw.commission_balance = :commissionBalance" +
+            " WHERE cw.id = :id";
+
+    private static final String FIND_BY_CURRENCY_ID_SQL = "SELECT cw.id AS company_wallet_id, cw.currency_id, cw.balance, cw.commission_balance" +
+            " FROM COMPANY_WALLET cw" +
+            " WHERE cw.currency_id = :currencyId";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public CompanyWalletDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    //+
-    public CompanyWallet findByCurrencyId(Currency currency) {
-        final String sql = "SELECT * FROM  COMPANY_WALLET WHERE currency_id = :currencyId";
-        final Map<String, Integer> params = new HashMap<String, Integer>() {
-            {
-                put("currencyId", currency.getId());
-            }
-        };
-        final CompanyWallet companyWallet = new CompanyWallet();
-        try {
-            return jdbcTemplate.queryForObject(sql, params, (resultSet, i) -> {
-                companyWallet.setId(resultSet.getInt("id"));
-                companyWallet.setBalance(resultSet.getBigDecimal("balance"));
-                companyWallet.setCommissionBalance(resultSet.getBigDecimal("commission_balance"));
-                companyWallet.setCurrency(currency);
-                return companyWallet;
-            });
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-
-    //+
-    public boolean update(CompanyWallet companyWallet) {
-        final String sql = "UPDATE COMPANY_WALLET SET balance = :balance, commission_balance = :commissionBalance where id = :id";
-        final Map<String, Object> params = new HashMap<String, Object>() {
-            {
-                put("balance", companyWallet.getBalance());
-                put("commissionBalance", companyWallet.getCommissionBalance());
-                put("id", companyWallet.getId());
-            }
-        };
-        return jdbcTemplate.update(sql, params) > 0;
     }
 
     //+
@@ -66,5 +40,28 @@ public class CompanyWalletDao {
             put("amount", amount);
         }};
         return jdbcTemplate.update(sql, params) > 0;
+    }
+
+    //+
+    public boolean update(CompanyWallet companyWallet) {
+        int update = jdbcTemplate.update(
+                UPDATE_COMPANY_WALLET,
+                Map.of(
+                        "balance", companyWallet.getBalance(),
+                        "commissionBalance", companyWallet.getCommissionBalance(),
+                        "id", companyWallet.getId()));
+        return update > 0;
+    }
+
+    //+
+    public CompanyWallet findByCurrencyId(Currency currency) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    FIND_BY_CURRENCY_ID_SQL,
+                    Map.of("currencyId", currency.getId()),
+                    CompanyWalletRowMapper.map());
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 }

@@ -1,14 +1,18 @@
 package me.exrates.openapi.models;
 
-import lombok.Getter;
-import lombok.Setter;
-import me.exrates.openapi.models.enums.invoice.RefillStatusEnum;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import me.exrates.openapi.models.enums.invoice.RefillStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class RefillRequest {
 
     private int id;
@@ -23,7 +27,7 @@ public class RefillRequest {
     private String receiptScanName;
     private BigDecimal amount;
     private Integer commissionId;
-    private RefillStatusEnum status;
+    private RefillStatus status;
     private LocalDateTime dateCreation;
     private LocalDateTime statusModificationDate;
     private Integer currencyId;

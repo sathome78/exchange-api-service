@@ -29,6 +29,11 @@ public class UserDao {
             " JOIN USER_ROLE ur on u.roleid = ur.id" +
             " WHERE u.email = :email";
 
+    private static final String GET_USER_ROLE_BY_ID_SQL = "SELECT ur.name AS role_name" +
+            " FROM USER u" +
+            " JOIN USER_ROLE ur ON ur.id = u.roleid" +
+            " WHERE u.id = :id";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -46,14 +51,6 @@ public class UserDao {
         } catch (EmptyResultDataAccessException e) {
             return 0;
         }
-    }
-
-    //+
-    public UserRole getUserRoleById(Integer id) {
-        String sql = "select USER_ROLE.name as role_name from USER " +
-                "inner join USER_ROLE on USER.roleid = USER_ROLE.id where USER.id = :id ";
-        Map<String, Integer> namedParameters = Collections.singletonMap("id", id);
-        return jdbcTemplate.queryForObject(sql, namedParameters, (rs, row) -> UserRole.valueOf(rs.getString("role_name")));
     }
 
     //+
@@ -87,6 +84,14 @@ public class UserDao {
         return jdbcTemplate.queryForObject(
                 GET_USER_ROLE_BY_EMAIL_SQL,
                 Map.of("email", email),
+                UserRoleRowMapper.map());
+    }
+
+    //+
+    public UserRole getUserRoleById(Integer id) {
+        return jdbcTemplate.queryForObject(
+                GET_USER_ROLE_BY_ID_SQL,
+                Map.of("id", id),
                 UserRoleRowMapper.map());
     }
 }

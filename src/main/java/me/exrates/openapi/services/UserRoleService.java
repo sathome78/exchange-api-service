@@ -18,8 +18,8 @@ public class UserRoleService {
 
     //+
     @Transactional(readOnly = true)
-    public boolean isOrderAcceptionAllowedForUser(Integer userId) {
-        return userRoleDao.isOrderAcceptionAllowedForUser(userId);
+    public boolean isOrderAcceptanceAllowedForUser(Integer userId) {
+        return userRoleDao.isOrderAcceptanceAllowedForUser(userId);
     }
 
     //+

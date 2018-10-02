@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,25 +41,18 @@ public class CurrencyDao {
             " AND cpl.user_role_id = :user_role_id" +
             " AND cpl.order_type_id = :order_type_id";
 
+    private static final String FIND_CURRENCY_PAIR_BY_ORDER_ID_SQL = "SELECT cp.id, cp.currency1_id, cp.currency2_id, o.name, o.type, cp.market, " +
+            "(SELECT c.name from CURRENCY c where c.id = cp.currency1_id) as currency1_name, " +
+            "(SELECT c.name from CURRENCY c where c.id = cp.currency2_id) as currency2_name " +
+            " FROM EXORDERS o" +
+            " JOIN CURRENCY_PAIR cp ON cp.id = o.currency_pair_id" +
+            " WHERE o.id = :order_id";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public CurrencyDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    //+
-    public CurrencyPair findCurrencyPairByOrderId(int orderId) {
-        String sql = "SELECT CURRENCY_PAIR.id, CURRENCY_PAIR.currency1_id, CURRENCY_PAIR.currency2_id, name, type," +
-                "CURRENCY_PAIR.market, " +
-                "(select name from CURRENCY where id = currency1_id) as currency1_name, " +
-                "(select name from CURRENCY where id = currency2_id) as currency2_name " +
-                " FROM EXORDERS " +
-                " JOIN CURRENCY_PAIR ON (CURRENCY_PAIR.id = EXORDERS.currency_pair_id) " +
-                " WHERE EXORDERS.id = :order_id";
-        Map<String, String> namedParameters = new HashMap<>();
-        namedParameters.put("order_id", String.valueOf(orderId));
-        return jdbcTemplate.queryForObject(sql, namedParameters, CurrencyPairRowMapper.map());
     }
 
     //+
@@ -100,5 +92,13 @@ public class CurrencyDao {
                         "user_role_id", roleId,
                         "order_type_id", orderTypeId),
                 CurrencyPairLimitRowMapper.map());
+    }
+
+    //+
+    public CurrencyPair findCurrencyPairByOrderId(int orderId) {
+        return jdbcTemplate.queryForObject(
+                FIND_CURRENCY_PAIR_BY_ORDER_ID_SQL,
+                Map.of("order_id", orderId),
+                CurrencyPairRowMapper.map());
     }
 }

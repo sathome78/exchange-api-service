@@ -1,8 +1,9 @@
 package me.exrates.openapi.models.vo;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.exrates.openapi.models.Commission;
 import me.exrates.openapi.models.Transaction;
 import me.exrates.openapi.models.enums.OperationType;
@@ -10,9 +11,10 @@ import me.exrates.openapi.models.enums.TransactionSourceType;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@EqualsAndHashCode
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class WalletOperationData {
 
     private OperationType operationType;
@@ -26,24 +28,8 @@ public class WalletOperationData {
     private Transaction transaction;
     private String description;
 
-    /**/
     public enum BalanceType {
         ACTIVE,
         RESERVED
-    }
-
-    @Override
-    public String toString() {
-        return "WalletOperationData{" +
-                "operationType=" + operationType +
-                ", walletId=" + walletId +
-                ", amount=" + amount +
-                ", balanceType=" + balanceType +
-                ", commission=" + commission +
-                ", commissionAmount=" + commissionAmount +
-                ", sourceType=" + sourceType +
-                ", sourceId=" + sourceId +
-                ", transaction=" + transaction +
-                '}';
     }
 }

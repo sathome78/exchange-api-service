@@ -1,10 +1,10 @@
 package me.exrates.openapi.models;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
@@ -13,11 +13,11 @@ import me.exrates.openapi.models.serializer.LocalDateTimeSerializer;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
+@ToString(exclude = {"userWallet", "companyWallet", "commission", "currency", "merchant", "order", "withdrawRequest", "refillRequest"})
+@Builder(builderClassName = "Builder", toBuilder = true)
+@AllArgsConstructor
 @NoArgsConstructor
-@ToString
-@EqualsAndHashCode
 public class Transaction {
 
     private int id;

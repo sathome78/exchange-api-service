@@ -48,12 +48,6 @@ public class UserService {
     }
 
     //+
-    @Transactional
-    public UserRole getUserRoleFromDatabase(Integer userId) {
-        return userDao.getUserRoleById(userId);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public int getAuthenticatedUserId() {
         final String userEmail = getUserEmailFromSecurityContext();
@@ -82,6 +76,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserRole getUserRoleFromDatabase(String email) {
         return userDao.getUserRoleByEmail(email);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public UserRole getUserRoleFromDatabase(Integer userId) {
+        return userDao.getUserRoleById(userId);
     }
 
     //+

@@ -20,9 +20,9 @@ import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
-import me.exrates.openapi.repositories.mappers.OrderRowMapper;
-import me.exrates.openapi.repositories.mappers.CommissionRowMapper;
+import me.exrates.openapi.repositories.mappers.CommissionsRowMapper;
 import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
+import me.exrates.openapi.repositories.mappers.OrderRowMapper;
 import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
 import me.exrates.openapi.repositories.mappers.TransactionRowMapper;
 import me.exrates.openapi.repositories.mappers.UserOrdersRowMapper;
@@ -30,7 +30,6 @@ import me.exrates.openapi.repositories.mappers.UserTradeHistoryRowMapper;
 import me.exrates.openapi.repositories.mappers.WalletsAndCommissionsRowMapper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -81,7 +80,7 @@ public class OrderDao {
             "cp.name AS currency_pair_name, o.operation_type_id, o.date_creation AS created, o.date_acception AS accepted" +
             " FROM EXORDERS o" +
             " JOIN CURRENCY_PAIR cp ON o.currency_pair_id = cp.id " +
-            " WHERE o.user_id = :user_id AND o.status_id = :status_id";
+            " WHERE o.user_id = :user_id AND o.status_id = :status_id %s %s %s";
 
     private static final String GET_ALL_COMMISSIONS_SQL = "SELECT SUM(sell_commission) as sell_commission, SUM(buy_commission) AS buy_commission, " +
             "SUM(input_commission) AS input_commission, SUM(output_commission) AS output_commission, SUM(transfer_commission) AS transfer_commission" +
@@ -147,6 +146,20 @@ public class OrderDao {
             " WHERE o.status_id = 2 AND o.currency_pair_id = :currency_pair_id AND o.operation_type_id = :operation_type_id" +
             " ORDER BY o.exrate ASC LIMIT 1";
 
+    private static final String SELECT_TOP_ORDERS_SQL = "SELECT o.id, o.user_id, o.currency_pair_id, o.operation_type_id, o.exrate, " +
+            "o.amount_base, o.amount_convert, o.commission_id, o.commission_fixed_amount, o.date_creation, o.status_id, o.base_type" +
+            " FROM EXORDERS o %s" +
+            " WHERE o.status_id = 2 AND o.currency_pair_id = :currency_pair_id AND o.base_type =:order_base_type" +
+            " AND o.operation_type_id = :operation_type_id %s" +
+            " ORDER BY o.exrate %s, EO.amount_base ASC ";
+
+    private static final String LOCK_ORDERS_LIST_FOR_ACCEPTANCE_SQL = "SELECT o.id" +
+            " FROM EXORDERS o" +
+            " WHERE o.id IN (:order_ids)" +
+            " FOR UPDATE";
+
+    private static final String GET_ORDER_BY_ID_SQL = "SELECT * FROM EXORDERS WHERE id = :id";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -182,18 +195,6 @@ public class OrderDao {
     }
 
     //+
-    public ExOrder getOrderById(int orderId) {
-        String sql = "SELECT * FROM EXORDERS WHERE id = :id";
-        Map<String, String> namedParameters = new HashMap<>();
-        namedParameters.put("id", String.valueOf(orderId));
-        try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, OrderRowMapper.map());
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-
-    //+
     public boolean setStatus(int orderId, OrderStatus status) {
         String sql = "UPDATE EXORDERS SET status_id=:status_id WHERE id = :id";
         Map<String, String> namedParameters = new HashMap<>();
@@ -214,78 +215,6 @@ public class OrderDao {
         namedParameters.put("id", String.valueOf(exOrder.getId()));
         int result = jdbcTemplate.update(sql, namedParameters);
         return result > 0;
-    }
-
-    //+
-    public boolean lockOrdersListForAcception(List<Integer> ordersList) {
-        //TODO Why cycle?? not WHERE id IN (...) ?
-
-        for (Integer orderId : ordersList) {
-            String sql = "SELECT id " +
-                    "  FROM EXORDERS " +
-                    "  WHERE id = :order_id " +
-                    "  FOR UPDATE ";
-            Map<String, Object> namedParameters = new HashMap<>();
-            namedParameters.put("order_id", orderId);
-            try {
-                jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
-            } catch (EmptyResultDataAccessException e) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    //+
-    public List<ExOrder> selectTopOrders(Integer currencyPairId, BigDecimal exrate,
-                                         OperationType orderType, boolean sameRoleOnly, Integer userAcceptorRoleId, OrderBaseType orderBaseType) {
-        String sortDirection = "";
-        String exrateClause = "";
-        if (orderType == OperationType.BUY) {
-            sortDirection = "DESC";
-            exrateClause = "AND EO.exrate >= :exrate ";
-        } else if (orderType == OperationType.SELL) {
-            sortDirection = "ASC";
-            exrateClause = "AND EO.exrate <= :exrate ";
-        }
-        String roleJoinClause = sameRoleOnly ? " JOIN USER U ON EO.user_id = U.id AND U.roleid = :acceptor_role_id " :
-                "JOIN USER U ON EO.user_id = U.id AND U.roleid IN (SELECT user_role_id FROM USER_ROLE_SETTINGS " +
-                        "WHERE user_role_id = :acceptor_role_id OR order_acception_same_role_only = 0)";
-        String sqlSetVar = "SET @cumsum := 0";
-
-        /*needs to return several orders with best exrate if their total sum is less than amount in param,
-         * or at least one order if base amount is greater than param amount*/
-        String sql = "SELECT EO.id, EO.user_id, EO.currency_pair_id, EO.operation_type_id, EO.exrate, EO.amount_base, EO.amount_convert, " +
-                "EO.commission_id, EO.commission_fixed_amount, EO.date_creation, EO.status_id, EO.base_type " +
-                "FROM EXORDERS EO " + roleJoinClause +
-                "WHERE EO.status_id = 2 AND EO.currency_pair_id = :currency_pair_id AND EO.base_type =:order_base_type " +
-                "AND EO.operation_type_id = :operation_type_id " + exrateClause +
-                " ORDER BY EO.exrate " + sortDirection + ", EO.amount_base ASC ";
-        Map<String, Object> params = new HashMap<String, Object>() {{
-            put("currency_pair_id", currencyPairId);
-            put("exrate", exrate);
-            put("operation_type_id", orderType.getType());
-            put("acceptor_role_id", userAcceptorRoleId);
-            put("order_base_type", orderBaseType.name());
-        }};
-        jdbcTemplate.execute(sqlSetVar, PreparedStatement::execute);
-
-        return jdbcTemplate.query(sql, params, (rs, row) -> {
-            ExOrder exOrder = new ExOrder();
-            exOrder.setId(rs.getInt("id"));
-            exOrder.setUserId(rs.getInt("user_id"));
-            exOrder.setCurrencyPairId(rs.getInt("currency_pair_id"));
-            exOrder.setOperationType(OperationType.convert(rs.getInt("operation_type_id")));
-            exOrder.setExRate(rs.getBigDecimal("exrate"));
-            exOrder.setAmountBase(rs.getBigDecimal("amount_base"));
-            exOrder.setAmountConvert(rs.getBigDecimal("amount_convert"));
-            exOrder.setComissionId(rs.getInt("commission_id"));
-            exOrder.setCommissionFixedAmount(rs.getBigDecimal("commission_fixed_amount"));
-            exOrder.setDateCreation(rs.getTimestamp("date_creation").toLocalDateTime());
-            exOrder.setStatus(OrderStatus.convert(rs.getInt("status_id")));
-            exOrder.setOrderBaseType(OrderBaseType.valueOf(rs.getString("base_type")));
-            return exOrder;
-        });
     }
 
     //+
@@ -454,12 +383,12 @@ public class OrderDao {
                                                      @Null Integer currencyPairId,
                                                      OrderStatus status,
                                                      @NotNull int limit) {
-        String currencyPairSql = nonNull(currencyPairId) ? " AND o.currency_pair_id = :currency_pair_id" : StringUtils.EMPTY;
-        String orderBySql = " ORDER BY o.date_creation DESC";
-        String limitSql = " LIMIT :limit";
+        String currencyPairSql = nonNull(currencyPairId) ? "AND o.currency_pair_id = :currency_pair_id" : StringUtils.EMPTY;
+        String orderBySql = "ORDER BY o.date_creation DESC";
+        String limitSql = "LIMIT :limit";
 
         return jdbcTemplate.query(
-                GET_USER_ORDERS_BY_STATUS_SQL + currencyPairSql + orderBySql + limitSql,
+                String.format(GET_USER_ORDERS_BY_STATUS_SQL, currencyPairSql, orderBySql, limitSql),
                 Map.of(
                         "user_id", userId,
                         "currency_pair_id", currencyPairId,
@@ -473,7 +402,7 @@ public class OrderDao {
         return jdbcTemplate.queryForObject(
                 GET_ALL_COMMISSIONS_SQL,
                 Map.of("user_role", userRole.getRole()),
-                CommissionRowMapper.map());
+                CommissionsRowMapper.map());
     }
 
     //+
@@ -530,5 +459,70 @@ public class OrderDao {
                         "currency_pair_id", currencyPairId,
                         "operation_type_id", operationTypeId),
                 BigDecimal.class);
+    }
+
+    //+
+    public List<ExOrder> selectTopOrders(Integer currencyPairId,
+                                         BigDecimal exrate,
+                                         OperationType orderType,
+                                         boolean sameRoleOnly,
+                                         Integer userAcceptorRoleId,
+                                         OrderBaseType orderBaseType) {
+        String sortDirection;
+        String exrateClause;
+
+        switch (orderType) {
+            case BUY:
+                sortDirection = "DESC";
+                exrateClause = "AND o.exrate >= :exrate ";
+                break;
+            case SELL:
+                sortDirection = "ASC";
+                exrateClause = "AND o.exrate <= :exrate ";
+                break;
+            default:
+                sortDirection = StringUtils.EMPTY;
+                exrateClause = StringUtils.EMPTY;
+                break;
+        }
+
+        String roleJoinClause = sameRoleOnly
+                ? "JOIN USER u ON o.user_id = u.id AND u.roleid = :acceptor_role_id "
+                : "JOIN USER u ON o.user_id = u.id" +
+                " AND u.roleid IN (SELECT urs.user_role_id FROM USER_ROLE_SETTINGS urs" +
+                " WHERE urs.user_role_id = :acceptor_role_id OR urs.order_acception_same_role_only = 0)";
+
+        jdbcTemplate.execute("SET @cumsum := 0", PreparedStatement::execute);
+
+        return jdbcTemplate.query(
+                String.format(SELECT_TOP_ORDERS_SQL, roleJoinClause, exrateClause, sortDirection),
+                Map.of(
+                        "currency_pair_id", currencyPairId,
+                        "exrate", exrate,
+                        "operation_type_id", orderType.getType(),
+                        "acceptor_role_id", userAcceptorRoleId,
+                        "order_base_type", orderBaseType.name()),
+                OrderRowMapper.map());
+    }
+
+    //+
+    public boolean lockOrdersListForAcceptance(List<Integer> orderIds) {
+        try {
+            jdbcTemplate.queryForObject(
+                    LOCK_ORDERS_LIST_FOR_ACCEPTANCE_SQL,
+                    Map.of("order_ids", orderIds),
+                    Integer.class);
+        } catch (Exception ex) {
+            return false;
+        }
+        return true;
+    }
+
+    //+
+    public ExOrder getOrderById(int orderId) {
+        return jdbcTemplate.queryForObject(
+                GET_ORDER_BY_ID_SQL,
+                Map.of("id", orderId),
+                OrderRowMapper.map());
     }
 }

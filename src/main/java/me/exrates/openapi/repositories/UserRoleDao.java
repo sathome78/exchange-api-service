@@ -1,15 +1,24 @@
 package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.UserRoleSettings;
-import me.exrates.openapi.models.enums.UserRole;
+import me.exrates.openapi.repositories.mappers.UserRoleSettingsRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
+import java.util.Map;
 
 @Repository
 public class UserRoleDao {
+
+    private static final String IS_ORDER_ACCEPTANCE_ALLOWED_FOR_USER_SQL = "SELECT urs.order_acception_same_role_only" +
+            " FROM USER_ROLE_SETTINGS urs" +
+            " WHERE urs.user_role_id = (SELECT roleid FROM USER u WHERE u.id = :user_id)";
+
+    private static final String RETRIEVE_SETTINGS_FOR_ROLE_SQL = "SELECT urs.user_role_id, urs.order_acception_same_role_only, " +
+            "urs.bot_acception_allowed, urs.manual_change_allowed" +
+            " FROM USER_ROLE_SETTINGS urs" +
+            " WHERE urs.user_role_id = :user_role_id";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -19,22 +28,18 @@ public class UserRoleDao {
     }
 
     //+
-    public boolean isOrderAcceptionAllowedForUser(Integer userId) {
-        String sql = "SELECT order_acception_same_role_only FROM USER_ROLE_SETTINGS where user_role_id = (SELECT roleid FROM USER WHERE id = :user_id)";
-        return jdbcTemplate.queryForObject(sql, Collections.singletonMap("user_id", userId), Boolean.class);
+    public Boolean isOrderAcceptanceAllowedForUser(Integer userId) {
+        return jdbcTemplate.queryForObject(
+                IS_ORDER_ACCEPTANCE_ALLOWED_FOR_USER_SQL,
+                Map.of("user_id", userId),
+                Boolean.class);
     }
 
     //+
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
-        String sql = "SELECT user_role_id, order_acception_same_role_only, bot_acception_allowed, manual_change_allowed " +
-                " FROM USER_ROLE_SETTINGS where user_role_id = :user_role_id";
-        return jdbcTemplate.queryForObject(sql, Collections.singletonMap("user_role_id", roleId), (rs, rowNum) -> {
-            UserRoleSettings settings = new UserRoleSettings();
-            settings.setUserRole(UserRole.convert(rs.getInt("user_role_id")));
-            settings.setOrderAcceptionSameRoleOnly(rs.getBoolean("order_acception_same_role_only"));
-            settings.setBotAcceptionAllowedOnly(rs.getBoolean("bot_acception_allowed"));
-            settings.setManualChangeAllowed(rs.getBoolean("manual_change_allowed"));
-            return settings;
-        });
+        return jdbcTemplate.queryForObject(
+                RETRIEVE_SETTINGS_FOR_ROLE_SQL,
+                Map.of("user_role_id", roleId),
+                UserRoleSettingsRowMapper.map());
     }
 }

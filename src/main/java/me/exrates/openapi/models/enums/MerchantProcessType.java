@@ -11,7 +11,8 @@ public enum MerchantProcessType {
     public static MerchantProcessType convert(String type) {
         return Arrays.stream(MerchantProcessType.values())
                 .filter(val -> val.name().equals(type))
-                .findAny().orElseThrow(() -> new UnsupportedProcessTypeException(type));
+                .findAny()
+                .orElseThrow(() -> new UnsupportedProcessTypeException(type));
     }
 
     @Override

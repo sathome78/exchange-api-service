@@ -1,7 +1,7 @@
 package me.exrates.openapi.models.enums.invoice;
 
 
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.model.UnsupportedInvoiceStatusForActionException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusIdException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusNameException;
@@ -14,139 +14,113 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.ACCEPT_AUTO;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.CREATE_BY_FACT;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.CREATE_BY_USER;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_CONFIRM_USER;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_PENDING;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.REQUEST_INNER_TRANSFER;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.START_BCH_EXAMINE;
+import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_AUTO;
+import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_CONFIRM;
+import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_MANUAL;
 
-@Log4j2
-public enum RefillStatusEnum implements InvoiceStatus {
+@Slf4j
+public enum WithdrawStatus implements InvoiceStatus {
 
-    X_STATE(0) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(CREATE_BY_USER, CREATED_USER);
-            schemaMap.put(CREATE_BY_FACT, CREATED_BY_FACT);
-        }
-    },
     CREATED_USER(1) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(PUT_FOR_CONFIRM_USER, WAITING_CONFIRMATION_USER);
-            schemaMap.put(PUT_FOR_PENDING, ON_PENDING);
+            schemaMap.put(PUT_FOR_MANUAL, WAITING_MANUAL_POSTING);
+            schemaMap.put(PUT_FOR_AUTO, WAITING_AUTO_POSTING);
+            schemaMap.put(PUT_FOR_CONFIRM, WAITING_CONFIRMATION);
         }
     },
-    CREATED_BY_FACT(2) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(START_BCH_EXAMINE, ON_BCH_EXAM);
-            schemaMap.put(ACCEPT_AUTO, ACCEPTED_AUTO);
-            schemaMap.put(REQUEST_INNER_TRANSFER, ON_INNER_TRANSFERRING);
-        }
-    },
-    WAITING_CONFIRMATION_USER(3) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(InvoiceActionTypeEnum.CONFIRM_USER, CONFIRMED_USER);
-            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
-            schemaMap.put(InvoiceActionTypeEnum.EXPIRE, EXPIRED);
-        }
-    },
-    ON_PENDING(4) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(ACCEPT_AUTO, ACCEPTED_AUTO);
-            schemaMap.put(InvoiceActionTypeEnum.TAKE_TO_WORK, TAKEN_FROM_PENDING);
-            schemaMap.put(REQUEST_INNER_TRANSFER, ON_INNER_TRANSFERRING);
-            schemaMap.put(START_BCH_EXAMINE, ON_BCH_EXAM);
-            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
-            schemaMap.put(InvoiceActionTypeEnum.EXPIRE, EXPIRED);
-        }
-    },
-    CONFIRMED_USER(5) {
+    WAITING_MANUAL_POSTING(2) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
             schemaMap.put(InvoiceActionTypeEnum.TAKE_TO_WORK, IN_WORK_OF_ADMIN);
+            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
         }
     },
-    ON_BCH_EXAM(6) {
+    WAITING_AUTO_POSTING(3) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(ACCEPT_AUTO, ACCEPTED_AUTO);
-            schemaMap.put(InvoiceActionTypeEnum.TAKE_TO_WORK, TAKEN_FROM_EXAM);
-            schemaMap.put(InvoiceActionTypeEnum.DECLINE_MERCHANT, WAITING_REVIEWING);
+            schemaMap.put(InvoiceActionTypeEnum.DECLINE, DECLINED_ADMIN);
+            schemaMap.put(InvoiceActionTypeEnum.HOLD_TO_POST, IN_POSTING);
+            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
         }
     },
-    IN_WORK_OF_ADMIN(7) {
+    WAITING_CONFIRMATION(4) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(InvoiceActionTypeEnum.ACCEPT_HOLDED, ACCEPTED_ADMIN);
+            schemaMap.put(InvoiceActionTypeEnum.DECLINE, DECLINED_ADMIN);
+            schemaMap.put(InvoiceActionTypeEnum.CONFIRM_ADMIN, WAITING_CONFIRMED_POSTING);
+            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
+        }
+    },
+    IN_WORK_OF_ADMIN(5) {
+        @Override
+        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
             schemaMap.put(InvoiceActionTypeEnum.DECLINE_HOLDED, DECLINED_ADMIN);
-            schemaMap.put(InvoiceActionTypeEnum.RETURN_FROM_WORK, CONFIRMED_USER);
+            schemaMap.put(InvoiceActionTypeEnum.POST_HOLDED, POSTED_MANUAL);
+            schemaMap.put(InvoiceActionTypeEnum.RETURN_FROM_WORK, WAITING_MANUAL_POSTING);
+        }
+    },
+    WAITING_CONFIRMED_POSTING(6) {
+        @Override
+        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
+            schemaMap.put(InvoiceActionTypeEnum.DECLINE, DECLINED_ADMIN);
+            schemaMap.put(InvoiceActionTypeEnum.HOLD_TO_POST, IN_POSTING);
+            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
+        }
+    },
+    REVOKED_USER(7) {
+        @Override
+        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
         }
     },
     DECLINED_ADMIN(8) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(InvoiceActionTypeEnum.CONFIRM_USER, CONFIRMED_USER);
-            schemaMap.put(InvoiceActionTypeEnum.REVOKE, REVOKED_USER);
         }
     },
-    ACCEPTED_AUTO(9) {
+    POSTED_MANUAL(9) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
         }
     },
-    ACCEPTED_ADMIN(10) {
+    POSTED_AUTO(10) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
         }
     },
-    REVOKED_USER(11) {
+    IN_POSTING(11) {
+        @Override
+        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
+            schemaMap.put(InvoiceActionTypeEnum.START_BCH_EXAMINE, ON_BCH_EXAM);
+            schemaMap.put(InvoiceActionTypeEnum.POST_AUTO, POSTED_AUTO);
+            schemaMap.put(InvoiceActionTypeEnum.REJECT_TO_REVIEW, WAITING_REVIEWING);
+            schemaMap.put(InvoiceActionTypeEnum.REJECT_ERROR, DECLINED_ERROR);
+        }
+    },
+    DECLINED_ERROR(12) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
         }
     },
-    EXPIRED(12) {
+    ON_BCH_EXAM(13) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-        }
-    },
-    TAKEN_FROM_PENDING(13) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(InvoiceActionTypeEnum.ACCEPT_HOLDED, ACCEPTED_ADMIN);
-            schemaMap.put(InvoiceActionTypeEnum.RETURN_FROM_WORK, ON_PENDING);
-        }
-    },
-    TAKEN_FROM_EXAM(14) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(InvoiceActionTypeEnum.ACCEPT_HOLDED, ACCEPTED_ADMIN);
-            schemaMap.put(InvoiceActionTypeEnum.RETURN_FROM_WORK, ON_BCH_EXAM);
-        }
-    },
-    ON_INNER_TRANSFERRING(15) {
-        @Override
-        public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(START_BCH_EXAMINE, ON_BCH_EXAM);
+            schemaMap.put(InvoiceActionTypeEnum.FINALIZE_POST, POSTED_AUTO);
             schemaMap.put(InvoiceActionTypeEnum.REJECT_TO_REVIEW, WAITING_REVIEWING);
         }
     },
-    WAITING_REVIEWING(16) {
+    WAITING_REVIEWING(14) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
-            schemaMap.put(InvoiceActionTypeEnum.TAKE_TO_WORK, TAKEN_FOR_REFILL);
+            schemaMap.put(InvoiceActionTypeEnum.TAKE_TO_WORK, TAKEN_FOR_WITHDRAW);
         }
     },
-    TAKEN_FOR_REFILL(17) {
+    TAKEN_FOR_WITHDRAW(15) {
         @Override
         public void initSchema(Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap) {
+            schemaMap.put(InvoiceActionTypeEnum.DECLINE_HOLDED, DECLINED_ADMIN);
+            schemaMap.put(InvoiceActionTypeEnum.POST_HOLDED, POSTED_MANUAL);
             schemaMap.put(InvoiceActionTypeEnum.RETURN_FROM_WORK, WAITING_REVIEWING);
-            schemaMap.put(InvoiceActionTypeEnum.ACCEPT_HOLDED, ACCEPTED_ADMIN);
         }
     };
 
@@ -165,22 +139,22 @@ public enum RefillStatusEnum implements InvoiceStatus {
     }
 
     static {
-        for (RefillStatusEnum status : RefillStatusEnum.class.getEnumConstants()) {
+        for (WithdrawStatus status : WithdrawStatus.class.getEnumConstants()) {
             status.initSchema(status.schemaMap);
         }
         /*check schemaMap*/
         getBeginState();
     }
 
-    public static RefillStatusEnum convert(int id) {
-        return Arrays.stream(RefillStatusEnum.class.getEnumConstants())
+    public static WithdrawStatus convert(int id) {
+        return Arrays.stream(WithdrawStatus.class.getEnumConstants())
                 .filter(e -> e.code == id)
                 .findAny()
                 .orElseThrow(() -> new UnsupportedWithdrawRequestStatusIdException(String.valueOf(id)));
     }
 
-    public static RefillStatusEnum convert(String name) {
-        return Arrays.stream(RefillStatusEnum.class.getEnumConstants())
+    public static WithdrawStatus convert(String name) {
+        return Arrays.stream(WithdrawStatus.class.getEnumConstants())
                 .filter(e -> e.name().equals(name))
                 .findAny()
                 .orElseThrow(() -> new UnsupportedWithdrawRequestStatusNameException(name));
@@ -188,41 +162,41 @@ public enum RefillStatusEnum implements InvoiceStatus {
 
     public static InvoiceStatus getBeginState() {
         Set<InvoiceStatus> allNodesSet = collectAllSchemaMapNodesSet();
-        List<InvoiceStatus> candidateList = Arrays.stream(RefillStatusEnum.class.getEnumConstants())
+        List<InvoiceStatus> candidateList = Arrays.stream(WithdrawStatus.class.getEnumConstants())
                 .filter(e -> !allNodesSet.contains(e))
                 .collect(Collectors.toList());
         if (candidateList.size() == 0) {
-            log.fatal("begin state not found");
+            log.error("begin state not found");
             throw new AssertionError();
         }
         if (candidateList.size() > 1) {
-            log.fatal("more than single begin state found: " + candidateList);
+            log.error("more than single begin state found: {}", candidateList);
             throw new AssertionError();
         }
         return candidateList.get(0);
     }
 
+    @Override
+    public Boolean isEndStatus() {
+        return schemaMap.isEmpty();
+    }
+
     private static Set<InvoiceStatus> collectAllSchemaMapNodesSet() {
         Set<InvoiceStatus> result = new HashSet<>();
-        Arrays.stream(RefillStatusEnum.class.getEnumConstants())
+        Arrays.stream(WithdrawStatus.class.getEnumConstants())
                 .forEach(e -> result.addAll(e.schemaMap.values()));
         return result;
     }
 
     private Integer code;
 
-    RefillStatusEnum(Integer code) {
+    WithdrawStatus(Integer code) {
         this.code = code;
     }
 
     @Override
     public Integer getCode() {
         return code;
-    }
-
-    @Override
-    public Boolean isEndStatus() {
-        return schemaMap.isEmpty();
     }
 }
 
