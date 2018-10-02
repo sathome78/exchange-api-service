@@ -7,6 +7,7 @@ import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.ExOrder;
 import me.exrates.openapi.models.ReferralLevel;
 import me.exrates.openapi.models.ReferralTransaction;
+import me.exrates.openapi.models.User;
 import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.enums.ActionType;
 import me.exrates.openapi.models.enums.OperationType;
@@ -95,12 +96,16 @@ public class ReferralService {
                         .build();
 
                 int walletId = walletService.getWalletId(parent, currency.getId()); // Mutable variable
+
                 if (walletId == 0) { // Wallet is absent, creating new wallet
-                    final Wallet wallet = new Wallet();
-                    wallet.setActiveBalance(ZERO);
-                    wallet.setCurrencyId(currency.getId());
-                    wallet.setUser(userService.getUserById(parent));
-                    wallet.setReservedBalance(ZERO);
+                    User user = userService.getUserById(parent);
+
+                    Wallet wallet = Wallet.builder()
+                            .currencyId(currency.getId())
+                            .user(user)
+                            .activeBalance(BigDecimal.ZERO)
+                            .reservedBalance(BigDecimal.ZERO)
+                            .build();
                     walletId = walletService.createNewWallet(wallet); // Changing mutable variable state
                 }
                 final ReferralTransaction createdRefTransaction = referralTransactionDao.create(referralTransaction);

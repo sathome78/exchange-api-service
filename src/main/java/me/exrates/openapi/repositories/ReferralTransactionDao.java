@@ -15,25 +15,13 @@ import java.util.Map;
 @Repository
 public class ReferralTransactionDao {
 
+    final String sql = "INSERT INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id) VALUES (:initiatorId, :userId, :orderId, :refLevelId)";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public ReferralTransactionDao(final NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    //+
-    public ReferralTransaction create(final ReferralTransaction referralTransaction) {
-        final String sql = "INSERT INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id) VALUES (:initiatorId, :userId, :orderId, :refLevelId)";
-        final Map<String, Integer> params = new HashMap<>();
-        final KeyHolder keyHolder = new GeneratedKeyHolder();
-        params.put("initiatorId", referralTransaction.getInitiatorId());
-        params.put("userId", referralTransaction.getUserId());
-        params.put("orderId", referralTransaction.getOrder().getId());
-        params.put("refLevelId", referralTransaction.getReferralLevel().getId());
-        jdbcTemplate.update(sql, new MapSqlParameterSource(params), keyHolder);
-        referralTransaction.setId(keyHolder.getKey().intValue());
-        return referralTransaction;
     }
 
     //+
@@ -47,5 +35,18 @@ public class ReferralTransactionDao {
         }};
         boolean res = jdbcTemplate.update(sql, params) > 0;
         if (!res) throw new RuntimeException("error change status to ref transaction " + refTransactionId);
+    }
+
+    //+
+    public ReferralTransaction create(final ReferralTransaction referralTransaction) {
+        final Map<String, Integer> params = new HashMap<>();
+        final KeyHolder keyHolder = new GeneratedKeyHolder();
+        params.put("initiatorId", referralTransaction.getInitiatorId());
+        params.put("userId", referralTransaction.getUserId());
+        params.put("orderId", referralTransaction.getOrder().getId());
+        params.put("refLevelId", referralTransaction.getReferralLevel().getId());
+        jdbcTemplate.update(sql, new MapSqlParameterSource(params), keyHolder);
+        referralTransaction.setId(keyHolder.getKey().intValue());
+        return referralTransaction;
     }
 }

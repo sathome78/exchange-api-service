@@ -101,6 +101,7 @@ public class WalletService {
     }
 
     //+
+    @Transactional(readOnly = true)
     public int getWalletId(int userId, int currencyId) {
         return walletDao.getWalletId(userId, currencyId);
     }

@@ -422,12 +422,13 @@ public class WalletDao {
     //+
     public int getWalletId(int userId, int currencyId) {
         try {
-            return jdbcTemplate.queryForObject(
+            Integer walletId = jdbcTemplate.queryForObject(
                     GET_WALLET_ID_SQL,
                     Map.of(
                             "userId", userId,
                             "currencyId", currencyId),
                     Integer.class);
+            return walletId;
         } catch (EmptyResultDataAccessException e) {
             return 0;
         }

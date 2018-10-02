@@ -37,11 +37,6 @@ public class UserService {
     }
 
     //+
-    public User getUserById(int id) {
-        return userDao.getUserById(id);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public String getEmailById(Integer id) {
         return userDao.getEmailById(id);
@@ -82,6 +77,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserRole getUserRoleFromDatabase(Integer userId) {
         return userDao.getUserRoleById(userId);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public User getUserById(int id) {
+        return userDao.getUserById(id);
     }
 
     //+
