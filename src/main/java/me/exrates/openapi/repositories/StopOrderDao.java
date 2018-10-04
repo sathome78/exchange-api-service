@@ -11,6 +11,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Repository
@@ -29,12 +30,12 @@ public class StopOrderDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public Integer create(StopOrder order) {
-        log.debug(CREATE_STOP_ORDER_SQL);
+        log.debug("Process of creating stop order start...");
         log.debug("{}", order);
+
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        int result = jdbcTemplate.update(
+        int update = jdbcTemplate.update(
                 CREATE_STOP_ORDER_SQL,
                 new MapSqlParameterSource(
                         Map.of(
@@ -50,17 +51,19 @@ public class StopOrderDao {
                                 "status_id", OrderStatus.INPROCESS.getStatus())),
                 keyHolder);
 
-        return result <= 0 ? 0 : keyHolder.getKey().intValue();
+        return update <= 0 ? 0 : Objects.requireNonNull(keyHolder.getKey(), "Key should be present").intValue();
     }
 
-    //+
     public boolean setStatus(int orderId, OrderStatus status) {
-        int result = jdbcTemplate.update(
+        int update = jdbcTemplate.update(
                 UPDATE_STOP_ORDER_SQL,
                 Map.of(
                         "status_id", status.getStatus(),
                         "id", orderId
                 ));
-        return result > 0;
+        if (update <= 0) {
+            log.debug("Stop order have not updated");
+        }
+        return update > 0;
     }
 }

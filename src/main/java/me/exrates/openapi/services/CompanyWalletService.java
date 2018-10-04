@@ -51,7 +51,7 @@ public class CompanyWalletService {
     //+
     @Transactional(readOnly = true)
     public CompanyWallet findByCurrency(Currency currency) {
-        return companyWalletDao.findByCurrencyId(currency);
+        return companyWalletDao.findByCurrencyId(currency.getId());
     }
 
     //+

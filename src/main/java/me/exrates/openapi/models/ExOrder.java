@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 @ToString(exclude = {"currencyPair"})
 @Builder(builderClassName = "Builder")
 @AllArgsConstructor
-@NoArgsConstructor
 public class ExOrder {
 
     private int id;

@@ -3,17 +3,35 @@ package me.exrates.openapi.repositories;
 import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.ExOrder;
-import me.exrates.openapi.models.dto.*;
+import me.exrates.openapi.models.dto.CandleChartItemDto;
+import me.exrates.openapi.models.dto.CoinmarketApiDto;
+import me.exrates.openapi.models.dto.TradeHistoryDto;
+import me.exrates.openapi.models.dto.TransactionDto;
+import me.exrates.openapi.models.dto.UserTradeHistoryDto;
+import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
 import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
 import me.exrates.openapi.models.dto.openAPI.UserOrdersDto;
-import me.exrates.openapi.models.enums.*;
+import me.exrates.openapi.models.enums.OperationType;
+import me.exrates.openapi.models.enums.OrderBaseType;
+import me.exrates.openapi.models.enums.OrderStatus;
+import me.exrates.openapi.models.enums.OrderType;
+import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
-import me.exrates.openapi.repositories.mappers.*;
+import me.exrates.openapi.repositories.mappers.CommissionsRowMapper;
+import me.exrates.openapi.repositories.mappers.OpenOrderRowMapper;
+import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
+import me.exrates.openapi.repositories.mappers.OrderRowMapper;
+import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
+import me.exrates.openapi.repositories.mappers.TransactionRowMapper;
+import me.exrates.openapi.repositories.mappers.UserOrdersRowMapper;
+import me.exrates.openapi.repositories.mappers.UserTradeHistoryRowMapper;
+import me.exrates.openapi.repositories.mappers.WalletsAndCommissionsRowMapper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -25,10 +43,11 @@ import javax.validation.constraints.Null;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import static java.util.Collections.emptyList;
 import static java.util.Objects.nonNull;
 import static me.exrates.openapi.models.enums.OperationType.INPUT;
 import static me.exrates.openapi.models.enums.OperationType.OUTPUT;
@@ -46,11 +65,11 @@ public class OrderDao {
             " FROM EXORDERS o" +
             " WHERE o.currency_pair_id = :currency_pair_id" +
             " AND o.status_id = :status_id AND o.operation_type_id = :operation_type_id" +
-            " ORDER BY o.exrate";
+            " ORDER BY o.exrate %s %s";
 
     private static final String GET_ORDER_BOOK_ITEMS_SQL = "SELECT o.operation_type_id, o.amount_base as amount, o.exrate as price" +
             " FROM EXORDERS o" +
-            " WHERE o.currency_pair_id = :currency_pair_id AND o.status_id = :status_id";
+            " WHERE o.currency_pair_id = :currency_pair_id AND o.status_id = :status_id %s";
 
     private static final String GET_TRADE_HISTORY_SQL = "SELECT o.id as order_id, o.date_creation as created, o.date_acception as accepted, " +
             "o.amount_base as amount, o.exrate as price, o.amount_convert as sum, c.value as commission, o.operation_type_id" +
@@ -58,7 +77,7 @@ public class OrderDao {
             " JOIN COMMISSION c on o.commission_id = c.id" +
             " WHERE o.currency_pair_id=:currency_pair_id AND o.status_id=:status_id" +
             " AND o.date_acception BETWEEN :start_date AND :end_date" +
-            " ORDER BY o.date_acception ASC";
+            " ORDER BY o.date_acception ASC %s";
 
     private static final String GET_USER_ORDERS_BY_STATUS_SQL = "SELECT o.id AS order_id, o.amount_base AS amount, o.exrate AS price, " +
             "cp.name AS currency_pair_name, o.operation_type_id, o.date_creation AS created, o.date_acception AS accepted" +
@@ -159,6 +178,16 @@ public class OrderDao {
             " JOIN CURRENCY_PAIR cp on o.currency_pair_id = cp.id" +
             " WHERE o.user_id = :user_id AND cp.name = :currency_pair AND o.status_id = : status_id";
 
+    private static final String GET_OPENED_ORDERS_SQL = "SELECT o.id, o.operation_type_id, o.amount_base, o.exrate" +
+            " FROM EXORDERS o" +
+            " WHERE o.currency_pair_id = :currency_pair_id AND o.status_id = :status_id AND o.operation_type_id = :operation_type_id %s";
+
+    private static final String GET_ALL_OPENED_ORDERS_SQL = "SELECT o.id AS order_id, o.currency_pair_id, o.operation_type_id, " +
+            "o.exrate AS price, o.amount_base AS amount, o.amount_convert AS sum, o.commission_id, o.commission_fixed_amount, " +
+            "o.date_creation AS created, o.status_id, o.base_type" +
+            " FROM EXORDERS o" +
+            " WHERE o.user_id = :user_id AND o.status_id = : status_id";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -166,129 +195,85 @@ public class OrderDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
-    public List<OpenOrderDto> getOpenOrders(Integer currencyPairId, OrderType orderType) {
-        String orderByDirection = orderType == OrderType.SELL ? " ASC " : " DESC ";
-        String orderBySql = " ORDER BY exrate " + orderByDirection;
-        String sql = "SELECT id, operation_type_id, amount_base, exrate FROM EXORDERS " +
-                "WHERE currency_pair_id = :currency_pair_id " +
-                "AND status_id = :status_id AND operation_type_id = :operation_type_id " + orderBySql;
-        Map<String, Object> params = new HashMap<>();
-        params.put("currency_pair_id", currencyPairId);
-        params.put("status_id", OPENED.getStatus());
-        params.put("operation_type_id", orderType.getOperationType().getType());
-        return jdbcTemplate.query(sql, params, (rs, row) -> {
-            OpenOrderDto item = new OpenOrderDto();
-            item.setId(rs.getInt("id"));
-            item.setOrderType(OrderType.fromOperationType(OperationType.convert(rs.getInt("operation_type_id"))).name());
-            item.setAmount(rs.getBigDecimal("amount_base"));
-            item.setPrice(rs.getBigDecimal("exrate"));
-            return item;
-        });
-    }
-
-    public List<ExOrder> getAllOpenedOrdersByUserId(Integer userId) {
-        String sql = "SELECT o.id AS order_id, " +
-                "o.currency_pair_id, " +
-                "o.operation_type_id, " +
-                "o.exrate AS price, " +
-                "o.amount_base AS amount, " +
-                "o.amount_convert AS sum, " +
-                "o.commission_id, " +
-                "o.commission_fixed_amount, " +
-                "o.date_creation AS created, " +
-                "o.status_id, " +
-                "o.base_type" +
-                " FROM EXORDERS o" +
-                " WHERE o.user_id = :user_id AND o.status_id = : status_id";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("user_id", userId);
-        params.put("status_id", OPENED.getStatus());
-
-        return jdbcTemplate.query(sql, params, (rs, row) -> {
-            ExOrder exOrder = new ExOrder();
-            exOrder.setId(rs.getInt("id"));
-            exOrder.setUserId(userId);
-            exOrder.setCurrencyPairId(rs.getInt("currency_pair_id"));
-            exOrder.setOperationType(OperationType.convert(rs.getInt("operation_type_id")));
-            exOrder.setExRate(rs.getBigDecimal("price"));
-            exOrder.setAmountBase(rs.getBigDecimal("amount"));
-            exOrder.setAmountConvert(rs.getBigDecimal("sum"));
-            exOrder.setComissionId(rs.getInt("commission_id"));
-            exOrder.setCommissionFixedAmount(rs.getBigDecimal("commission_fixed_amount"));
-            exOrder.setDateCreation(rs.getTimestamp("created").toLocalDateTime());
-            exOrder.setStatus(OrderStatus.convert(rs.getInt("status_id")));
-            exOrder.setOrderBaseType(OrderBaseType.valueOf(rs.getString("base_type")));
-            return exOrder;
-        });
-    }
-
-    //+
     public List<CoinmarketApiDto> getCoinmarketData(String pairName) {
-        return jdbcTemplate.execute(
-                String.format(CALL_GET_COINMARKETCAP_STATISTICS_PROCEDURE_SQL, pairName),
-                StoredProcedureCallback.getCoinmarketDataCallback());
+        try {
+            return jdbcTemplate.execute(
+                    String.format(CALL_GET_COINMARKETCAP_STATISTICS_PROCEDURE_SQL, pairName),
+                    StoredProcedureCallback.getCoinmarketDataCallback());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public List<OrderBookItem> getOrderBookItemsByType(Integer currencyPairId, OrderType orderType, Integer limit) {
-        String directionSql = orderType == OrderType.BUY ? " DESC" : StringUtils.EMPTY;
-        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
+        String directionSql = orderType == OrderType.BUY ? "DESC" : StringUtils.EMPTY;
+        String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
-        return jdbcTemplate.query(
-                GET_ORDER_BOOK_ITEMS_BY_TYPE_SQL + directionSql + limitSql,
-                Map.of(
-                        "currency_pair_id", currencyPairId,
-                        "status_id", OPENED.getStatus(),
-                        "operation_type_id", orderType.getOperationType().getType(),
-                        "limit", limit),
-                OrderBookItemRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    String.format(GET_ORDER_BOOK_ITEMS_BY_TYPE_SQL, directionSql, limitSql),
+                    Map.of(
+                            "currency_pair_id", currencyPairId,
+                            "status_id", OPENED.getStatus(),
+                            "operation_type_id", orderType.getOperationType().getType(),
+                            "limit", limit),
+                    OrderBookItemRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public List<OrderBookItem> getOrderBookItems(Integer currencyPairId, Integer limit) {
-        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
+        String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
-        return jdbcTemplate.query(
-                GET_ORDER_BOOK_ITEMS_SQL + limitSql,
-                Map.of(
-                        "currency_pair_id", currencyPairId,
-                        "status_id", OPENED.getStatus(),
-                        "limit", limit),
-                OrderBookItemRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    String.format(GET_ORDER_BOOK_ITEMS_SQL, limitSql),
+                    Map.of(
+                            "currency_pair_id", currencyPairId,
+                            "status_id", OPENED.getStatus(),
+                            "limit", limit),
+                    OrderBookItemRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public List<TradeHistoryDto> getTradeHistory(Integer currencyPairId,
                                                  LocalDateTime fromDate,
                                                  LocalDateTime toDate,
                                                  Integer limit) {
-        String limitSql = nonNull(limit) ? " LIMIT :limit" : StringUtils.EMPTY;
+        String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
-        return jdbcTemplate.query(
-                GET_TRADE_HISTORY_SQL + limitSql,
-                Map.of(
-                        "status_id", CLOSED.getStatus(),
-                        "currency_pair_id", currencyPairId,
-                        "start_date", fromDate,
-                        "end_date", toDate,
-                        "limit", limit),
-                TradeHistoryRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    String.format(GET_TRADE_HISTORY_SQL, limitSql),
+                    Map.of(
+                            "status_id", CLOSED.getStatus(),
+                            "currency_pair_id", currencyPairId,
+                            "start_date", fromDate,
+                            "end_date", toDate,
+                            "limit", limit),
+                    TradeHistoryRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public List<CandleChartItemDto> getDataForCandleChart(CurrencyPair currencyPair, BackDealInterval backDealInterval) {
-        return jdbcTemplate.execute(
-                String.format(
-                        CALL_GET_DATA_FOR_CANDLE_SQL,
-                        backDealInterval.getIntervalValue(),
-                        backDealInterval.getIntervalType().name(),
-                        currencyPair.getId()),
-                StoredProcedureCallback.getDataForCandleChartCallback());
+        try {
+            return jdbcTemplate.execute(
+                    String.format(
+                            CALL_GET_DATA_FOR_CANDLE_SQL,
+                            backDealInterval.getIntervalValue(),
+                            backDealInterval.getIntervalType().name(),
+                            currencyPair.getId()),
+                    StoredProcedureCallback.getDataForCandleChartCallback());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public List<UserOrdersDto> getUserOrdersByStatus(Integer userId,
                                                      @Null Integer currencyPairId,
                                                      OrderStatus status,
@@ -297,71 +282,86 @@ public class OrderDao {
         String orderBySql = "ORDER BY o.date_creation DESC";
         String limitSql = "LIMIT :limit";
 
-        return jdbcTemplate.query(
-                String.format(GET_USER_ORDERS_BY_STATUS_SQL, currencyPairSql, orderBySql, limitSql),
-                Map.of(
-                        "user_id", userId,
-                        "currency_pair_id", currencyPairId,
-                        "status_id", status.getStatus(),
-                        "limit", limit),
-                UserOrdersRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    String.format(GET_USER_ORDERS_BY_STATUS_SQL, currencyPairSql, orderBySql, limitSql),
+                    Map.of(
+                            "user_id", userId,
+                            "currency_pair_id", currencyPairId,
+                            "status_id", status.getStatus(),
+                            "limit", limit),
+                    UserOrdersRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public CommissionDto getAllCommissions(UserRole userRole) {
-        return jdbcTemplate.queryForObject(
-                GET_ALL_COMMISSIONS_SQL,
-                Map.of("user_role", userRole.getRole()),
-                CommissionsRowMapper.map());
+        try {
+            return jdbcTemplate.queryForObject(
+                    GET_ALL_COMMISSIONS_SQL,
+                    Map.of("user_role", userRole.getRole()),
+                    CommissionsRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException("Could not get all commissions");
+        }
     }
 
-    //+
     public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(Integer userId,
                                                                        Integer currencyPairId,
                                                                        LocalDateTime fromDate,
                                                                        LocalDateTime toDate,
                                                                        int limit) {
-        return jdbcTemplate.query(
-                GET_USER_TRADE_HISTORY_BY_CURRENCY_PAIR_SQL,
-                Map.of(
-                        "user_id", userId,
-                        "status_id", CLOSED.getStatus(),
-                        "currency_pair_id", currencyPairId,
-                        "start_date", fromDate,
-                        "end_date", toDate,
-                        "limit", limit),
-                UserTradeHistoryRowMapper.map(userId));
+        try {
+            return jdbcTemplate.query(
+                    GET_USER_TRADE_HISTORY_BY_CURRENCY_PAIR_SQL,
+                    Map.of(
+                            "user_id", userId,
+                            "status_id", CLOSED.getStatus(),
+                            "currency_pair_id", currencyPairId,
+                            "start_date", fromDate,
+                            "end_date", toDate,
+                            "limit", limit),
+                    UserTradeHistoryRowMapper.map(userId));
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public List<TransactionDto> getOrderTransactions(Integer userId, Integer orderId) {
-        return jdbcTemplate.query(
-                GET_ORDER_TRANSACTIONS_SQL,
-                Map.of(
-                        "user_id", userId,
-                        "order_id", orderId,
-                        "source_type", ORDER.name(),
-                        "operation_type_1", INPUT.getType(),
-                        "operation_type_2", OUTPUT.getType()),
-                TransactionRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    GET_ORDER_TRANSACTIONS_SQL,
+                    Map.of(
+                            "user_id", userId,
+                            "order_id", orderId,
+                            "source_type", ORDER.name(),
+                            "operation_type_1", INPUT.getType(),
+                            "operation_type_2", OUTPUT.getType()),
+                    TransactionRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public WalletsAndCommissionsDto getWalletAndCommission(String email,
                                                            Currency currency,
                                                            OperationType operationType,
                                                            UserRole userRole) {
-        return jdbcTemplate.queryForObject(
-                GET_WALLET_AND_COMMISSION_SQL,
-                Map.of(
-                        "email", email,
-                        "operation_type_id", operationType.getType(),
-                        "currency_id", currency.getId(),
-                        "user_role", userRole.getRole()),
-                WalletsAndCommissionsRowMapper.map());
+        try {
+            return jdbcTemplate.queryForObject(
+                    GET_WALLET_AND_COMMISSION_SQL,
+                    Map.of(
+                            "email", email,
+                            "operation_type_id", operationType.getType(),
+                            "currency_id", currency.getId(),
+                            "user_role", userRole.getRole()),
+                    WalletsAndCommissionsRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException("Could not get wallets and commissions");
+        }
     }
 
-    //+
     public BigDecimal getLowestOpenOrderPriceByCurrencyPairAndOperationType(int currencyPairId, int operationTypeId) {
         return jdbcTemplate.queryForObject(
                 GET_LOWEST_OPEN_ORDER_PRICE_BY_CURRENCY_PAIR_AND_OPERATION_TYPE_SQL,
@@ -371,7 +371,6 @@ public class OrderDao {
                 BigDecimal.class);
     }
 
-    //+
     public List<ExOrder> selectTopOrders(Integer currencyPairId,
                                          BigDecimal exrate,
                                          OperationType orderType,
@@ -404,54 +403,58 @@ public class OrderDao {
 
         jdbcTemplate.execute("SET @cumsum := 0", PreparedStatement::execute);
 
-        return jdbcTemplate.query(
-                String.format(SELECT_TOP_ORDERS_SQL, roleJoinClause, exrateClause, sortDirection),
-                Map.of(
-                        "currency_pair_id", currencyPairId,
-                        "exrate", exrate,
-                        "operation_type_id", orderType.getType(),
-                        "acceptor_role_id", userAcceptorRoleId,
-                        "order_base_type", orderBaseType.name()),
-                OrderRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    String.format(SELECT_TOP_ORDERS_SQL, roleJoinClause, exrateClause, sortDirection),
+                    Map.of(
+                            "currency_pair_id", currencyPairId,
+                            "exrate", exrate,
+                            "operation_type_id", orderType.getType(),
+                            "acceptor_role_id", userAcceptorRoleId,
+                            "order_base_type", orderBaseType.name()),
+                    OrderRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 
-    //+
     public boolean lockOrdersListForAcceptance(List<Integer> orderIds) {
         try {
             jdbcTemplate.queryForObject(
                     LOCK_ORDERS_LIST_FOR_ACCEPTANCE_SQL,
                     Map.of("order_ids", orderIds),
                     Integer.class);
-        } catch (Exception ex) {
+        } catch (EmptyResultDataAccessException ex) {
             return false;
         }
         return true;
     }
 
-    //+
     public ExOrder getOrderById(int orderId) {
-        return jdbcTemplate.queryForObject(
-                GET_ORDER_BY_ID_SQL,
-                Map.of("id", orderId),
-                OrderRowMapper.map());
+        try {
+            return jdbcTemplate.queryForObject(
+                    GET_ORDER_BY_ID_SQL,
+                    Map.of("id", orderId),
+                    OrderRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Order with id = %d do not present", orderId));
+        }
     }
 
-    //+
     public boolean updateOrder(ExOrder order) {
-        int result = jdbcTemplate.update(
+        int update = jdbcTemplate.update(
                 UPDATE_ORDER_SQL,
                 Map.of(
                         "user_acceptor_id", order.getUserAcceptorId(),
                         "status_id", order.getStatus().getStatus(),
                         "id", order.getId()));
-        return result > 0;
+        return update > 0;
     }
 
-    //+
     public int createOrder(ExOrder order) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
-        int result = jdbcTemplate.update(
+        int update = jdbcTemplate.update(
                 CREATE_ORDER_SQL,
                 new MapSqlParameterSource()
                         .addValue("user_id", order.getUserId())
@@ -467,10 +470,9 @@ public class OrderDao {
                         .addValue("base_type", order.getOrderBaseType().name()),
                 keyHolder);
 
-        return result <= 0 ? 0 : keyHolder.getKey().intValue();
+        return update <= 0 ? 0 : Objects.requireNonNull(keyHolder.getKey(), "Key should be present").intValue();
     }
 
-    //+
     public boolean setStatus(int orderId, OrderStatus status) {
         int result = jdbcTemplate.update(
                 UPDATE_ORDER_STATUS_SQL,
@@ -481,12 +483,45 @@ public class OrderDao {
     }
 
     public List<ExOrder> getOpenedOrdersByCurrencyPair(Integer userId, String currencyPair) {
-        return jdbcTemplate.query(
-                GET_OPENED_ORDERS_BY_CURRENCY_PAIR_SQL,
-                Map.of(
-                        "user_id", userId,
-                        "currency_pair", currencyPair,
-                        "status_id", OPENED.getStatus()),
-                OrderRowMapper.map());
+        try {
+            return jdbcTemplate.query(
+                    GET_OPENED_ORDERS_BY_CURRENCY_PAIR_SQL,
+                    Map.of(
+                            "user_id", userId,
+                            "currency_pair", currencyPair,
+                            "status_id", OPENED.getStatus()),
+                    OrderRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
+    }
+
+    public List<OpenOrderDto> getOpenOrders(Integer currencyPairId, OrderType orderType) {
+        String orderBySql = orderType == OrderType.SELL ? "ORDER BY o.exrate ASC" : "ORDER BY o.exrate DESC";
+
+        try {
+            return jdbcTemplate.query(
+                    String.format(GET_OPENED_ORDERS_SQL, orderBySql),
+                    Map.of(
+                            "currency_pair_id", currencyPairId,
+                            "status_id", OPENED.getStatus(),
+                            "operation_type_id", orderType.getOperationType().getType()),
+                    OpenOrderRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
+    }
+
+    public List<ExOrder> getAllOpenedOrdersByUserId(Integer userId) {
+        try {
+            return jdbcTemplate.query(
+                    GET_ALL_OPENED_ORDERS_SQL,
+                    Map.of(
+                            "user_id", userId,
+                            "status_id", OPENED.getStatus()),
+                    OrderRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            return emptyList();
+        }
     }
 }

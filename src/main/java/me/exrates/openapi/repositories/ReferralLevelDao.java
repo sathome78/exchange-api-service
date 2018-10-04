@@ -27,9 +27,7 @@ public class ReferralLevelDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public List<ReferralLevel> findAll() {
-
         try {
             return jdbcTemplate.query(
                     FIND_ALL_REFERRAL_LEVELS_SQL,

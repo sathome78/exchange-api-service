@@ -9,8 +9,9 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.HashMap;
 import java.util.Map;
+
+import static java.util.Objects.nonNull;
 
 @Repository
 public class UserDao {
@@ -44,19 +45,6 @@ public class UserDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
-    public String getPreferredLang(int userId) {
-        String sql = "SELECT preferred_lang FROM USER WHERE id = :id";
-        Map<String, Integer> namedParameters = new HashMap<>();
-        namedParameters.put("id", userId);
-        try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, String.class);
-        } catch (EmptyResultDataAccessException e) {
-            return null;
-        }
-    }
-
-    //+
     public User getUserById(int userId) {
         return jdbcTemplate.queryForObject(
                 SELECT_USER_SQL,
@@ -64,7 +52,6 @@ public class UserDao {
                 UserRowMapper.map());
     }
 
-    //+
     public UserRole getUserRoleByEmail(String email) {
         return jdbcTemplate.queryForObject(
                 GET_USER_ROLE_BY_EMAIL_SQL,
@@ -72,7 +59,6 @@ public class UserDao {
                 UserRoleRowMapper.map());
     }
 
-    //+
     public UserRole getUserRoleById(Integer id) {
         return jdbcTemplate.queryForObject(
                 GET_USER_ROLE_BY_ID_SQL,
@@ -80,7 +66,6 @@ public class UserDao {
                 UserRoleRowMapper.map());
     }
 
-    //+
     public String getEmailById(Integer id) {
         return jdbcTemplate.queryForObject(
                 GET_EMAIL_BY_ID_SQL,
@@ -88,13 +73,13 @@ public class UserDao {
                 String.class);
     }
 
-    //+
     public int getIdByEmail(String email) {
         try {
-            return jdbcTemplate.queryForObject(
+            Integer userId = jdbcTemplate.queryForObject(
                     GET_ID_BY_EMAIL_SQL,
                     Map.of("email", email),
                     Integer.class);
+            return nonNull(userId) ? userId : 0;
         } catch (EmptyResultDataAccessException ex) {
             return 0;
         }

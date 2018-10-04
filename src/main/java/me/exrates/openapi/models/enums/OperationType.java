@@ -2,7 +2,6 @@ package me.exrates.openapi.models.enums;
 
 import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,12 +20,7 @@ public enum OperationType {
 
     INPUT(1, REFILL) {{
         /*Addition of three digits is required for IDR input*/
-        currencyForAddRandomValueToAmount.put(10, AdditionalRandomAmountParam.builder()
-                .currencyName("IDR")
-                .lowBound(100)
-                .highBound(999)
-                .build()
-        );
+        currencyForAddRandomValueToAmount.put(10, new AdditionalRandomAmountParam("IDR", 100, 999));
     }},
     OUTPUT(2, WITHDRAW),
     SELL(3),
@@ -81,7 +75,6 @@ public enum OperationType {
     }
 
     @Data
-    @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     public class AdditionalRandomAmountParam {

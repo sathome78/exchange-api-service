@@ -9,13 +9,18 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Repository
 public class ReferralTransactionDao {
 
-    final String sql = "INSERT INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id) VALUES (:initiatorId, :userId, :orderId, :refLevelId)";
+    private static final String CREATE_REFERRAL_TRANSACTION_SQL = "INSERT INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id)" +
+            " VALUES (:initiatorId, :userId, :orderId, :refLevelId)";
+
+    private static final String SET_REFERRAL_TRANSACTION_STATUS_SQL = "UPDATE REFERRAL_TRANSACTION rt" +
+            " SET rt.status = :status" +
+            " WHERE rt.id = :transaction_id";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -24,29 +29,31 @@ public class ReferralTransactionDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
-    public void setRefTransactionStatus(ReferralTransactionStatus status, int refTransactionId) {
-        String sql = "UPDATE REFERRAL_TRANSACTION " +
-                " SET status = :status" +
-                " WHERE id = :transaction_id ";
-        Map<String, Object> params = new HashMap<String, Object>() {{
-            put("transaction_id", refTransactionId);
-            put("status", status.name());
-        }};
-        boolean res = jdbcTemplate.update(sql, params) > 0;
-        if (!res) throw new RuntimeException("error change status to ref transaction " + refTransactionId);
+    public ReferralTransaction create(final ReferralTransaction referralTransaction) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        jdbcTemplate.update(
+                CREATE_REFERRAL_TRANSACTION_SQL,
+                new MapSqlParameterSource(
+                        Map.of(
+                                "initiatorId", referralTransaction.getInitiatorId(),
+                                "userId", referralTransaction.getUserId(),
+                                "orderId", referralTransaction.getOrder().getId(),
+                                "refLevelId", referralTransaction.getReferralLevel().getId())),
+                keyHolder);
+
+        referralTransaction.setId(Objects.requireNonNull(keyHolder.getKey(), "Key should be present").intValue());
+        return referralTransaction;
     }
 
-    //+
-    public ReferralTransaction create(final ReferralTransaction referralTransaction) {
-        final Map<String, Integer> params = new HashMap<>();
-        final KeyHolder keyHolder = new GeneratedKeyHolder();
-        params.put("initiatorId", referralTransaction.getInitiatorId());
-        params.put("userId", referralTransaction.getUserId());
-        params.put("orderId", referralTransaction.getOrder().getId());
-        params.put("refLevelId", referralTransaction.getReferralLevel().getId());
-        jdbcTemplate.update(sql, new MapSqlParameterSource(params), keyHolder);
-        referralTransaction.setId(keyHolder.getKey().intValue());
-        return referralTransaction;
+    public void setRefTransactionStatus(int refTransactionId) {
+        int update = jdbcTemplate.update(
+                SET_REFERRAL_TRANSACTION_STATUS_SQL,
+                Map.of(
+                        "transaction_id", refTransactionId,
+                        "status", ReferralTransactionStatus.DELETED.name()));
+        if (update <= 0) {
+            throw new RuntimeException("Error change status to referral transaction: " + refTransactionId);
+        }
     }
 }

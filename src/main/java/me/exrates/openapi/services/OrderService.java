@@ -838,7 +838,7 @@ public class OrderService {
                         .build();
 
                 walletTransferStatus = walletService.walletBalanceChange(walletOperationData);
-                referralService.setRefTransactionStatus(ReferralTransactionStatus.DELETED, transaction.getSourceId());
+                referralService.setRefTransactionStatus(transaction.getSourceId());
                 companyWalletService.substractCommissionBalanceById(transaction.getCompanyWallet().getId(), transaction.getAmount().negate());
             } catch (Exception ex) {
                 log.error("Error unprocessable ref transactions", ex);
@@ -1026,6 +1026,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OpenOrderDto> getOpenOrders(String pairName, OrderType orderType) {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(pairName);
+
         return orderDao.getOpenOrders(currencyPairId, orderType);
     }
 

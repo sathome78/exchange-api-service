@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @Data
 @Builder(builderClassName = "Builder")
 @AllArgsConstructor
-@NoArgsConstructor
 public class StopOrder {
 
     private int id;

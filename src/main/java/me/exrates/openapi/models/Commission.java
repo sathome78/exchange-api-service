@@ -13,7 +13,6 @@ import java.util.Date;
 @Data
 @Builder(builderClassName = "Builder")
 @AllArgsConstructor
-@NoArgsConstructor
 public class Commission {
 
     private int id;

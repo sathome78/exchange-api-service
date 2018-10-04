@@ -61,12 +61,6 @@ public class ReferralService {
     }
 
     //+
-    @Transactional
-    public void setRefTransactionStatus(ReferralTransactionStatus status, int refTransactionId) {
-        referralTransactionDao.setRefTransactionStatus(status, refTransactionId);
-    }
-
-    //+
     @Transactional(propagation = Propagation.MANDATORY)
     public void processReferral(ExOrder order,
                                 BigDecimal commissionAmount,
@@ -120,5 +114,11 @@ public class ReferralService {
                 break;
             }
         }
+    }
+
+    //+
+    @Transactional
+    public void setRefTransactionStatus(int refTransactionId) {
+        referralTransactionDao.setRefTransactionStatus(refTransactionId);
     }
 }

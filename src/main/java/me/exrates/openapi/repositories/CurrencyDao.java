@@ -7,10 +7,10 @@ import me.exrates.openapi.repositories.mappers.CurrencyPairInfoItemRowMapper;
 import me.exrates.openapi.repositories.mappers.CurrencyPairLimitRowMapper;
 import me.exrates.openapi.repositories.mappers.CurrencyPairRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +41,7 @@ public class CurrencyDao {
             " AND cpl.user_role_id = :user_role_id" +
             " AND cpl.order_type_id = :order_type_id";
 
-    private static final String FIND_CURRENCY_PAIR_BY_ORDER_ID_SQL = "SELECT cp.id, cp.currency1_id, cp.currency2_id, o.name, o.type, cp.market, " +
+    private static final String FIND_CURRENCY_PAIR_BY_ORDER_ID_SQL = "SELECT cp.id, cp.currency1_id, cp.currency2_id, cp.name, cp.type, cp.market, " +
             "(SELECT c.name from CURRENCY c where c.id = cp.currency1_id) as currency1_name, " +
             "(SELECT c.name from CURRENCY c where c.id = cp.currency2_id) as currency2_name " +
             " FROM EXORDERS o" +
@@ -55,50 +55,65 @@ public class CurrencyDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
-    public Integer findActiveCurrencyPairIdByName(String pairName) {
-        Map<String, Object> params = Collections.singletonMap("pair_name", pairName);
-
-        return jdbcTemplate.queryForObject(FIND_ACTIVE_CURRENCY_PAIR_ID_BY_NAME_SQL, params, Integer.class);
-    }
-
-    //+
     public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
         return jdbcTemplate.query(FIND_ACTIVE_CURRENCY_PAIRS_SQL, CurrencyPairInfoItemRowMapper.map());
     }
 
-    //+
-    public CurrencyPair findCurrencyPairByName(String currencyPairName) {
-        return jdbcTemplate.queryForObject(
-                FIND_CURRENCY_PAIR_BY_NAME_SQL,
-                Map.of("currencyPairName", currencyPairName),
-                CurrencyPairRowMapper.map());
+    public CurrencyPair findCurrencyPairByName(String pairName) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    FIND_CURRENCY_PAIR_BY_NAME_SQL,
+                    Map.of("currencyPairName", pairName),
+                    CurrencyPairRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Currency with pairName = %s do not present", pairName));
+        }
     }
 
-    //+
-    public CurrencyPair findCurrencyPairById(int currencyPairId) {
-        return jdbcTemplate.queryForObject(
-                FIND_CURRENCY_PAIR_BY_ID_SQL,
-                Map.of("currencyPairId", currencyPairId),
-                CurrencyPairRowMapper.map());
+    public CurrencyPair findCurrencyPairById(int pairId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    FIND_CURRENCY_PAIR_BY_ID_SQL,
+                    Map.of("currencyPairId", pairId),
+                    CurrencyPairRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Currency with pairId = %d do not present", pairId));
+        }
     }
 
-    //+
-    public CurrencyPairLimitDto findCurrencyPairLimitForRoleByPairAndType(Integer currencyPairId, Integer roleId, Integer orderTypeId) {
-        return jdbcTemplate.queryForObject(
-                FIND_CURRENCY_PAIR_LIMIT_FOR_ROLE_BY_PAIR_AND_TYPE_SQL,
-                Map.of(
-                        "currency_pair_id", currencyPairId,
-                        "user_role_id", roleId,
-                        "order_type_id", orderTypeId),
-                CurrencyPairLimitRowMapper.map());
+    public CurrencyPairLimitDto findCurrencyPairLimitForRoleByPairAndType(Integer pairId, Integer roleId, Integer orderTypeId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    FIND_CURRENCY_PAIR_LIMIT_FOR_ROLE_BY_PAIR_AND_TYPE_SQL,
+                    Map.of(
+                            "currency_pair_id", pairId,
+                            "user_role_id", roleId,
+                            "order_type_id", orderTypeId),
+                    CurrencyPairLimitRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Currency with pairId = %d, roleId = %s, orderTypeId = %d do not present", pairId, roleId, orderTypeId));
+        }
     }
 
-    //+
     public CurrencyPair findCurrencyPairByOrderId(int orderId) {
-        return jdbcTemplate.queryForObject(
-                FIND_CURRENCY_PAIR_BY_ORDER_ID_SQL,
-                Map.of("order_id", orderId),
-                CurrencyPairRowMapper.map());
+        try {
+            return jdbcTemplate.queryForObject(
+                    FIND_CURRENCY_PAIR_BY_ORDER_ID_SQL,
+                    Map.of("order_id", orderId),
+                    CurrencyPairRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Currency with orderId = %d do not present", orderId));
+        }
+    }
+
+    public Integer findActiveCurrencyPairIdByName(String pairName) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    FIND_ACTIVE_CURRENCY_PAIR_ID_BY_NAME_SQL,
+                    Map.of("pair_name", pairName),
+                    Integer.class);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Active currency with pairName = %s do not present", pairName));
+        }
     }
 }

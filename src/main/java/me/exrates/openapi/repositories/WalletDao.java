@@ -1,7 +1,11 @@
 package me.exrates.openapi.repositories;
 
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.models.*;
+import me.exrates.openapi.models.CompanyWallet;
+import me.exrates.openapi.models.Currency;
+import me.exrates.openapi.models.CurrencyPair;
+import me.exrates.openapi.models.Transaction;
+import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.dto.OrderDetailDto;
 import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
 import me.exrates.openapi.models.dto.WalletsForOrderCancelDto;
@@ -11,7 +15,12 @@ import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
 import me.exrates.openapi.models.enums.WalletTransferStatus;
 import me.exrates.openapi.models.vo.WalletOperationData;
-import me.exrates.openapi.repositories.mappers.*;
+import me.exrates.openapi.repositories.mappers.CompanyWalletRowMapper;
+import me.exrates.openapi.repositories.mappers.OrderDetailRowMapper;
+import me.exrates.openapi.repositories.mappers.WalletBalanceRowMapper;
+import me.exrates.openapi.repositories.mappers.WalletRowMapper;
+import me.exrates.openapi.repositories.mappers.WalletsForOrderAcceptionRowMapper;
+import me.exrates.openapi.repositories.mappers.WalletsForOrderCancelRowMapper;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -22,12 +31,12 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 import static me.exrates.openapi.models.enums.OperationType.SELL;
 
 @Slf4j
@@ -125,28 +134,34 @@ public class WalletDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public List<WalletBalanceDto> getUserBalances(String userEmail) {
-        return jdbcTemplate.query(GET_USER_BALANCES_SQL, Collections.singletonMap("email", userEmail), WalletBalanceRowMapper.map());
+        return jdbcTemplate.query(
+                GET_USER_BALANCES_SQL,
+                Map.of("email", userEmail),
+                WalletBalanceRowMapper.map());
     }
 
-    //+
     public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
         CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
 
         String acceptorId = isNull(userAcceptorId) ? "o.user_acceptor_id" : ":user_acceptor_id";
 
-        return jdbcTemplate.queryForObject(String.format(
-                GET_WALLETS_FOR_ORDER_BY_ORDER_ID_AND_BLOCK_SQL, acceptorId, acceptorId),
-                Map.of(
-                        "order_id", orderId,
-                        "currency1_id", currencyPair.getCurrency1().getId(),
-                        "currency2_id", currencyPair.getCurrency2().getId(),
-                        "user_acceptor_id", userAcceptorId),
-                WalletsForOrderAcceptionRowMapper.map(currencyPair));
+        WalletsForOrderAcceptionDto walletsForOrderAcceptionDto;
+        try {
+            walletsForOrderAcceptionDto = jdbcTemplate.queryForObject(
+                    String.format(GET_WALLETS_FOR_ORDER_BY_ORDER_ID_AND_BLOCK_SQL, acceptorId, acceptorId),
+                    Map.of(
+                            "order_id", orderId,
+                            "currency1_id", currencyPair.getCurrency1().getId(),
+                            "currency2_id", currencyPair.getCurrency2().getId(),
+                            "user_acceptor_id", userAcceptorId),
+                    WalletsForOrderAcceptionRowMapper.map(currencyPair));
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Wallet not found [orderId: %s, userAcceptorId: %s]", orderId, userAcceptorId));
+        }
+        return walletsForOrderAcceptionDto;
     }
 
-    //+
     public int createNewWallet(Wallet wallet) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         int update = jdbcTemplate.update(
@@ -160,7 +175,6 @@ public class WalletDao {
         return update <= 0 ? 0 : Objects.requireNonNull(keyHolder.getKey()).intValue();
     }
 
-    //+
     public WalletTransferStatus walletInnerTransfer(int walletId,
                                                     BigDecimal amount,
                                                     TransactionSourceType sourceType,
@@ -176,8 +190,10 @@ public class WalletDao {
             return WalletTransferStatus.WALLET_NOT_FOUND;
         }
 
-        BigDecimal newActiveBalance = BigDecimalProcessingUtil.doAction(wallet.getActiveBalance(), amount, ActionType.ADD);
-        BigDecimal newReservedBalance = BigDecimalProcessingUtil.doAction(wallet.getReservedBalance(), amount, ActionType.SUBTRACT);
+        Wallet checkedWallet = Objects.requireNonNull(wallet, "Wallet could not be null");
+
+        BigDecimal newActiveBalance = BigDecimalProcessingUtil.doAction(checkedWallet.getActiveBalance(), amount, ActionType.ADD);
+        BigDecimal newReservedBalance = BigDecimalProcessingUtil.doAction(checkedWallet.getReservedBalance(), amount, ActionType.SUBTRACT);
 
         if (newActiveBalance.compareTo(BigDecimal.ZERO) < 0 || newReservedBalance.compareTo(BigDecimal.ZERO) < 0) {
             log.error("Negative balance: active {}, reserved {}",
@@ -198,17 +214,17 @@ public class WalletDao {
 
         Transaction transaction = Transaction.builder()
                 .operationType(OperationType.WALLET_INNER_TRANSFER)
-                .userWallet(wallet)
+                .userWallet(checkedWallet)
                 .companyWallet(null)
                 .amount(amount)
                 .commissionAmount(BigDecimal.ZERO)
                 .commission(null)
                 .currency(Currency.builder()
-                        .id(wallet.getCurrencyId())
+                        .id(checkedWallet.getCurrencyId())
                         .build())
                 .provided(true)
-                .activeBalanceBefore(wallet.getActiveBalance())
-                .reservedBalanceBefore(wallet.getReservedBalance())
+                .activeBalanceBefore(checkedWallet.getActiveBalance())
+                .reservedBalanceBefore(checkedWallet.getReservedBalance())
                 .companyBalanceBefore(null)
                 .companyCommissionBalanceBefore(null)
                 .sourceType(sourceType)
@@ -224,7 +240,6 @@ public class WalletDao {
         return WalletTransferStatus.SUCCESS;
     }
 
-    //+
     public WalletTransferStatus walletBalanceChange(WalletOperationData walletOperationData) {
         BigDecimal amount = walletOperationData.getAmount();
         if (walletOperationData.getOperationType() == OperationType.OUTPUT) {
@@ -247,14 +262,17 @@ public class WalletDao {
             return WalletTransferStatus.WALLET_NOT_FOUND;
         }
 
+        Wallet checkedWallet = Objects.requireNonNull(wallet, "Wallet could not be null");
+        CompanyWallet checkedCompanyWallet = Objects.requireNonNull(companyWallet, "Company wallet could not be null");
+
         BigDecimal newActiveBalance;
         BigDecimal newReservedBalance;
         if (walletOperationData.getBalanceType() == WalletOperationData.BalanceType.ACTIVE) {
-            newActiveBalance = BigDecimalProcessingUtil.doAction(wallet.getActiveBalance(), amount, ActionType.ADD);
-            newReservedBalance = wallet.getReservedBalance();
+            newActiveBalance = BigDecimalProcessingUtil.doAction(checkedWallet.getActiveBalance(), amount, ActionType.ADD);
+            newReservedBalance = checkedWallet.getReservedBalance();
         } else {
-            newActiveBalance = wallet.getActiveBalance();
-            newReservedBalance = BigDecimalProcessingUtil.doAction(wallet.getReservedBalance(), amount, ActionType.ADD);
+            newActiveBalance = checkedWallet.getActiveBalance();
+            newReservedBalance = BigDecimalProcessingUtil.doAction(checkedWallet.getReservedBalance(), amount, ActionType.ADD);
         }
         if (newActiveBalance.compareTo(BigDecimal.ZERO) < 0 || newReservedBalance.compareTo(BigDecimal.ZERO) < 0) {
             log.error("Negative balance: active {}, reserved {}",
@@ -276,17 +294,17 @@ public class WalletDao {
         if (isNull(walletOperationData.getTransaction())) {
             Transaction transaction = Transaction.builder()
                     .operationType(walletOperationData.getOperationType())
-                    .userWallet(wallet)
-                    .companyWallet(companyWallet)
+                    .userWallet(checkedWallet)
+                    .companyWallet(checkedCompanyWallet)
                     .amount(walletOperationData.getAmount())
                     .commissionAmount(walletOperationData.getCommissionAmount())
                     .commission(walletOperationData.getCommission())
-                    .currency(companyWallet.getCurrency())
+                    .currency(checkedCompanyWallet.getCurrency())
                     .provided(true)
-                    .activeBalanceBefore(wallet.getActiveBalance())
-                    .reservedBalanceBefore(wallet.getReservedBalance())
-                    .companyBalanceBefore(companyWallet.getBalance())
-                    .companyCommissionBalanceBefore(companyWallet.getCommissionBalance())
+                    .activeBalanceBefore(checkedWallet.getActiveBalance())
+                    .reservedBalanceBefore(checkedWallet.getReservedBalance())
+                    .companyBalanceBefore(checkedCompanyWallet.getBalance())
+                    .companyCommissionBalanceBefore(checkedCompanyWallet.getCommissionBalance())
                     .sourceType(walletOperationData.getSourceType())
                     .sourceId(walletOperationData.getSourceId())
                     .description(walletOperationData.getDescription())
@@ -301,12 +319,12 @@ public class WalletDao {
         } else {
             Transaction transaction = walletOperationData.getTransaction().toBuilder()
                     .provided(true)
-                    .userWallet(wallet)
-                    .companyWallet(companyWallet)
-                    .activeBalanceBefore(wallet.getActiveBalance())
-                    .reservedBalanceBefore(wallet.getReservedBalance())
-                    .companyBalanceBefore(companyWallet.getBalance())
-                    .companyCommissionBalanceBefore(companyWallet.getCommissionBalance())
+                    .userWallet(checkedWallet)
+                    .companyWallet(checkedCompanyWallet)
+                    .activeBalanceBefore(checkedWallet.getActiveBalance())
+                    .reservedBalanceBefore(checkedWallet.getReservedBalance())
+                    .companyBalanceBefore(checkedCompanyWallet.getBalance())
+                    .companyCommissionBalanceBefore(checkedCompanyWallet.getCommissionBalance())
                     .sourceType(walletOperationData.getSourceType())
                     .sourceId(walletOperationData.getSourceId())
                     .build();
@@ -321,21 +339,20 @@ public class WalletDao {
         return WalletTransferStatus.SUCCESS;
     }
 
-    //+
     public int getWalletId(int userId, int currencyId) {
         try {
-            return jdbcTemplate.queryForObject(
+            Integer walletId = jdbcTemplate.queryForObject(
                     GET_WALLET_ID_SQL,
                     Map.of(
                             "userId", userId,
                             "currencyId", currencyId),
                     Integer.class);
-        } catch (EmptyResultDataAccessException e) {
+            return nonNull(walletId) ? walletId : 0;
+        } catch (EmptyResultDataAccessException ex) {
             return 0;
         }
     }
 
-    //+
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
         CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
 
@@ -348,7 +365,6 @@ public class WalletDao {
                 OrderDetailRowMapper.map());
     }
 
-    //+
     public BigDecimal getWalletABalance(int walletId) {
         try {
             return jdbcTemplate.queryForObject(
@@ -356,13 +372,13 @@ public class WalletDao {
                     Map.of("walletId", walletId == 0 ? BigDecimal.ZERO : walletId),
                     BigDecimal.class);
         } catch (EmptyResultDataAccessException ex) {
-            return null;
+            return BigDecimal.ZERO;
         }
     }
 
-    //+
     public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
         CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
+
         try {
             return jdbcTemplate.queryForObject(
                     GET_WALLET_FOR_ORDER_BY_ORDER_ID_AND_OPERATION_TYPE_AND_BLOCK_SQL,

@@ -3,7 +3,16 @@ package me.exrates.openapi.repositories.mappers;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.models.*;
+import me.exrates.openapi.models.Commission;
+import me.exrates.openapi.models.CompanyWallet;
+import me.exrates.openapi.models.Currency;
+import me.exrates.openapi.models.ExOrder;
+import me.exrates.openapi.models.Merchant;
+import me.exrates.openapi.models.RefillRequest;
+import me.exrates.openapi.models.Transaction;
+import me.exrates.openapi.models.User;
+import me.exrates.openapi.models.Wallet;
+import me.exrates.openapi.models.WithdrawRequest;
 import me.exrates.openapi.models.dto.TransactionDto;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
@@ -117,79 +126,83 @@ public class TransactionRowMapper {
 
             RefillRequest refill = null;
             try {
-                resultSet.findColumn("REFILL_REQUEST.id");
-                if (resultSet.getObject("REFILL_REQUEST.id") != null) {
-                    refill = new RefillRequest();
-                    refill.setId(resultSet.getInt("REFILL_REQUEST.id"));
-                    refill.setUserId(resultSet.getInt("REFILL_REQUEST.user_id"));
-                    refill.setRemark(resultSet.getString("REFILL_REQUEST.remark"));
-                    refill.setAmount(resultSet.getBigDecimal("REFILL_REQUEST.amount"));
-                    refill.setCommissionId(resultSet.getInt("REFILL_REQUEST.commission_id"));
-                    refill.setStatus(RefillStatus.convert(resultSet.getInt("REFILL_REQUEST.status_id")));
-                    refill.setDateCreation(resultSet.getTimestamp("REFILL_REQUEST.date_creation").toLocalDateTime());
-                    refill.setStatusModificationDate(resultSet.getTimestamp("REFILL_REQUEST.status_modification_date").toLocalDateTime());
-                    refill.setCurrencyId(resultSet.getInt("REFILL_REQUEST.currency_id"));
-                    refill.setMerchantId(resultSet.getInt("REFILL_REQUEST.merchant_id"));
-                    refill.setMerchantTransactionId(resultSet.getString("REFILL_REQUEST.merchant_transaction_id"));
-                    refill.setRecipientBankName(resultSet.getString("INVOICE_BANK.name"));
-                    refill.setRecipientBankAccount(resultSet.getString("INVOICE_BANK.account_number"));
-                    refill.setRecipientBankRecipient(resultSet.getString("INVOICE_BANK.recipient"));
-                    refill.setAdminHolderId(resultSet.getInt("REFILL_REQUEST.admin_holder_id"));
-                    refill.setConfirmations(resultSet.getInt("confirmations"));
-                    /**/
-                    refill.setAddress(resultSet.getString("RRA.address"));
-                    /**/
-                    refill.setPayerBankName(resultSet.getString("RRP.payer_bank_name"));
-                    refill.setPayerBankCode(resultSet.getString("RRP.payer_bank_code"));
-                    refill.setPayerAccount(resultSet.getString("RRP.payer_account"));
-                    refill.setRecipientBankAccount(resultSet.getString("RRP.payer_account"));
-                    refill.setUserFullName(resultSet.getString("RRP.user_full_name"));
-                    refill.setReceiptScan(resultSet.getString("RRP.receipt_scan"));
-                    refill.setReceiptScanName(resultSet.getString("RRP.receipt_scan_name"));
-                    refill.setRecipientBankId(resultSet.getInt("RRP.recipient_bank_id"));
+                resultSet.findColumn("rr.id");
+                if (resultSet.getObject("rr.id") != null) {
+                    refill = RefillRequest.builder()
+                            .id(resultSet.getInt("rr.id"))
+                            .userId(resultSet.getInt("rr.user_id"))
+                            .remark(resultSet.getString("rr.remark"))
+                            .amount(resultSet.getBigDecimal("rr.amount"))
+                            .commissionId(resultSet.getInt("rr.commission_id"))
+                            .status(RefillStatus.convert(resultSet.getInt("rr.status_id")))
+                            .dateCreation(resultSet.getTimestamp("rr.date_creation").toLocalDateTime())
+                            .statusModificationDate(resultSet.getTimestamp("rr.status_modification_date").toLocalDateTime())
+                            .currencyId(resultSet.getInt("rr.currency_id"))
+                            .merchantId(resultSet.getInt("rr.merchant_id"))
+                            .merchantTransactionId(resultSet.getString("rr.merchant_transaction_id"))
+                            .recipientBankName(resultSet.getString("ib.name"))
+                            .recipientBankAccount(resultSet.getString("ib.account_number"))
+                            .recipientBankRecipient(resultSet.getString("ib.recipient"))
+                            .adminHolderId(resultSet.getInt("rr.admin_holder_id"))
+                            .confirmations(resultSet.getInt("confirmations"))
+
+                            .address(resultSet.getString("rra.address"))
+
+                            .payerBankName(resultSet.getString("rrp.payer_bank_name"))
+                            .payerBankCode(resultSet.getString("rrp.payer_bank_code"))
+                            .payerAccount(resultSet.getString("rrp.payer_account"))
+                            .recipientBankAccount(resultSet.getString("rrp.payer_account"))
+                            .userFullName(resultSet.getString("rrp.user_full_name"))
+                            .receiptScan(resultSet.getString("rrp.receipt_scan"))
+                            .receiptScanName(resultSet.getString("rrp.receipt_scan_name"))
+                            .recipientBankId(resultSet.getInt("rrp.recipient_bank_id"))
+                            .build();
                 }
-            } catch (SQLException e) {
-                //NOP
+            } catch (SQLException ex) {
+                log.warn("Refill request not exist", ex);
             }
 
             Commission commission = null;
             try {
-                resultSet.findColumn("COMMISSION.id");
-                commission = new Commission();
-                commission.setId(resultSet.getInt("COMMISSION.id"));
-                commission.setOperationType(operationType);
-                commission.setValue(resultSet.getBigDecimal("COMMISSION.value"));
-                commission.setDateOfChange(resultSet.getTimestamp("COMMISSION.date"));
-            } catch (SQLException e) {
-                //NOP
+                resultSet.findColumn("com.id");
+                commission = Commission.builder()
+                        .id(resultSet.getInt("com.id"))
+                        .operationType(operationType)
+                        .value(resultSet.getBigDecimal("com.value"))
+                        .dateOfChange(resultSet.getTimestamp("com.date"))
+                        .build();
+            } catch (SQLException ex) {
+                log.warn("Commission not exist", ex);
             }
 
             CompanyWallet companyWallet = null;
             try {
-                resultSet.findColumn("COMPANY_WALLET.id");
-                companyWallet = new CompanyWallet();
-                companyWallet.setBalance(resultSet.getBigDecimal("COMPANY_WALLET.balance"));
-                companyWallet.setCommissionBalance(resultSet.getBigDecimal("COMPANY_WALLET.commission_balance"));
-                companyWallet.setCurrency(currency);
-                companyWallet.setId(resultSet.getInt("COMPANY_WALLET.id"));
-            } catch (SQLException e) {
-                //NOP
+                resultSet.findColumn("cw.id");
+                companyWallet = CompanyWallet.builder()
+                        .id(resultSet.getInt("cw.id"))
+                        .balance(resultSet.getBigDecimal("cw.balance"))
+                        .commissionBalance(resultSet.getBigDecimal("cw.commission_balance"))
+                        .currency(currency)
+                        .build();
+            } catch (SQLException ex) {
+                log.warn("Company wallet not exist", ex);
             }
 
             Wallet userWallet = null;
             try {
-                resultSet.findColumn("WALLET.id");
-                userWallet = new Wallet();
-                userWallet.setActiveBalance(resultSet.getBigDecimal("WALLET.active_balance"));
-                userWallet.setReservedBalance(resultSet.getBigDecimal("WALLET.reserved_balance"));
-                userWallet.setId(resultSet.getInt("WALLET.id"));
-                userWallet.setCurrencyId(currency.getId());
-                User user = new User();
-                user.setId(resultSet.getInt("user_id"));
-                user.setEmail(resultSet.getString("user_email"));
-                userWallet.setUser(user);
-            } catch (SQLException e) {
-                //NOP
+                resultSet.findColumn("w.id");
+                userWallet = Wallet.builder()
+                        .id(resultSet.getInt("w.id"))
+                        .activeBalance(resultSet.getBigDecimal("w.active_balance"))
+                        .reservedBalance(resultSet.getBigDecimal("w.reserved_balance"))
+                        .currencyId(currency.getId())
+                        .user(User.builder()
+                                .id(resultSet.getInt("user_id"))
+                                .email(resultSet.getString("user_email"))
+                                .build())
+                        .build();
+            } catch (SQLException ex) {
+                log.warn("Wallet not exist", ex);
             }
 
             return Transaction.builder()

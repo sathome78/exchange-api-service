@@ -19,11 +19,11 @@ import static java.util.Objects.isNull;
 public class TransactionDao {
 
     private static final String CREATE_TRANSACTION_SQL = "INSERT INTO TRANSACTION (user_wallet_id, company_wallet_id, amount, " +
-            "commission_amount, commission_id, operation_type_id, currency_id, merchant_id, datetime, order_id, confirmation, " +
+            "commission_amount, commission_id, operation_type_id, currency_id, merchant_id, datetime, confirmation, " +
             "provided, active_balance_before, reserved_balance_before, company_balance_before, company_commission_balance_before, " +
             "source_type, source_id, description)" +
             " VALUES (:userWallet, :companyWallet, :amount, :commissionAmount, :commission, :operationType, :currency, :merchant, " +
-            ":datetime, :order_id, :confirmation, :provided, :active_balance_before, :reserved_balance_before, :company_balance_before, " +
+            ":datetime, :confirmation, :provided, :active_balance_before, :reserved_balance_before, :company_balance_before, " +
             ":company_commission_balance_before, :source_type, :source_id, :description)";
 
     private static final String UPDATE_TRANSACTION_SQL = "UPDATE TRANSACTION t" +
@@ -65,7 +65,6 @@ public class TransactionDao {
                     put("currency", transaction.getCurrency().getId());
                     put("merchant", isNull(transaction.getMerchant()) ? null : transaction.getMerchant().getId());
                     put("datetime", isNull(transaction.getDatetime()) ? null : Timestamp.valueOf(transaction.getDatetime()));
-                    put("order_id", isNull(transaction.getOrder()) ? null : transaction.getOrder().getId());
                     put("confirmation", transaction.getConfirmation());
                     put("provided", transaction.isProvided());
                     put("active_balance_before", transaction.getActiveBalanceBefore());
@@ -77,9 +76,12 @@ public class TransactionDao {
                     put("description", transaction.getDescription());
                 }
             };
-            jdbcTemplate.update(
+            int update = jdbcTemplate.update(
                     CREATE_TRANSACTION_SQL,
                     params);
+            if (update <= 0) {
+                log.debug("Transaction have not created");
+            }
         } catch (Exception ex) {
             log.error("Something happened wrong", ex);
         }
@@ -88,7 +90,7 @@ public class TransactionDao {
 
     public void updateForProvided(Transaction transaction) {
         try {
-            jdbcTemplate.update(
+            int update = jdbcTemplate.update(
                     UPDATE_TRANSACTION_SQL,
                     Map.of(
                             "provided", 1,
@@ -99,13 +101,15 @@ public class TransactionDao {
                             "company_commission_balance_before", transaction.getCompanyCommissionBalanceBefore(),
                             "source_type", transaction.getSourceType().name(),
                             "source_id", transaction.getSourceId()));
+            if (update <= 0) {
+                log.debug("Transaction have not updated");
+            }
         } catch (Exception ex) {
             log.error("Something happened wrong", ex);
         }
         throw new RuntimeException("Process of update transaction failed");
     }
 
-    //+
     public List<Transaction> getPayedRefTransactionsByOrderId(int orderId) {
         return jdbcTemplate.query(
                 GET_PAYED_REF_TRANSACTIONS_BY_ORDER_ID_SQL,
@@ -113,13 +117,15 @@ public class TransactionDao {
                 TransactionRowMapper.fullMap());
     }
 
-    //+
     public boolean setStatusById(Integer trasactionId, Integer statusId) {
         int update = jdbcTemplate.update(
                 UPDATE_STATUS_ID_SQL,
                 Map.of(
                         "transaction_id", trasactionId,
                         "status_id", statusId));
+        if (update <= 0) {
+            log.debug("Transaction have not updated");
+        }
         return update > 0;
     }
 }

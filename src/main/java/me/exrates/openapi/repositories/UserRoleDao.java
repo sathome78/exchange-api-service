@@ -27,15 +27,13 @@ public class UserRoleDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public Boolean isOrderAcceptanceAllowedForUser(Integer userId) {
         return jdbcTemplate.queryForObject(
                 IS_ORDER_ACCEPTANCE_ALLOWED_FOR_USER_SQL,
                 Map.of("user_id", userId),
                 Boolean.class);
     }
-
-    //+
+ 
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
         return jdbcTemplate.queryForObject(
                 RETRIEVE_SETTINGS_FOR_ROLE_SQL,

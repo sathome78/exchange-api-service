@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 @ToString(exclude = {"user"})
 @Builder(builderClassName = "Builder")
 @AllArgsConstructor
-@NoArgsConstructor
 public class Wallet {
 
     private int id;

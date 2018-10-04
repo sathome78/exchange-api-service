@@ -1,5 +1,6 @@
 package me.exrates.openapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.dto.AlertDto;
 import me.exrates.openapi.models.enums.AlertType;
 import me.exrates.openapi.repositories.UserAlertsDao;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 public class UsersAlertsService {
 
@@ -25,23 +27,26 @@ public class UsersAlertsService {
         AlertType alertType = AlertType.UPDATE;
         AlertDto alertDto = getAlert(AlertType.UPDATE);
         if (alertDto.isEnabled() && alertDto.getEventStart().isBefore(LocalDateTime.now())) {
-            disableAlert(alertType);
+            if (disableAlert(alertType)) {
+                log.debug("Alert disabled");
+            }
         }
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public AlertDto getAlert(AlertType alertType) {
         return userAlertsDao.getAlert(alertType.name());
     }
 
-    private void disableAlert(AlertType alertType) {
-        userAlertsDao.updateAlert(AlertDto
-                .builder()
+    private boolean disableAlert(AlertType alertType) {
+        AlertDto alertDto = AlertDto.builder()
                 .alertType(alertType.name())
                 .lenghtOfWorks(null)
                 .eventStart(null)
                 .launchDateTime(null)
                 .enabled(false)
-                .build());
+                .build();
+
+        return userAlertsDao.updateAlert(alertDto);
     }
 }

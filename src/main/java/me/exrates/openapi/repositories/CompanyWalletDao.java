@@ -1,7 +1,6 @@
 package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.CompanyWallet;
-import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.repositories.mappers.CompanyWalletRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -33,7 +32,6 @@ public class CompanyWalletDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public boolean update(CompanyWallet companyWallet) {
         int update = jdbcTemplate.update(
                 UPDATE_COMPANY_WALLET,
@@ -44,19 +42,17 @@ public class CompanyWalletDao {
         return update > 0;
     }
 
-    //+
-    public CompanyWallet findByCurrencyId(Currency currency) {
+    public CompanyWallet findByCurrencyId(int currencyId) {
         try {
             return jdbcTemplate.queryForObject(
                     FIND_BY_CURRENCY_ID_SQL,
-                    Map.of("currencyId", currency.getId()),
+                    Map.of("currencyId", currencyId),
                     CompanyWalletRowMapper.map());
         } catch (EmptyResultDataAccessException e) {
-            return null;
+            throw new RuntimeException(String.format("Company wallet with currencyId = %d do not present", currencyId));
         }
     }
 
-    //+
     public boolean substarctCommissionBalanceById(Integer id, BigDecimal amount) {
         int update = jdbcTemplate.update(
                 SUBSTARCT_COMMISSION_BALANCE_BY_ID_SQL,

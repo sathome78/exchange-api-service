@@ -1,59 +1,45 @@
 package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.dto.AlertDto;
+import me.exrates.openapi.repositories.mappers.AlertRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Repository
 public class UserAlertsDao {
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private static final String GET_ALERT_SQL = "SELECT * FROM SERVICE_ALERTS sa WHERE sa.alert_type = :name";
 
-    private static RowMapper<AlertDto> getWalletsForOrderCancelDtoMapper = (rs, idx) -> {
-        AlertDto alertDto = AlertDto
-                .builder()
-                .enabled(rs.getBoolean("enable"))
-                .alertType(rs.getString("alert_type"))
-                .build();
-        Optional.ofNullable(rs.getTimestamp("launch_date"))
-                .ifPresent(p -> alertDto.setLaunchDateTime(p.toLocalDateTime()));
-        Optional.ofNullable(rs.getTimestamp("time_of_start"))
-                .ifPresent(p -> alertDto.setEventStart(p.toLocalDateTime()));
-        Optional.ofNullable(rs.getInt("length"))
-                .ifPresent(alertDto::setLenghtOfWorks);
-        return alertDto;
-    };
+    private static final String UPDATE_ALERT_SQL = "UPDATE SERVICE_ALERTS sa" +
+            " SET sa.enable = :enable, sa.launch_date = :launch_date, sa.time_of_start = :time_of_start, sa.length = :length" +
+            " WHERE sa.alert_type = :alert_type";
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public UserAlertsDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public boolean updateAlert(AlertDto alertDto) {
-        String sql = "UPDATE SERVICE_ALERTS SA SET SA.enable = :enable, " +
-                " SA.launch_date = :launch_date, SA.time_of_start = :time_of_start, SA.length = :length " +
-                " WHERE SA.alert_type = :alert_type ";
-        Map<String, Object> params = new HashMap<String, Object>() {{
-            put("enable", alertDto.isEnabled());
-            put("launch_date", alertDto.getLaunchDateTime());
-            put("time_of_start", alertDto.getEventStart());
-            put("length", alertDto.getLenghtOfWorks());
-            put("alert_type", alertDto.getAlertType());
-        }};
-        return jdbcTemplate.update(sql, params) > 0;
+    public AlertDto getAlert(String name) {
+        return jdbcTemplate.queryForObject(
+                GET_ALERT_SQL,
+                Map.of("name", name),
+                AlertRowMapper.map());
     }
 
-    public AlertDto getAlert(String name) {
-        String sql = "SELECT * FROM SERVICE_ALERTS SA WHERE SA.alert_type = :name";
-        Map<String, Object> params = new HashMap<String, Object>() {{
-            put("name", name);
-        }};
-        return jdbcTemplate.queryForObject(sql, params, getWalletsForOrderCancelDtoMapper);
+    public boolean updateAlert(AlertDto alertDto) {
+        int update = jdbcTemplate.update(
+                UPDATE_ALERT_SQL,
+                Map.of(
+                        "enable", alertDto.isEnabled(),
+                        "launch_date", alertDto.getLaunchDateTime(),
+                        "time_of_start", alertDto.getEventStart(),
+                        "length", alertDto.getLenghtOfWorks(),
+                        "alert_type", alertDto.getAlertType()));
+        return update > 0;
     }
 }

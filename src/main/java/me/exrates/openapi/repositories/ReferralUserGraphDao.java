@@ -19,7 +19,6 @@ public class ReferralUserGraphDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public Integer getParent(Integer child) {
         try {
             return jdbcTemplate.queryForObject(

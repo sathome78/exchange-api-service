@@ -5,6 +5,7 @@ import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.repositories.mappers.CommissionRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -28,21 +29,27 @@ public class CommissionDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    //+
     public Commission getCommission(OperationType operationType, UserRole userRole) {
-        return jdbcTemplate.queryForObject(
-                GET_COMMISSION_SQL,
-                Map.of(
-                        "operation_type", operationType.getType(),
-                        "role_id", userRole.getRole()),
-                CommissionRowMapper.map());
+        try {
+            return jdbcTemplate.queryForObject(
+                    GET_COMMISSION_SQL,
+                    Map.of(
+                            "operation_type", operationType.getType(),
+                            "role_id", userRole.getRole()),
+                    CommissionRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Commission with operationType = %s do not present", operationType));
+        }
     }
 
-    //+
     public Commission getDefaultCommission(OperationType operationType) {
-        return jdbcTemplate.queryForObject(
-                GET_DEFAULT_COMMISSION_SQL,
-                Map.of("operation_type", operationType.getType()),
-                CommissionRowMapper.map());
+        try {
+            return jdbcTemplate.queryForObject(
+                    GET_DEFAULT_COMMISSION_SQL,
+                    Map.of("operation_type", operationType.getType()),
+                    CommissionRowMapper.map());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RuntimeException(String.format("Commission with operationType = %s do not present", operationType));
+        }
     }
 }
