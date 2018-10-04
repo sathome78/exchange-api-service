@@ -1,14 +1,11 @@
 package me.exrates.openapi.models.dto.openAPI;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.Data;
 
 import java.math.BigDecimal;
 
-@Getter @Setter
-@ToString
+@Data
 public class OpenOrderDto {
 
     private Integer id;

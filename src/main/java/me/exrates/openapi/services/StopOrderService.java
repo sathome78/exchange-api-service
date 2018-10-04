@@ -21,14 +21,14 @@ public class StopOrderService {
 
     //+
     @Transactional
-    public Integer createOrder(ExOrder exOrder) {
-        StopOrder order = new StopOrder(exOrder);
-        return stopOrderDao.create(order);
+    public boolean setStatus(int orderId, OrderStatus status) {
+        return stopOrderDao.setStatus(orderId, status);
     }
 
     //+
     @Transactional
-    public boolean setStatus(int orderId, OrderStatus status) {
-        return stopOrderDao.setStatus(orderId, status);
+    public Integer createOrder(ExOrder order) {
+        StopOrder stopOrder = new StopOrder(order);
+        return stopOrderDao.create(stopOrder);
     }
 }

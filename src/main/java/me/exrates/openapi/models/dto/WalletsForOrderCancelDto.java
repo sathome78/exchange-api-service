@@ -1,20 +1,22 @@
 package me.exrates.openapi.models.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@ToString
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class WalletsForOrderCancelDto {
 
-    int orderId;
-    int orderStatusId;
-    BigDecimal reservedAmount;
-    int walletId;
-    BigDecimal activeBalance;
-    BigDecimal reservedBalance;
+    private int orderId;
+    private int orderStatusId;
+    private BigDecimal reservedAmount;
+    private int walletId;
+    private BigDecimal activeBalance;
+    private BigDecimal reservedBalance;
 }

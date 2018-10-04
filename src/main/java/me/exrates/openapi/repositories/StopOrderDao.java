@@ -10,12 +10,17 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
 @Repository
 public class StopOrderDao {
+
+    private static final String CREATE_STOP_ORDER_SQL = "INSERT INTO STOP_ORDERS" +
+            "  (user_id, currency_pair_id, operation_type_id, stop_rate,  limit_rate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id)" +
+            "  VALUES (:user_id, :currency_pair_id, :operation_type_id, :stop_rate, :limit_rate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id)";
+
+    private static final String UPDATE_STOP_ORDER_SQL = "UPDATE STOP_ORDERS so SET so.status_id=:status_id WHERE so.id = :id";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -26,39 +31,36 @@ public class StopOrderDao {
 
     //+
     public Integer create(StopOrder order) {
-        String sql = "INSERT INTO STOP_ORDERS" +
-                "  (user_id, currency_pair_id, operation_type_id, stop_rate,  limit_rate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id)" +
-                "  VALUES " +
-                "  (:user_id, :currency_pair_id, :operation_type_id, :stop_rate, :limit_rate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id)";
-        log.debug(sql);
+        log.debug(CREATE_STOP_ORDER_SQL);
         log.debug("{}", order);
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("user_id", order.getUserId())
-                .addValue("currency_pair_id", order.getCurrencyPairId())
-                .addValue("operation_type_id", order.getOperationType().getType())
-                .addValue("stop_rate", order.getStop())
-                .addValue("limit_rate", order.getLimit())
-                .addValue("amount_base", order.getAmountBase())
-                .addValue("amount_convert", order.getAmountConvert())
-                .addValue("commission_id", order.getComissionId())
-                .addValue("commission_fixed_amount", order.getCommissionFixedAmount())
-                .addValue("status_id", OrderStatus.INPROCESS.getStatus());
-        int result = jdbcTemplate.update(sql, parameters, keyHolder);
-        int id = (int) keyHolder.getKey().longValue();
-        if (result <= 0) {
-            id = 0;
-        }
-        return id;
+        int result = jdbcTemplate.update(
+                CREATE_STOP_ORDER_SQL,
+                new MapSqlParameterSource(
+                        Map.of(
+                                "user_id", order.getUserId(),
+                                "currency_pair_id", order.getCurrencyPairId(),
+                                "operation_type_id", order.getOperationType().getType(),
+                                "stop_rate", order.getStop(),
+                                "limit_rate", order.getLimit(),
+                                "amount_base", order.getAmountBase(),
+                                "amount_convert", order.getAmountConvert(),
+                                "commission_id", order.getComissionId(),
+                                "commission_fixed_amount", order.getCommissionFixedAmount(),
+                                "status_id", OrderStatus.INPROCESS.getStatus())),
+                keyHolder);
+
+        return result <= 0 ? 0 : keyHolder.getKey().intValue();
     }
 
     //+
     public boolean setStatus(int orderId, OrderStatus status) {
-        String sql = "UPDATE STOP_ORDERS SET status_id=:status_id WHERE id = :id";
-        Map<String, String> namedParameters = new HashMap<>();
-        namedParameters.put("status_id", String.valueOf(status.getStatus()));
-        namedParameters.put("id", String.valueOf(orderId));
-        int result = jdbcTemplate.update(sql, namedParameters);
+        int result = jdbcTemplate.update(
+                UPDATE_STOP_ORDER_SQL,
+                Map.of(
+                        "status_id", status.getStatus(),
+                        "id", orderId
+                ));
         return result > 0;
     }
 }

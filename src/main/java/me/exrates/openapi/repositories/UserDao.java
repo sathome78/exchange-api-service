@@ -9,7 +9,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,23 +33,15 @@ public class UserDao {
             " JOIN USER_ROLE ur ON ur.id = u.roleid" +
             " WHERE u.id = :id";
 
+    private static final String GET_EMAIL_BY_ID_SQL = "SELECT u.email FROM USER u WHERE u.id = :id";
+
+    private static final String GET_ID_BY_EMAIL_SQL = "SELECT u.id FROM USER u WHERE u.email = :email";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public UserDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    //+
-    public int getIdByEmail(String email) {
-        String sql = "SELECT id FROM USER WHERE email = :email";
-        Map<String, String> namedParameters = new HashMap<>();
-        namedParameters.put("email", email);
-        try {
-            return jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
-        } catch (EmptyResultDataAccessException e) {
-            return 0;
-        }
     }
 
     //+
@@ -63,12 +54,6 @@ public class UserDao {
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
-    }
-
-    //+
-    public String getEmailById(Integer id) {
-        String sql = "SELECT email FROM USER WHERE id = :id";
-        return jdbcTemplate.queryForObject(sql, Collections.singletonMap("id", id), String.class);
     }
 
     //+
@@ -93,5 +78,25 @@ public class UserDao {
                 GET_USER_ROLE_BY_ID_SQL,
                 Map.of("id", id),
                 UserRoleRowMapper.map());
+    }
+
+    //+
+    public String getEmailById(Integer id) {
+        return jdbcTemplate.queryForObject(
+                GET_EMAIL_BY_ID_SQL,
+                Map.of("id", id),
+                String.class);
+    }
+
+    //+
+    public int getIdByEmail(String email) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    GET_ID_BY_EMAIL_SQL,
+                    Map.of("email", email),
+                    Integer.class);
+        } catch (EmptyResultDataAccessException ex) {
+            return 0;
+        }
     }
 }

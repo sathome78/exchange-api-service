@@ -19,12 +19,12 @@ public class CommissionService {
     }
 
     @Transactional(readOnly = true)
-    public Commission getDefaultCommission(OperationType operationType) {
-        return commissionDao.getDefaultCommission(operationType);
+    public Commission getCommission(OperationType operationType, UserRole userRole) {
+        return commissionDao.getCommission(operationType, userRole);
     }
 
     @Transactional(readOnly = true)
-    public Commission getCommission(OperationType operationType, UserRole userRole) {
-        return commissionDao.getCommission(operationType, userRole);
+    public Commission getDefaultCommission(OperationType operationType) {
+        return commissionDao.getDefaultCommission(operationType);
     }
 }

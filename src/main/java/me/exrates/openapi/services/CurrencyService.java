@@ -30,18 +30,6 @@ public class CurrencyService {
 
     //+
     @Transactional(readOnly = true)
-    public Integer findCurrencyPairIdByName(String pairName) {
-        log.debug("Try to find currency pair by name: {}", pairName);
-        Integer currencyPairId = currencyDao.findActiveCurrencyPairIdByName(pairName);
-        if (isNull(currencyPairId)) {
-            throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
-        }
-        log.debug("Currency pair found");
-        return currencyPairId;
-    }
-
-    //+
-    @Transactional(readOnly = true)
     public List<CurrencyPairInfoItem> getActiveCurrencyPairs() {
         return currencyDao.findActiveCurrencyPairs();
     }
@@ -62,6 +50,7 @@ public class CurrencyService {
     @Transactional(readOnly = true)
     public CurrencyPair getCurrencyPairById(int currencyPairId) {
         log.debug("Try to find currency pair by id: {}", currencyPairId);
+
         CurrencyPair currencyPair = currencyDao.findCurrencyPairById(currencyPairId);
         if (isNull(currencyPair)) {
             throw new CurrencyPairNotFoundException(String.format("Currency pair with id: %s not found", currencyPairId));
@@ -77,5 +66,18 @@ public class CurrencyService {
         OrderType orderType = OrderType.convert(operationType.getType());
 
         return currencyDao.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public Integer findCurrencyPairIdByName(String pairName) {
+        log.debug("Try to find currency pair by name: {}", pairName);
+
+        Integer currencyPairId = currencyDao.findActiveCurrencyPairIdByName(pairName);
+        if (isNull(currencyPairId)) {
+            throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
+        }
+        log.debug("Currency pair found");
+        return currencyPairId;
     }
 }

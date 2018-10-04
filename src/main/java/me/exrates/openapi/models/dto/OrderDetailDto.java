@@ -1,10 +1,18 @@
 package me.exrates.openapi.models.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderStatus;
 
 import java.math.BigDecimal;
 
+@Data
+@Builder(builderClassName = "Builder")
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderDetailDto {
 
     private int orderId;
@@ -17,62 +25,5 @@ public class OrderDetailDto {
     private int userWalletId;
     private int companyWalletId;
     private BigDecimal companyCommission;
-
-    public OrderDetailDto(int orderId, int orderStatusId, BigDecimal orderCreatorReservedAmount, int orderCreatorReservedWalletId, int transactionId, int transactionTypeId, BigDecimal transactionAmount, int userWalletId, int companyWalletId, BigDecimal companyCommission) {
-        this.orderId = orderId;
-        this.orderStatus = OrderStatus.convert(orderStatusId);
-        this.orderCreatorReservedAmount = orderCreatorReservedAmount;
-        this.orderCreatorReservedWalletId = orderCreatorReservedWalletId;
-        this.transactionId = transactionId;
-        if (transactionTypeId != 0) {
-            this.transactionType = OperationType.convert(transactionTypeId);
-        }
-        this.transactionAmount = transactionAmount;
-        this.userWalletId = userWalletId;
-        this.companyWalletId = companyWalletId;
-        this.companyCommission = companyCommission;
-    }
-
-    /*getters setters*/
-
-    public int getOrderId() {
-        return orderId;
-    }
-
-    public OrderStatus getOrderStatus() {
-        return orderStatus;
-    }
-
-    public BigDecimal getOrderCreatorReservedAmount() {
-        return orderCreatorReservedAmount;
-    }
-
-    public int getOrderCreatorReservedWalletId() {
-        return orderCreatorReservedWalletId;
-    }
-
-    public int getTransactionId() {
-        return transactionId;
-    }
-
-    public OperationType getTransactionType() {
-        return transactionType;
-    }
-
-    public BigDecimal getTransactionAmount() {
-        return transactionAmount;
-    }
-
-    public int getUserWalletId() {
-        return userWalletId;
-    }
-
-    public int getCompanyWalletId() {
-        return companyWalletId;
-    }
-
-    public BigDecimal getCompanyCommission() {
-        return companyCommission;
-    }
-};
+}
 

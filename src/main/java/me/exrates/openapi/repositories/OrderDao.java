@@ -3,31 +3,15 @@ package me.exrates.openapi.repositories;
 import me.exrates.openapi.models.Currency;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.ExOrder;
-import me.exrates.openapi.models.dto.CandleChartItemDto;
-import me.exrates.openapi.models.dto.CoinmarketApiDto;
-import me.exrates.openapi.models.dto.TradeHistoryDto;
-import me.exrates.openapi.models.dto.TransactionDto;
-import me.exrates.openapi.models.dto.UserTradeHistoryDto;
-import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
+import me.exrates.openapi.models.dto.*;
 import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
 import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
 import me.exrates.openapi.models.dto.openAPI.UserOrdersDto;
-import me.exrates.openapi.models.enums.OperationType;
-import me.exrates.openapi.models.enums.OrderBaseType;
-import me.exrates.openapi.models.enums.OrderStatus;
-import me.exrates.openapi.models.enums.OrderType;
-import me.exrates.openapi.models.enums.UserRole;
+import me.exrates.openapi.models.enums.*;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
-import me.exrates.openapi.repositories.mappers.CommissionsRowMapper;
-import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
-import me.exrates.openapi.repositories.mappers.OrderRowMapper;
-import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
-import me.exrates.openapi.repositories.mappers.TransactionRowMapper;
-import me.exrates.openapi.repositories.mappers.UserOrdersRowMapper;
-import me.exrates.openapi.repositories.mappers.UserTradeHistoryRowMapper;
-import me.exrates.openapi.repositories.mappers.WalletsAndCommissionsRowMapper;
+import me.exrates.openapi.repositories.mappers.*;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -160,61 +144,26 @@ public class OrderDao {
 
     private static final String GET_ORDER_BY_ID_SQL = "SELECT * FROM EXORDERS WHERE id = :id";
 
+    private static final String UPDATE_ORDER_SQL = "UPDATE EXORDERS o" +
+            " SET o.user_acceptor_id = :user_acceptor_id, o.status_id = :status_id, o.date_acception = NOW()" +
+            " WHERE o.id = :id";
+
+    private static final String CREATE_ORDER_SQL = "INSERT INTO EXORDERS" +
+            " (user_id, currency_pair_id, operation_type_id, exrate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id, order_source_id, base_type)" +
+            " VALUES (:user_id, :currency_pair_id, :operation_type_id, :exrate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id, :order_source_id, :base_type)";
+
+    private static final String UPDATE_ORDER_STATUS_SQL = "UPDATE EXORDERS o" +
+            " SET o.status_id = :status_id WHERE o.id = :id";
+
+    private static final String GET_OPENED_ORDERS_BY_CURRENCY_PAIR_SQL = "SELECT * FROM EXORDERS o" +
+            " JOIN CURRENCY_PAIR cp on o.currency_pair_id = cp.id" +
+            " WHERE o.user_id = :user_id AND cp.name = :currency_pair AND o.status_id = : status_id";
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
     public OrderDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-    }
-
-    //+
-    public int createOrder(ExOrder exOrder) {
-        String sql = "INSERT INTO EXORDERS" +
-                "  (user_id, currency_pair_id, operation_type_id, exrate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id, order_source_id, base_type)" +
-                "  VALUES " +
-                "  (:user_id, :currency_pair_id, :operation_type_id, :exrate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id, :order_source_id, :base_type)";
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("user_id", exOrder.getUserId())
-                .addValue("currency_pair_id", exOrder.getCurrencyPairId())
-                .addValue("operation_type_id", exOrder.getOperationType().getType())
-                .addValue("exrate", exOrder.getExRate())
-                .addValue("amount_base", exOrder.getAmountBase())
-                .addValue("amount_convert", exOrder.getAmountConvert())
-                .addValue("commission_id", exOrder.getComissionId())
-                .addValue("commission_fixed_amount", exOrder.getCommissionFixedAmount())
-                .addValue("status_id", OrderStatus.INPROCESS.getStatus())
-                .addValue("order_source_id", exOrder.getSourceId())
-                .addValue("base_type", exOrder.getOrderBaseType().name());
-        int result = jdbcTemplate.update(sql, parameters, keyHolder);
-        int id = (int) keyHolder.getKey().longValue();
-        if (result <= 0) {
-            id = 0;
-        }
-        return id;
-    }
-
-    //+
-    public boolean setStatus(int orderId, OrderStatus status) {
-        String sql = "UPDATE EXORDERS SET status_id=:status_id WHERE id = :id";
-        Map<String, String> namedParameters = new HashMap<>();
-        namedParameters.put("status_id", String.valueOf(status.getStatus()));
-        namedParameters.put("id", String.valueOf(orderId));
-        int result = jdbcTemplate.update(sql, namedParameters);
-        return result > 0;
-    }
-
-    //+
-    public boolean updateOrder(ExOrder exOrder) {
-        String sql = "update EXORDERS set user_acceptor_id=:user_acceptor_id, status_id=:status_id, " +
-                " date_acception=NOW()  " +
-                " where id = :id";
-        Map<String, String> namedParameters = new HashMap<>();
-        namedParameters.put("user_acceptor_id", String.valueOf(exOrder.getUserAcceptorId()));
-        namedParameters.put("status_id", String.valueOf(exOrder.getStatus().getStatus()));
-        namedParameters.put("id", String.valueOf(exOrder.getId()));
-        int result = jdbcTemplate.update(sql, namedParameters);
-        return result > 0;
     }
 
     //+
@@ -227,7 +176,7 @@ public class OrderDao {
         Map<String, Object> params = new HashMap<>();
         params.put("currency_pair_id", currencyPairId);
         params.put("status_id", OPENED.getStatus());
-        params.put("operation_type_id", orderType.getOperationType().type);
+        params.put("operation_type_id", orderType.getOperationType().getType());
         return jdbcTemplate.query(sql, params, (rs, row) -> {
             OpenOrderDto item = new OpenOrderDto();
             item.setId(rs.getInt("id"));
@@ -255,45 +204,6 @@ public class OrderDao {
 
         Map<String, Object> params = new HashMap<>();
         params.put("user_id", userId);
-        params.put("status_id", OPENED.getStatus());
-
-        return jdbcTemplate.query(sql, params, (rs, row) -> {
-            ExOrder exOrder = new ExOrder();
-            exOrder.setId(rs.getInt("id"));
-            exOrder.setUserId(userId);
-            exOrder.setCurrencyPairId(rs.getInt("currency_pair_id"));
-            exOrder.setOperationType(OperationType.convert(rs.getInt("operation_type_id")));
-            exOrder.setExRate(rs.getBigDecimal("price"));
-            exOrder.setAmountBase(rs.getBigDecimal("amount"));
-            exOrder.setAmountConvert(rs.getBigDecimal("sum"));
-            exOrder.setComissionId(rs.getInt("commission_id"));
-            exOrder.setCommissionFixedAmount(rs.getBigDecimal("commission_fixed_amount"));
-            exOrder.setDateCreation(rs.getTimestamp("created").toLocalDateTime());
-            exOrder.setStatus(OrderStatus.convert(rs.getInt("status_id")));
-            exOrder.setOrderBaseType(OrderBaseType.valueOf(rs.getString("base_type")));
-            return exOrder;
-        });
-    }
-
-    public List<ExOrder> getOpenedOrdersByCurrencyPair(Integer userId, String currencyPair) {
-        String sql = "SELECT o.id AS order_id, " +
-                "o.currency_pair_id, " +
-                "o.operation_type_id, " +
-                "o.exrate AS price, " +
-                "o.amount_base AS amount, " +
-                "o.amount_convert AS sum, " +
-                "o.commission_id, " +
-                "o.commission_fixed_amount, " +
-                "o.date_creation AS created, " +
-                "o.status_id, " +
-                "o.base_type" +
-                " FROM EXORDERS o" +
-                " JOIN CURRENCY_PAIR cp on o.currency_pair_id = cp.id" +
-                " WHERE o.user_id = :user_id AND cp.name = :currency_pair AND o.status_id = : status_id";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("user_id", userId);
-        params.put("currency_pair", currencyPair);
         params.put("status_id", OPENED.getStatus());
 
         return jdbcTemplate.query(sql, params, (rs, row) -> {
@@ -523,6 +433,60 @@ public class OrderDao {
         return jdbcTemplate.queryForObject(
                 GET_ORDER_BY_ID_SQL,
                 Map.of("id", orderId),
+                OrderRowMapper.map());
+    }
+
+    //+
+    public boolean updateOrder(ExOrder order) {
+        int result = jdbcTemplate.update(
+                UPDATE_ORDER_SQL,
+                Map.of(
+                        "user_acceptor_id", order.getUserAcceptorId(),
+                        "status_id", order.getStatus().getStatus(),
+                        "id", order.getId()));
+        return result > 0;
+    }
+
+    //+
+    public int createOrder(ExOrder order) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        int result = jdbcTemplate.update(
+                CREATE_ORDER_SQL,
+                new MapSqlParameterSource()
+                        .addValue("user_id", order.getUserId())
+                        .addValue("currency_pair_id", order.getCurrencyPairId())
+                        .addValue("operation_type_id", order.getOperationType().getType())
+                        .addValue("exrate", order.getExRate())
+                        .addValue("amount_base", order.getAmountBase())
+                        .addValue("amount_convert", order.getAmountConvert())
+                        .addValue("commission_id", order.getComissionId())
+                        .addValue("commission_fixed_amount", order.getCommissionFixedAmount())
+                        .addValue("status_id", OrderStatus.INPROCESS.getStatus())
+                        .addValue("order_source_id", order.getSourceId())
+                        .addValue("base_type", order.getOrderBaseType().name()),
+                keyHolder);
+
+        return result <= 0 ? 0 : keyHolder.getKey().intValue();
+    }
+
+    //+
+    public boolean setStatus(int orderId, OrderStatus status) {
+        int result = jdbcTemplate.update(
+                UPDATE_ORDER_STATUS_SQL,
+                Map.of(
+                        "status_id", status.getStatus(),
+                        "id", orderId));
+        return result > 0;
+    }
+
+    public List<ExOrder> getOpenedOrdersByCurrencyPair(Integer userId, String currencyPair) {
+        return jdbcTemplate.query(
+                GET_OPENED_ORDERS_BY_CURRENCY_PAIR_SQL,
+                Map.of(
+                        "user_id", userId,
+                        "currency_pair", currencyPair,
+                        "status_id", OPENED.getStatus()),
                 OrderRowMapper.map());
     }
 }

@@ -258,7 +258,7 @@ public class OpenApiUserController {
      * @apiSuccess {Number} data.buy        Commission for buy operations
      * @apiSuccess {Number} data.transfer   Commission for transfer operations
      */
-    @GetMapping(value = "/commissions", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @GetMapping(value = "/commissions", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OpenApiCommissionDto> getCommissions() {
         CommissionDto allCommissions = orderService.getAllCommissions();
 

@@ -32,39 +32,11 @@ public class UserService {
     }
 
     //+
-    public int getIdByEmail(String email) {
-        return userDao.getIdByEmail(email);
-    }
-
-    //+
-    @Transactional(readOnly = true)
-    public String getEmailById(Integer id) {
-        return userDao.getEmailById(id);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public int getAuthenticatedUserId() {
         final String userEmail = getUserEmailFromSecurityContext();
 
         return userDao.getIdByEmail(userEmail);
-    }
-
-    //+
-    public UserRole getUserRoleFromSecurityContext() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Set<String> roles = Stream.of(UserRole.values())
-                .map(UserRole::name)
-                .collect(toSet());
-
-        String grantedAuthority = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(roles::contains)
-                .findFirst()
-                .orElse(USER.name());
-
-        log.debug("Granted authority: {}", grantedAuthority);
-        return UserRole.valueOf(grantedAuthority);
     }
 
     //+
@@ -86,6 +58,18 @@ public class UserService {
     }
 
     //+
+    @Transactional(readOnly = true)
+    public String getEmailById(Integer id) {
+        return userDao.getEmailById(id);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public int getIdByEmail(String email) {
+        return userDao.getIdByEmail(email);
+    }
+
+    //+
     public String getUserEmailFromSecurityContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -93,5 +77,22 @@ public class UserService {
             throw new AuthenticationNotAvailableException();
         }
         return authentication.getName();
+    }
+
+    //+
+    public UserRole getUserRoleFromSecurityContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Set<String> roles = Stream.of(UserRole.values())
+                .map(UserRole::name)
+                .collect(toSet());
+
+        String grantedAuthority = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(roles::contains)
+                .findFirst()
+                .orElse(USER.name());
+
+        log.debug("Granted authority: {}", grantedAuthority);
+        return UserRole.valueOf(grantedAuthority);
     }
 }

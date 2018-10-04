@@ -35,37 +35,6 @@ public class WalletService {
     }
 
     //+
-    @Transactional(propagation = Propagation.NESTED)
-    public BigDecimal getWalletABalance(int walletId) {
-        return walletDao.getWalletABalance(walletId);
-    }
-
-    //+
-    @Transactional(readOnly = true)
-    public boolean ifEnoughMoney(int walletId, BigDecimal amountForCheck) {
-        BigDecimal balance = getWalletABalance(walletId);
-        boolean result = balance.compareTo(amountForCheck) >= 0;
-        if (!result) {
-            log.error(String.format("Not enough wallet money: wallet id %s, actual amount %s but needed %s", walletId,
-                    BigDecimalProcessingUtil.formatNonePoint(balance, false),
-                    BigDecimalProcessingUtil.formatNonePoint(amountForCheck, false)));
-        }
-        return result;
-    }
-
-    //+
-    @Transactional
-    public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
-        return walletDao.getOrderRelatedDataAndBlock(orderId);
-    }
-
-    //+
-    @Transactional
-    public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
-        return walletDao.getWalletForOrderByOrderIdAndOperationTypeAndBlock(orderId, operationType);
-    }
-
-    //+
     @Transactional(readOnly = true)
     public List<WalletBalanceDto> getUserBalances() {
         final String userEmail = userService.getUserEmailFromSecurityContext();
@@ -96,7 +65,8 @@ public class WalletService {
     }
 
     //+
-    public WalletTransferStatus walletBalanceChange(final WalletOperationData walletOperationData) {
+    @Transactional
+    public WalletTransferStatus walletBalanceChange(WalletOperationData walletOperationData) {
         return walletDao.walletBalanceChange(walletOperationData);
     }
 
@@ -104,5 +74,36 @@ public class WalletService {
     @Transactional(readOnly = true)
     public int getWalletId(int userId, int currencyId) {
         return walletDao.getWalletId(userId, currencyId);
+    }
+
+    //+
+    @Transactional
+    public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
+        return walletDao.getOrderRelatedDataAndBlock(orderId);
+    }
+
+    //+
+    @Transactional(readOnly = true)
+    public boolean ifEnoughMoney(int walletId, BigDecimal amountForCheck) {
+        BigDecimal balance = getWalletABalance(walletId);
+        boolean result = balance.compareTo(amountForCheck) >= 0;
+        if (!result) {
+            log.error(String.format("Not enough wallet money: wallet id %s, actual amount %s but needed %s", walletId,
+                    BigDecimalProcessingUtil.formatNonePoint(balance, false),
+                    BigDecimalProcessingUtil.formatNonePoint(amountForCheck, false)));
+        }
+        return result;
+    }
+
+    //+
+    @Transactional(propagation = Propagation.NESTED)
+    public BigDecimal getWalletABalance(int walletId) {
+        return walletDao.getWalletABalance(walletId);
+    }
+
+    //+
+    @Transactional
+    public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
+        return walletDao.getWalletForOrderByOrderIdAndOperationTypeAndBlock(orderId, operationType);
     }
 }
