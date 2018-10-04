@@ -28,13 +28,11 @@ public class CurrencyService {
         this.currencyDao = currencyDao;
     }
 
-    //+
     @Transactional(readOnly = true)
     public List<CurrencyPairInfoItem> getActiveCurrencyPairs() {
         return currencyDao.findActiveCurrencyPairs();
     }
 
-    //+
     @Transactional(readOnly = true)
     public CurrencyPair getCurrencyPairByName(String pairName) {
         log.debug("Try to find currency pair by name: {}", pairName);
@@ -46,7 +44,6 @@ public class CurrencyService {
         return currencyPair;
     }
 
-    //+
     @Transactional(readOnly = true)
     public CurrencyPair getCurrencyPairById(int currencyPairId) {
         log.debug("Try to find currency pair by id: {}", currencyPairId);
@@ -59,7 +56,7 @@ public class CurrencyService {
         return currencyPair;
     }
 
-    //+
+    @Transactional(readOnly = true)
     public CurrencyPairLimitDto getLimitForRole(CurrencyPair currencyPair,
                                                 OperationType operationType,
                                                 UserRole userRole) {
@@ -68,7 +65,6 @@ public class CurrencyService {
         return currencyDao.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
     }
 
-    //+
     @Transactional(readOnly = true)
     public Integer findCurrencyPairIdByName(String pairName) {
         log.debug("Try to find currency pair by name: {}", pairName);

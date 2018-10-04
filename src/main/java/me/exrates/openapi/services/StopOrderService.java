@@ -19,13 +19,11 @@ public class StopOrderService {
         this.stopOrderDao = stopOrderDao;
     }
 
-    //+
     @Transactional
     public boolean setStatus(int orderId, OrderStatus status) {
         return stopOrderDao.setStatus(orderId, status);
     }
 
-    //+
     @Transactional
     public Integer createOrder(ExOrder order) {
         StopOrder stopOrder = new StopOrder(order);

@@ -25,7 +25,6 @@ public class CompanyWalletService {
         this.companyWalletDao = companyWalletDao;
     }
 
-    //+
     @Transactional(propagation = Propagation.NESTED)
     public void deposit(CompanyWallet companyWallet, BigDecimal commissionAmount) {
         companyWallet.setBalance(companyWallet.getBalance());
@@ -35,7 +34,6 @@ public class CompanyWalletService {
         }
     }
 
-    //+
     @Transactional(propagation = Propagation.NESTED)
     public void withdrawReservedBalance(CompanyWallet companyWallet, BigDecimal amount) {
         BigDecimal newReservedBalance = BigDecimalProcessingUtil.doAction(companyWallet.getCommissionBalance(), amount, SUBTRACT);
@@ -48,15 +46,13 @@ public class CompanyWalletService {
         }
     }
 
-    //+
     @Transactional(readOnly = true)
     public CompanyWallet findByCurrency(Currency currency) {
         return companyWalletDao.findByCurrencyId(currency.getId());
     }
 
-    //+
     @Transactional
-    public boolean substractCommissionBalanceById(Integer id, BigDecimal amount) {
-        return companyWalletDao.substarctCommissionBalanceById(id, amount);
+    public boolean subtractCommissionBalanceById(Integer id, BigDecimal amount) {
+        return companyWalletDao.subtarctCommissionBalanceById(id, amount);
     }
 }

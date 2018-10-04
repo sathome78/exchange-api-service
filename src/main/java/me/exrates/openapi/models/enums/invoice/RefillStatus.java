@@ -1,9 +1,8 @@
 package me.exrates.openapi.models.enums.invoice;
 
 
-import lombok.extern.log4j.Log4j2;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.exceptions.model.UnsupportedInvoiceStatusForActionException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusIdException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusNameException;
 
@@ -24,6 +23,7 @@ import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.REQU
 import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.START_BCH_EXAMINE;
 
 @Slf4j
+@Getter
 public enum RefillStatus implements InvoiceStatus {
 
     X_STATE(0) {
@@ -153,18 +153,6 @@ public enum RefillStatus implements InvoiceStatus {
 
     final private Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap = new HashMap<>();
 
-    @Override
-    public InvoiceStatus nextState(InvoiceActionTypeEnum action) {
-        action.checkRestrictParamNeeded();
-        return nextState(schemaMap, action)
-                .orElseThrow(() -> new UnsupportedInvoiceStatusForActionException(String.format("current state: %s action: %s", this.name(), action.name())));
-    }
-
-    @Override
-    public Boolean availableForAction(InvoiceActionTypeEnum action) {
-        return availableForAction(schemaMap, action);
-    }
-
     static {
         for (RefillStatus status : RefillStatus.class.getEnumConstants()) {
             status.initSchema(status.schemaMap);
@@ -214,16 +202,6 @@ public enum RefillStatus implements InvoiceStatus {
 
     RefillStatus(Integer code) {
         this.code = code;
-    }
-
-    @Override
-    public Integer getCode() {
-        return code;
-    }
-
-    @Override
-    public Boolean isEndStatus() {
-        return schemaMap.isEmpty();
     }
 }
 

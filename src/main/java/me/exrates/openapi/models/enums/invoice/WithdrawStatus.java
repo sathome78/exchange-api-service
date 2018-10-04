@@ -1,6 +1,7 @@
 package me.exrates.openapi.models.enums.invoice;
 
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.model.UnsupportedInvoiceStatusForActionException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusIdException;
@@ -19,6 +20,7 @@ import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_
 import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_MANUAL;
 
 @Slf4j
+@Getter
 public enum WithdrawStatus implements InvoiceStatus {
 
     CREATED_USER(1) {
@@ -126,26 +128,6 @@ public enum WithdrawStatus implements InvoiceStatus {
 
     final private Map<InvoiceActionTypeEnum, InvoiceStatus> schemaMap = new HashMap<>();
 
-    @Override
-    public InvoiceStatus nextState(InvoiceActionTypeEnum action) {
-        action.checkRestrictParamNeeded();
-        return nextState(schemaMap, action)
-                .orElseThrow(() -> new UnsupportedInvoiceStatusForActionException(String.format("current state: %s action: %s", this.name(), action.name())));
-    }
-
-    @Override
-    public Boolean availableForAction(InvoiceActionTypeEnum action) {
-        return availableForAction(schemaMap, action);
-    }
-
-    static {
-        for (WithdrawStatus status : WithdrawStatus.class.getEnumConstants()) {
-            status.initSchema(status.schemaMap);
-        }
-        /*check schemaMap*/
-        getBeginState();
-    }
-
     public static WithdrawStatus convert(int id) {
         return Arrays.stream(WithdrawStatus.class.getEnumConstants())
                 .filter(e -> e.code == id)
@@ -160,43 +142,10 @@ public enum WithdrawStatus implements InvoiceStatus {
                 .orElseThrow(() -> new UnsupportedWithdrawRequestStatusNameException(name));
     }
 
-    public static InvoiceStatus getBeginState() {
-        Set<InvoiceStatus> allNodesSet = collectAllSchemaMapNodesSet();
-        List<InvoiceStatus> candidateList = Arrays.stream(WithdrawStatus.class.getEnumConstants())
-                .filter(e -> !allNodesSet.contains(e))
-                .collect(Collectors.toList());
-        if (candidateList.size() == 0) {
-            log.error("begin state not found");
-            throw new AssertionError();
-        }
-        if (candidateList.size() > 1) {
-            log.error("more than single begin state found: {}", candidateList);
-            throw new AssertionError();
-        }
-        return candidateList.get(0);
-    }
-
-    @Override
-    public Boolean isEndStatus() {
-        return schemaMap.isEmpty();
-    }
-
-    private static Set<InvoiceStatus> collectAllSchemaMapNodesSet() {
-        Set<InvoiceStatus> result = new HashSet<>();
-        Arrays.stream(WithdrawStatus.class.getEnumConstants())
-                .forEach(e -> result.addAll(e.schemaMap.values()));
-        return result;
-    }
-
     private Integer code;
 
     WithdrawStatus(Integer code) {
         this.code = code;
-    }
-
-    @Override
-    public Integer getCode() {
-        return code;
     }
 }
 

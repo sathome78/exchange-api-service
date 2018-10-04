@@ -18,15 +18,13 @@ public class TransactionService {
         this.transactionDao = transactionDao;
     }
 
-    //+
     @Transactional(readOnly = true)
     public List<Transaction> getPayedRefTransactionsByOrderId(int orderId) {
         return transactionDao.getPayedRefTransactionsByOrderId(orderId);
     }
 
-    //+
     @Transactional
     public boolean setStatusById(Integer trasactionId, Integer statusId) {
-        return transactionDao.setStatusById(trasactionId, statusId);
+        return !transactionDao.setStatusById(trasactionId, statusId);
     }
 }

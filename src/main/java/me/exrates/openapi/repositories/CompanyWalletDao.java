@@ -53,7 +53,7 @@ public class CompanyWalletDao {
         }
     }
 
-    public boolean substarctCommissionBalanceById(Integer id, BigDecimal amount) {
+    public boolean subtarctCommissionBalanceById(Integer id, BigDecimal amount) {
         int update = jdbcTemplate.update(
                 SUBSTARCT_COMMISSION_BALANCE_BY_ID_SQL,
                 Map.of(

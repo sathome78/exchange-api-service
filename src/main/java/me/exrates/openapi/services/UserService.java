@@ -31,7 +31,6 @@ public class UserService {
         this.userDao = userDao;
     }
 
-    //+
     @Transactional(readOnly = true)
     public int getAuthenticatedUserId() {
         final String userEmail = getUserEmailFromSecurityContext();
@@ -39,37 +38,31 @@ public class UserService {
         return userDao.getIdByEmail(userEmail);
     }
 
-    //+
     @Transactional(readOnly = true)
     public UserRole getUserRoleFromDatabase(String email) {
         return userDao.getUserRoleByEmail(email);
     }
 
-    //+
     @Transactional(readOnly = true)
     public UserRole getUserRoleFromDatabase(Integer userId) {
         return userDao.getUserRoleById(userId);
     }
 
-    //+
     @Transactional(readOnly = true)
     public User getUserById(int id) {
         return userDao.getUserById(id);
     }
 
-    //+
     @Transactional(readOnly = true)
     public String getEmailById(Integer id) {
         return userDao.getEmailById(id);
     }
 
-    //+
     @Transactional(readOnly = true)
     public int getIdByEmail(String email) {
         return userDao.getIdByEmail(email);
     }
 
-    //+
     public String getUserEmailFromSecurityContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -79,7 +72,6 @@ public class UserService {
         return authentication.getName();
     }
 
-    //+
     public UserRole getUserRoleFromSecurityContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Set<String> roles = Stream.of(UserRole.values())

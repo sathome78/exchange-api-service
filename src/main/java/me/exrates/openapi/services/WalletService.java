@@ -34,7 +34,6 @@ public class WalletService {
         this.userService = userService;
     }
 
-    //+
     @Transactional(readOnly = true)
     public List<WalletBalanceDto> getUserBalances() {
         final String userEmail = userService.getUserEmailFromSecurityContext();
@@ -42,19 +41,16 @@ public class WalletService {
         return walletDao.getUserBalances(userEmail);
     }
 
-    //+
-    @Transactional
+    @Transactional(readOnly = true)
     public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
         return walletDao.getWalletsForOrderByOrderIdAndBlock(orderId, userAcceptorId);
     }
 
-    //+
     @Transactional(propagation = Propagation.NESTED)
     public int createNewWallet(Wallet wallet) {
         return walletDao.createNewWallet(wallet);
     }
 
-    //+
     @Transactional
     public WalletTransferStatus walletInnerTransfer(int walletId,
                                                     BigDecimal amount,
@@ -64,28 +60,24 @@ public class WalletService {
         return walletDao.walletInnerTransfer(walletId, amount, sourceType, sourceId, description);
     }
 
-    //+
     @Transactional
     public WalletTransferStatus walletBalanceChange(WalletOperationData walletOperationData) {
         return walletDao.walletBalanceChange(walletOperationData);
     }
 
-    //+
     @Transactional(readOnly = true)
     public int getWalletId(int userId, int currencyId) {
         return walletDao.getWalletId(userId, currencyId);
     }
 
-    //+
     @Transactional
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
         return walletDao.getOrderRelatedDataAndBlock(orderId);
     }
 
-    //+
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.NESTED)
     public boolean ifEnoughMoney(int walletId, BigDecimal amountForCheck) {
-        BigDecimal balance = getWalletABalance(walletId);
+        BigDecimal balance = walletDao.getWalletABalance(walletId);
         boolean result = balance.compareTo(amountForCheck) >= 0;
         if (!result) {
             log.error(String.format("Not enough wallet money: wallet id %s, actual amount %s but needed %s", walletId,
@@ -95,14 +87,7 @@ public class WalletService {
         return result;
     }
 
-    //+
-    @Transactional(propagation = Propagation.NESTED)
-    public BigDecimal getWalletABalance(int walletId) {
-        return walletDao.getWalletABalance(walletId);
-    }
-
-    //+
-    @Transactional
+    @Transactional(readOnly = true)
     public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
         return walletDao.getWalletForOrderByOrderIdAndOperationTypeAndBlock(orderId, operationType);
     }

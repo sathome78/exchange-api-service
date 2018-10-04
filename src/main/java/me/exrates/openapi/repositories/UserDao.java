@@ -6,6 +6,7 @@ import me.exrates.openapi.repositories.mappers.UserRoleRowMapper;
 import me.exrates.openapi.repositories.mappers.UserRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -37,6 +38,17 @@ public class UserDao {
     private static final String GET_EMAIL_BY_ID_SQL = "SELECT u.email FROM USER u WHERE u.id = :id";
 
     private static final String GET_ID_BY_EMAIL_SQL = "SELECT u.id FROM USER u WHERE u.email = :email";
+
+    private static final String SELECT_ATTEMPTS_SQL = "SELECT ua.attempts" +
+            " FROM USER_API ua" +
+            " WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
+
+    private static final String UPDATE_ATTEMPTS_SQL = "UPDATE USER_API ua" +
+            " SET ua.attempts = :attempts" +
+            " WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
+
+    private static final String INSERT_DEF_ATTEMPTS_SQL = "INSERT INTO USER_API (user_id, attempts)" +
+            " VALUES ((SELECT u.id FROM USER u WHERE u.email = :email), :attempts)";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -83,5 +95,37 @@ public class UserDao {
         } catch (EmptyResultDataAccessException ex) {
             return 0;
         }
+    }
+
+    public Integer getRequestsLimit(String email) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    SELECT_ATTEMPTS_SQL,
+                    Map.of("email", email),
+                    Integer.class);
+        } catch (EmptyResultDataAccessException ex) {
+            return 0;
+        }
+    }
+
+    public void updateRequestsLimit(String email, Integer limit) {
+        jdbcTemplate.update(
+                UPDATE_ATTEMPTS_SQL,
+                Map.of(
+                        "email", email,
+                        "attempts", limit));
+    }
+
+    public void setRequestsDefaultLimit(String email, Integer limit) {
+
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+        parameterSource.addValue("email", email);
+        parameterSource.addValue("attempts", limit);
+
+        jdbcTemplate.update(
+                INSERT_DEF_ATTEMPTS_SQL,
+                Map.of(
+                        "email", email,
+                        "attempts", limit));
     }
 }

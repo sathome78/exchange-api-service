@@ -60,7 +60,6 @@ public class ReferralService {
         this.commission = commissionService.getDefaultCommission(OperationType.REFERRAL);
     }
 
-    //+
     @Transactional(propagation = Propagation.MANDATORY)
     public void processReferral(ExOrder order,
                                 BigDecimal commissionAmount,
@@ -116,7 +115,6 @@ public class ReferralService {
         }
     }
 
-    //+
     @Transactional
     public void setRefTransactionStatus(int refTransactionId) {
         referralTransactionDao.setRefTransactionStatus(refTransactionId);

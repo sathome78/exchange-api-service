@@ -37,6 +37,7 @@ public class ResourcesServerConfiguration extends ResourceServerConfigurerAdapte
                 .antMatchers("/public/**").anonymous()
                 .antMatchers("/user/**").permitAll()/*hasAuthority("TRADE")*/
                 .antMatchers("/orders/**").permitAll()/*hasAuthority("TRADE")*/
+                .antMatchers("/admin/**").permitAll()/*hasAuthority("TRADE")*/
 //                .antMatchers(HttpMethod.GET, "/**").access("#oauth2.hasScope('read')")
 //                .antMatchers(HttpMethod.POST, "/**").access("#oauth2.hasScope('write')")
 //                .antMatchers(HttpMethod.PATCH, "/**").access("#oauth2.hasScope('write')")

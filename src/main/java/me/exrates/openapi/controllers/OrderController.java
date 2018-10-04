@@ -24,12 +24,12 @@ import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 @Slf4j
 @RestController
 @RequestMapping("/orders")
-public class OpenApiOrderController {
+public class OrderController {
 
     private final OrderService orderService;
 
     @Autowired
-    public OpenApiOrderController(OrderService orderService) {
+    public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
 

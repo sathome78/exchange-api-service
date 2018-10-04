@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 @Getter
 @AllArgsConstructor
-public enum UserRole implements RealCheckableRole {
+public enum UserRole {
 
     ADMINISTRATOR(1),
     ACCOUNTANT(2),
@@ -38,11 +38,6 @@ public enum UserRole implements RealCheckableRole {
 
     @Override
     public String toString() {
-        return this.name();
-    }
-
-    @Override
-    public String getName() {
         return this.name();
     }
 }

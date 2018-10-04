@@ -16,13 +16,11 @@ public class UserRoleService {
         this.userRoleDao = userRoleDao;
     }
 
-    //+
     @Transactional(readOnly = true)
     public boolean isOrderAcceptanceAllowedForUser(Integer userId) {
         return userRoleDao.isOrderAcceptanceAllowedForUser(userId);
     }
 
-    //+
     @Transactional(readOnly = true)
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
         return userRoleDao.retrieveSettingsForRole(roleId);

@@ -30,17 +30,16 @@ import static java.util.stream.Collectors.toList;
 import static me.exrates.openapi.converters.CurrencyPairConverter.convert;
 import static me.exrates.openapi.utils.ValidationUtil.validateLimit;
 
-@SuppressWarnings("DanglingJavadoc")
 @RestController
 @RequestMapping("/public")
-public class OpenApiPublicController {
+public class PublicController {
 
     private final OrderService orderService;
     private final CurrencyService currencyService;
 
     @Autowired
-    public OpenApiPublicController(OrderService orderService,
-                                   CurrencyService currencyService) {
+    public PublicController(OrderService orderService,
+                            CurrencyService currencyService) {
         this.orderService = orderService;
         this.currencyService = currencyService;
     }

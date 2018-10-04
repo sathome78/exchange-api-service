@@ -29,14 +29,14 @@ import static me.exrates.openapi.utils.ValidationUtil.validateLimit;
 @SuppressWarnings("DanglingJavadoc")
 @RestController
 @RequestMapping("/user")
-public class OpenApiUserController {
+public class UserController {
 
     private final WalletService walletService;
     private final OrderService orderService;
 
     @Autowired
-    public OpenApiUserController(WalletService walletService,
-                                 OrderService orderService) {
+    public UserController(WalletService walletService,
+                          OrderService orderService) {
         this.walletService = walletService;
         this.orderService = orderService;
     }
