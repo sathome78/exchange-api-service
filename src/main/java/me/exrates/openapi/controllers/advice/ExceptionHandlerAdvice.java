@@ -8,6 +8,7 @@ import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
 import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
 import me.exrates.openapi.models.enums.ErrorCode;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -94,7 +95,7 @@ public class ExceptionHandlerAdvice {
     @ResponseStatus(INTERNAL_SERVER_ERROR)
     @ExceptionHandler({Exception.class, RuntimeException.class})
     public OpenApiError OtherErrorsHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getServletPath(), String.format("Internal server error: %s", exception.getMessage()));
+        return new OpenApiError(ErrorCode.INTERNAL_SERVER_ERROR, req.getServletPath(), String.format("Internal server error: %s", ExceptionUtils.getRootCause(exception).getMessage()));
     }
 
     @ResponseBody

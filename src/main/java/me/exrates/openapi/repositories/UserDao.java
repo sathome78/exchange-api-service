@@ -1,12 +1,12 @@
 package me.exrates.openapi.repositories;
 
+import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.User;
 import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.repositories.mappers.UserRoleRowMapper;
 import me.exrates.openapi.repositories.mappers.UserRowMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +14,7 @@ import java.util.Map;
 
 import static java.util.Objects.nonNull;
 
+@Slf4j
 @Repository
 public class UserDao {
 
@@ -49,6 +50,16 @@ public class UserDao {
 
     private static final String INSERT_DEF_ATTEMPTS_SQL = "INSERT INTO USER_API (user_id, attempts)" +
             " VALUES ((SELECT u.id FROM USER u WHERE u.email = :email), :attempts)";
+
+    private static final String ENABLE_API_FOR_USER_SQL = "UPDATE USER_API ua" +
+            " SET ua.enabled = :enabled" +
+            " WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
+
+    private static final String ENABLE_API_FOR_ALL_SQL = "UPDATE USER_API ua SET ua.enabled = :enabled";
+
+    private static final String SELECT_USER_ACCESS_POLICY_SQL = "SELECT ua.enabled" +
+            " FROM USER_API ua" +
+            " WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -117,15 +128,63 @@ public class UserDao {
     }
 
     public void setRequestsDefaultLimit(String email, Integer limit) {
-
-        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
-        parameterSource.addValue("email", email);
-        parameterSource.addValue("attempts", limit);
-
         jdbcTemplate.update(
                 INSERT_DEF_ATTEMPTS_SQL,
                 Map.of(
                         "email", email,
                         "attempts", limit));
+    }
+
+    public void enableApiForUser(String userEmail) {
+        int update = jdbcTemplate.update(
+                ENABLE_API_FOR_USER_SQL,
+                Map.of(
+                        "enabled", true,
+                        "email", userEmail));
+        if (update <= 0) {
+            log.debug("Api for user: {} have not enabled", userEmail);
+        }
+    }
+
+    public void disableApiForUser(String email) {
+        int update = jdbcTemplate.update(
+                ENABLE_API_FOR_USER_SQL,
+                Map.of(
+                        "enabled", false,
+                        "email", email));
+        if (update <= 0) {
+            log.debug("Api for user: {} have not disabled", email);
+        }
+    }
+
+    public void enableApiForAll() {
+        int update = jdbcTemplate.update(
+                ENABLE_API_FOR_ALL_SQL,
+                Map.of(
+                        "enabled", true));
+        if (update <= 0) {
+            log.debug("Api for user: {} have not enabled");
+        }
+    }
+
+    public void disableApiForAll() {
+        int update = jdbcTemplate.update(
+                ENABLE_API_FOR_ALL_SQL,
+                Map.of(
+                        "enabled", false));
+        if (update <= 0) {
+            log.debug("Api for user: {} have not disabled");
+        }
+    }
+
+    public Boolean isEnabled(String email) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    SELECT_USER_ACCESS_POLICY_SQL,
+                    Map.of("email", email),
+                    Boolean.class);
+        } catch (EmptyResultDataAccessException ex) {
+            return false;
+        }
     }
 }

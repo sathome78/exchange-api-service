@@ -1,6 +1,8 @@
 package me.exrates.openapi.controllers;
 
 import lombok.extern.slf4j.Slf4j;
+import me.exrates.openapi.aspect.AccessCheck;
+import me.exrates.openapi.aspect.RateLimitCheck;
 import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
 import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
@@ -53,6 +55,8 @@ public class OrderController {
      * @apiSuccess {Integer}    orderCreationResult.auto_accepted_quantity      Number of orders accepted automatically (not shown if no orders were auto-accepted)
      * @apiSuccess {Number}     orderCreationResult.partially_accepted_amount   Amount that was accepted partially (shown only in case of partial accept)
      */
+    @AccessCheck
+    @RateLimitCheck
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderCreationResultOpenApiDto> createOrder(@Valid @RequestBody OrderParametersDto orderParametersDto,
@@ -83,6 +87,8 @@ public class OrderController {
      * /openapi/v1/orders/cancel?order_id=1
      * @apiSuccess {Boolean} success=true Cancellation result
      */
+    @AccessCheck
+    @RateLimitCheck
     @PostMapping(value = "/cancel", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> cancelOrder(@RequestParam(value = "order_id") Integer orderId) {
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
@@ -99,6 +105,8 @@ public class OrderController {
      * /openapi/v1/orders/cancel/all?currency_1=btc&currency_2=usd or /openapi/v1/orders/cancel/all
      * @apiSuccess {Boolean} success=true Cancellation result
      */
+    @AccessCheck
+    @RateLimitCheck
     @PostMapping(value = "/cancel/all", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> cancelOrdersByCurrencyPair(@RequestParam(value = "currency_1", required = false) String currency1,
                                                               @RequestParam(value = "currency_2", required = false) String currency2) {
@@ -120,6 +128,8 @@ public class OrderController {
      * /openapi/v1/orders/accept?order_id=1
      * @apiSuccess {Boolean} success=true Acceptance result
      */
+    @AccessCheck
+    @RateLimitCheck
     @RequestMapping(value = "/accept", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> acceptOrder(@RequestParam(value = "order_id") Integer orderId) {
         return ResponseEntity.ok(orderService.acceptOrder(orderId));
@@ -144,6 +154,8 @@ public class OrderController {
      * @apiSuccess {Number}     data.amount         Amount in base currency
      * @apiSuccess {Number}     data.price          Exchange rate
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/open", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<List<OpenOrderDto>> openOrders(@RequestParam("currency_1") String currency1,
                                                          @RequestParam("currency_2") String currency2,

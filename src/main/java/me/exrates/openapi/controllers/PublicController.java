@@ -1,5 +1,7 @@
 package me.exrates.openapi.controllers;
 
+import me.exrates.openapi.aspect.AccessCheck;
+import me.exrates.openapi.aspect.RateLimitCheck;
 import me.exrates.openapi.exceptions.WrongDateOrderException;
 import me.exrates.openapi.exceptions.WrongLimitException;
 import me.exrates.openapi.models.dto.CandleChartItemReducedDto;
@@ -81,6 +83,8 @@ public class PublicController {
      * }
      * ]
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/ticker/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TickerDto>> getTicker(@PathVariable("currency_1") String currency1,
                                                      @PathVariable("currency_2") String currency2) {
@@ -142,6 +146,8 @@ public class PublicController {
      * }
      * ]
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/tickers", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TickerDto>> getTickers() {
         List<TickerDto> result = orderService.getDailyCoinmarketData(null).stream()
@@ -166,6 +172,8 @@ public class PublicController {
      * @apiSuccess {Number}     data.amount             Order amount in base currency
      * @apiSuccess {Number}     data.rate               Exchange rate
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/order_book/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<OrderType, List<OrderBookItem>>> getOrderBook(@PathVariable("currency_1") String currency1,
                                                                             @PathVariable("currency_2") String currency2,
@@ -202,6 +210,8 @@ public class PublicController {
      * @apiSuccess {Number}     data.commission         Commission
      * @apiSuccess {String}     data.order_type         Order type (BUY or SELL)
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/history/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TradeHistoryDto>> getTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
                                                                                @PathVariable("currency_2") String currency2,
@@ -233,6 +243,8 @@ public class PublicController {
      * @apiSuccess {String}  data.name        Currency pair name
      * @apiSuccess {String}  data.url_symbol  URL symbol (name to be passed as URL parameter or path variable)
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/currency_pairs", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<CurrencyPairInfoItem>> findActiveCurrencyPairs() {
         return ResponseEntity.ok(currencyService.getActiveCurrencyPairs());
@@ -288,6 +300,8 @@ public class PublicController {
      * @apiUse CurrencyPairNotFoundError
      * @apiUse InternalServerError
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/candle_chart/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<CandleChartItemReducedDto>> getCandleChartData(@PathVariable("currency_1") String currency1,
                                                                               @PathVariable("currency_2") String currency2,

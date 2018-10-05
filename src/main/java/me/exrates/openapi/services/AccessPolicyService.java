@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
-public class RateLimitService {
+public class AccessPolicyService {
 
     private Map<String, CopyOnWriteArrayList<LocalDateTime>> userTimes = new ConcurrentHashMap<>();
     private Map<String, Integer> userLimits = new ConcurrentHashMap<>();
@@ -30,9 +30,9 @@ public class RateLimitService {
     private final UserDao userDao;
 
     @Autowired
-    public RateLimitService(@Value("${api.admin.attempts-limit:5}") int attemptsLimit,
-                            @Value("${api.admin.time-limit:3600}") int timeLimit,
-                            UserDao userDao) {
+    public AccessPolicyService(@Value("${api.admin.attempts-limit:5}") int attemptsLimit,
+                               @Value("${api.admin.time-limit:3600}") int timeLimit,
+                               UserDao userDao) {
         this.attemptsLimit = attemptsLimit;
         this.timeLimit = timeLimit;
         this.userDao = userDao;
@@ -74,7 +74,6 @@ public class RateLimitService {
 
     @Transactional
     public void setRequestLimit(String userEmail, Integer limit) {
-
         userDao.updateRequestsLimit(userEmail, limit);
         userLimits.put(userEmail, limit);
         userTimes.remove(userEmail);
@@ -82,7 +81,6 @@ public class RateLimitService {
 
     @Transactional
     public Integer getRequestLimit(String userEmail) {
-
         if (userLimits.containsKey(userEmail)) {
             return userLimits.get(userEmail);
         } else {
@@ -96,7 +94,34 @@ public class RateLimitService {
         }
     }
 
+    @Transactional
+    public void enableApiForUser(String userEmail) {
+        userDao.enableApiForUser(userEmail);
+    }
+
+    @Transactional
+    public void disableApiForUser(String userEmail) {
+        userDao.disableApiForUser(userEmail);
+    }
+
+    @Transactional
+    public void enableApiForAll() {
+        userDao.enableApiForAll();
+    }
+
+    @Transactional
+    public void disableApiForAll() {
+        userDao.disableApiForAll();
+    }
+
     public Map<String, Integer> getUserLimits() {
         return Collections.unmodifiableMap(userLimits);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isEnabled() {
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        return userDao.isEnabled(userEmail);
     }
 }

@@ -1,5 +1,7 @@
 package me.exrates.openapi.controllers;
 
+import me.exrates.openapi.aspect.AccessCheck;
+import me.exrates.openapi.aspect.RateLimitCheck;
 import me.exrates.openapi.exceptions.WrongDateOrderException;
 import me.exrates.openapi.exceptions.WrongLimitException;
 import me.exrates.openapi.models.dto.TransactionDto;
@@ -60,6 +62,8 @@ public class UserController {
      * @apiSuccess {Number} data.active_balance     Balance that is available for spending
      * @apiSuccess {Number} data.reserved_balance   Balance reserved for orders or withdraw
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/balances", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<WalletBalanceDto>> getUserBalances() {
         return ResponseEntity.ok(walletService.getUserBalances());
@@ -84,6 +88,8 @@ public class UserController {
      * @apiSuccess {String}     data.date_created   Creation time
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/orders/opened/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserOrdersDto>> getUserOpenOrdersByCurrencyPair(@PathVariable("currency_1") String currency1,
                                                                                @PathVariable("currency_2") String currency2,
@@ -116,6 +122,8 @@ public class UserController {
      * @apiSuccess {String}     data.date_created   Creation time
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/orders/opened", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserOrdersDto>> getUserOpenOrders(@RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
@@ -143,6 +151,8 @@ public class UserController {
      * @apiSuccess {String}     data.date_created   Creation time
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/orders/closed/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserOrdersDto>> getUserClosedOrdersByCurrencyPair(@PathVariable("currency_1") String currency1,
                                                                                  @PathVariable("currency_2") String currency2,
@@ -175,6 +185,8 @@ public class UserController {
      * @apiSuccess {String}     data.date_created   Creation time
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/orders/closed", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserOrdersDto>> getUserClosedOrdersByCurrencyPair(@RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
@@ -202,6 +214,8 @@ public class UserController {
      * @apiSuccess {String}     data.date_created   Creation time
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/orders/canceled/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserOrdersDto>> userCanceledOrders(@PathVariable("currency_1") String currency1,
                                                                   @PathVariable("currency_2") String currency2,
@@ -234,6 +248,8 @@ public class UserController {
      * @apiSuccess {String}     data.date_created   Creation time
      * @apiSuccess {String}     data.date_accepted  Acceptance time
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/orders/canceled", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserOrdersDto>> userCanceledOrders(@RequestParam(defaultValue = "50") Integer limit) {
         if (!validateLimit(limit)) {
@@ -258,6 +274,8 @@ public class UserController {
      * @apiSuccess {Number} data.buy        Commission for buy operations
      * @apiSuccess {Number} data.transfer   Commission for transfer operations
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/commissions", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OpenApiCommissionDto> getCommissions() {
         CommissionDto allCommissions = orderService.getAllCommissions();
@@ -289,6 +307,8 @@ public class UserController {
      * @apiSuccess {Number}     data.commission         Commission
      * @apiSuccess {String}     data.order_type         Order type (BUY or SELL)
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/history/trades/{currency_1}/{currency_2}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<UserTradeHistoryDto>> getUserTradeHistoryByCurrencyPair(@PathVariable("currency_1") String currency1,
                                                                                        @PathVariable("currency_2") String currency2,
@@ -326,6 +346,8 @@ public class UserController {
      * @apiSuccess {String}     data.operation_type         Transaction operation type
      * @apiSuccess {String}     data.transaction_status     Transaction status
      */
+    @AccessCheck
+    @RateLimitCheck
     @GetMapping(value = "/history/{order_id}/transactions", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TransactionDto>> getOrderTransactions(@PathVariable(value = "order_id") Integer orderId) {
         return ResponseEntity.ok(orderService.getOrderTransactions(orderId));
