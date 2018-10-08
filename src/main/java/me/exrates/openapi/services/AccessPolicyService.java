@@ -74,7 +74,13 @@ public class AccessPolicyService {
 
     @Transactional
     public void setRequestLimit(String userEmail, Integer limit) {
-        userDao.updateRequestsLimit(userEmail, limit);
+        Integer requestsLimit = userDao.getRequestsLimit(userEmail);
+
+        if (requestsLimit != 0) {
+            userDao.updateRequestsLimit(userEmail, limit);
+        } else {
+            userDao.setRequestsLimit(userEmail, limit);
+        }
         userLimits.put(userEmail, limit);
         userTimes.remove(userEmail);
     }
@@ -86,7 +92,7 @@ public class AccessPolicyService {
         } else {
             Integer limit = userDao.getRequestsLimit(userEmail);
             if (limit == 0) {
-                userDao.setRequestsDefaultLimit(userEmail, attemptsLimit);
+                userDao.setRequestsLimit(userEmail, attemptsLimit);
                 limit = attemptsLimit;
             }
             userLimits.put(userEmail, limit);

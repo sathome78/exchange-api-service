@@ -48,7 +48,7 @@ public class UserDao {
             " SET ua.attempts = :attempts" +
             " WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
 
-    private static final String INSERT_DEF_ATTEMPTS_SQL = "INSERT INTO USER_API (user_id, attempts)" +
+    private static final String INSERT_ATTEMPTS_SQL = "INSERT INTO USER_API (user_id, attempts)" +
             " VALUES ((SELECT u.id FROM USER u WHERE u.email = :email), :attempts)";
 
     private static final String ENABLE_API_FOR_USER_SQL = "UPDATE USER_API ua" +
@@ -119,17 +119,17 @@ public class UserDao {
         }
     }
 
-    public void updateRequestsLimit(String email, Integer limit) {
+    public void setRequestsLimit(String email, Integer limit) {
         jdbcTemplate.update(
-                UPDATE_ATTEMPTS_SQL,
+                INSERT_ATTEMPTS_SQL,
                 Map.of(
                         "email", email,
                         "attempts", limit));
     }
 
-    public void setRequestsDefaultLimit(String email, Integer limit) {
+    public void updateRequestsLimit(String email, Integer limit) {
         jdbcTemplate.update(
-                INSERT_DEF_ATTEMPTS_SQL,
+                UPDATE_ATTEMPTS_SQL,
                 Map.of(
                         "email", email,
                         "attempts", limit));

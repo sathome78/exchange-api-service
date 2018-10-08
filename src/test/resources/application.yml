@@ -8,16 +8,11 @@ spring:
     name: OpenApiService
   profiles:
     active: dev
-  #     - with-flyway-migration
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
     url: jdbc:mysql://localhost:3306/birzha?characterEncoding=UTF-8&autoReconnect=true&useSSL=false
     username: root
     password: root
-    #    driver-class-name: com.mysql.jdbc.Driver
-    #    url: jdbc:mysql://prodex-replicatest.cedlveyttji9.us-east-2.rds.amazonaws.com:3306/birzha?useSSL=false
-    #    username: devprod
-    #    password: Fh24soaf8sy3
     hikari:
       connection-timeout: 10000
       idle-timeout: 180000
@@ -56,5 +51,9 @@ logging:
 
 api:
   admin:
-    attempts-limit: 5
+    attempts-limit: 10
     time-limit: 3600 #Seconds
+
+exrates-api:
+  url: http://localhost:8081
+  path: /openapi/v1/admin

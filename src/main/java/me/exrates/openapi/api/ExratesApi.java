@@ -1,32 +1,36 @@
 package me.exrates.openapi.api;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
-@FeignClient("admin-client")
+@FeignClient(
+        value = "admin-client",
+        url = "${exrates-api.url}",
+        path = "${exrates-api.path}",
+        configuration = {FeignConfiguration.class})
 public interface ExratesApi {
 
 //    @RequestLine("POST /limits/add")
 //    void setRequestLimit(@Param("user_email") String userEmail,
 //                         @Param("rate_limit") Integer rateLimit);
+//
+//    @RequestLine("GET /limits/{user_email}")
+//    Map<String, Integer> getRequestLimit(@Param("user_email") String userEmail);
 
-    @PostMapping(value = "/limits/add")
-    ResponseEntity setRequestLimit(@RequestParam("user_email") String userEmail,
-                                   @RequestParam("rate_limit") Integer rateLimit);
+    @PostMapping("/limits/add")
+    boolean setRequestLimit(@RequestParam("user_email") String userEmail,
+                            @RequestParam("rate_limit") Integer rateLimit);
 
-    @GetMapping(value = "/limits/{user_email:.+}", produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Map<String, Integer>> getRequestLimit(@PathVariable(value = "user_email") String userEmail);
+    @GetMapping("/limits")
+    Map<String, Integer> getRequestLimit(@RequestParam("user_email") String userEmail);
 
-    @PostMapping(value = "/enable")
-    ResponseEntity enableAPI(@RequestParam(value = "user_email", required = false) String userEmail);
+    @PostMapping("/enable")
+    boolean enableAPI(@RequestParam(value = "user_email", required = false) String userEmail);
 
-    @PostMapping(value = "/disable")
-    ResponseEntity disableAPI(@RequestParam(value = "user_email", required = false) String userEmail);
+    @PostMapping("/disable")
+    boolean disableAPI(@RequestParam(value = "user_email", required = false) String userEmail);
 }

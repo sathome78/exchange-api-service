@@ -11,11 +11,8 @@ import java.math.BigDecimal;
 public class OrderParametersDto {
 
     @NotNull
-    @JsonProperty("currency_1")
-    private String currency1;
-    @NotNull
-    @JsonProperty("currency_2")
-    private String currency2;
+    @JsonProperty("currency_pair")
+    private String pair;
     @NotNull
     @JsonProperty("order_type")
     private OrderType orderType;
