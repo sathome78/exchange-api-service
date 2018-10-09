@@ -1,12 +1,8 @@
 package me.exrates.openapi.models.enums.invoice;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import me.exrates.openapi.exceptions.model.AuthorisedUserIsHolderParamNeededForThisActionException;
-import me.exrates.openapi.exceptions.model.AvailableForCurrentContextParamNeededForThisActionException;
-import me.exrates.openapi.exceptions.model.PermittedOperationParamNeededForThisActionException;
 import me.exrates.openapi.exceptions.model.UnsupportedInvoiceActionTypeNameException;
 
 import java.util.Arrays;
@@ -14,18 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.ACCEPT_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.ACCEPT_HOLDED_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.CONFIRM_ADMIN_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.CONFIRM_USER_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.DECLINE_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.DECLINE_HOLDED_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.POST_HOLDED_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.RETURN_FROM_WORK_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.REVOKE_ADMIN_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.REVOKE_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.SHOW_CODE_BUTTON;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.TAKE_TO_WORK_BUTTON;
+import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeButtonEnum.*;
 import static me.exrates.openapi.models.enums.invoice.InvoiceOperationPermission.ACCEPT_DECLINE;
 
 @Getter
@@ -121,14 +106,6 @@ public enum InvoiceActionTypeEnum {
         return property;
     }
 
-    public Boolean isAvailableForHolderOnly() {
-        return property.isAvailableForHolderOnly();
-    }
-
-    public List<InvoiceOperationPermission> getOperationPermissionOnlyList() {
-        return property.getOperationPermissionOnlyList();
-    }
-
     public static InvoiceActionTypeEnum convert(String name) {
         return Arrays.stream(InvoiceActionTypeEnum.class.getEnumConstants())
                 .filter(e -> e.name().equals(name))
@@ -140,18 +117,6 @@ public enum InvoiceActionTypeEnum {
         return names.stream()
                 .map(InvoiceActionTypeEnum::convert)
                 .collect(Collectors.toList());
-    }
-
-    public void checkRestrictParamNeeded() {
-        if (this.isAvailableForHolderOnly()) {
-            throw new AuthorisedUserIsHolderParamNeededForThisActionException(this.name());
-        }
-        if (this.getOperationPermissionOnlyList() != null) {
-            throw new PermittedOperationParamNeededForThisActionException(this.name());
-        }
-        if (this.isAvailableForHolderOnly()) {
-            throw new AvailableForCurrentContextParamNeededForThisActionException(this.name());
-        }
     }
 
     @Getter

@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
-import me.exrates.openapi.models.dto.openAPI.CurrencyPairInfoItem;
+import me.exrates.openapi.models.dto.CurrencyPairInfoItem;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.enums.UserRole;

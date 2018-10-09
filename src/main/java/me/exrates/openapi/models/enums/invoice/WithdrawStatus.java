@@ -3,21 +3,14 @@ package me.exrates.openapi.models.enums.invoice;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.exceptions.model.UnsupportedInvoiceStatusForActionException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusIdException;
 import me.exrates.openapi.exceptions.model.UnsupportedWithdrawRequestStatusNameException;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_AUTO;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_CONFIRM;
-import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.PUT_FOR_MANUAL;
+import static me.exrates.openapi.models.enums.invoice.InvoiceActionTypeEnum.*;
 
 @Slf4j
 @Getter

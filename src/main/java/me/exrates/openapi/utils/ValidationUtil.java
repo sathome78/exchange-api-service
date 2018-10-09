@@ -4,7 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import me.exrates.openapi.exceptions.WrongDateOrderException;
 import me.exrates.openapi.exceptions.WrongLimitException;
-import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
+import me.exrates.openapi.exceptions.InvalidCurrencyPairFormatException;
 
 import java.time.LocalDate;
 import java.util.regex.Pattern;

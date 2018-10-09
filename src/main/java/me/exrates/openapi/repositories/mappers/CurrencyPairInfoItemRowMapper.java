@@ -2,7 +2,7 @@ package me.exrates.openapi.repositories.mappers;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import me.exrates.openapi.models.dto.openAPI.CurrencyPairInfoItem;
+import me.exrates.openapi.models.dto.CurrencyPairInfoItem;
 import org.springframework.jdbc.core.RowMapper;
 
 @NoArgsConstructor(access = AccessLevel.NONE)

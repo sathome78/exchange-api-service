@@ -1,4 +1,7 @@
-SET FOREIGN_KEY_CHECKS=0;
-DELETE FROM `user_api` WHERE user_id = (SELECT id FROM `user` WHERE email = 'APITest@email.com');
-DELETE FROM `user` WHERE email = 'APITest@email.com';
-SET FOREIGN_KEY_CHECKS=1;
+SET FOREIGN_KEY_CHECKS = 0;
+
+DELETE FROM USER_API ua WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = 'APITest@email.com');
+
+DELETE FROM USER u WHERE u.email = 'APITest@email.com';
+
+SET FOREIGN_KEY_CHECKS = 1;

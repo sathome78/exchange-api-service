@@ -61,7 +61,6 @@ public class OrderValidator {
                 }
             }
         }
-
         if (orderCreateDto.getCurrencyPair().getPairType() == CurrencyPairType.ICO) {
             if (nonNull(orderCreateDto.getOrderBaseType()) && orderCreateDto.getOrderBaseType() != OrderBaseType.ICO) {
                 throw new RuntimeException("Unsupported type of order");
@@ -82,7 +81,6 @@ public class OrderValidator {
                 }
             }
         }
-
         if (nonNull(orderCreateDto.getAmount())) {
             if (orderCreateDto.getAmount().compareTo(currencyPairLimit.getMaxAmount()) > 0) {
                 return false;
@@ -91,7 +89,6 @@ public class OrderValidator {
                 return false;
             }
         }
-
         if (nonNull(orderCreateDto.getExchangeRate())) {
             if (orderCreateDto.getExchangeRate().compareTo(BigDecimal.ZERO) < 1) {
                 return false;
@@ -104,7 +101,6 @@ public class OrderValidator {
             }
 
         }
-
         if (nonNull(orderCreateDto.getAmount()) && nonNull(orderCreateDto.getExchangeRate())) {
             return orderCreateDto.getSpentWalletBalance().compareTo(BigDecimal.ZERO) > 0
                     && orderCreateDto.getSpentAmount().compareTo(orderCreateDto.getSpentWalletBalance()) <= 0;

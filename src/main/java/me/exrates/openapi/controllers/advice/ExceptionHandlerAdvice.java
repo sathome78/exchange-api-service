@@ -3,10 +3,9 @@ package me.exrates.openapi.controllers.advice;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
-import me.exrates.openapi.exceptions.OrderNotFoundException;
 import me.exrates.openapi.exceptions.ValidationException;
-import me.exrates.openapi.exceptions.api.InvalidCurrencyPairFormatException;
-import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
+import me.exrates.openapi.exceptions.InvalidCurrencyPairFormatException;
+import me.exrates.openapi.exceptions.OrderParamsWrongException;
 import me.exrates.openapi.models.enums.ErrorCode;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.springframework.http.HttpStatus;
@@ -24,9 +23,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import javax.servlet.http.HttpServletRequest;
 
 import static java.util.stream.Collectors.joining;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
+import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @ControllerAdvice
@@ -78,12 +75,12 @@ public class ExceptionHandlerAdvice {
         return new OpenApiError(ErrorCode.ALREADY_ACCEPTED_ORDER, req.getServletPath(), exception);
     }
 
-    @ResponseBody
-    @ResponseStatus(NOT_ACCEPTABLE)
-    @ExceptionHandler(OrderNotFoundException.class)
-    public OpenApiError orderNotFoundExceptionHandler(HttpServletRequest req, Exception exception) {
-        return new OpenApiError(ErrorCode.ORDER_NOT_FOUND, req.getServletPath(), exception);
-    }
+//    @ResponseBody
+//    @ResponseStatus(NOT_ACCEPTABLE)
+//    @ExceptionHandler(NotFoundException.class)
+//    public OpenApiError orderNotFoundExceptionHandler(HttpServletRequest req, Exception exception) {
+//        return new OpenApiError(ErrorCode.ORDER_NOT_FOUND, req.getServletPath(), exception);
+//    }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(value = AccessDeniedException.class)

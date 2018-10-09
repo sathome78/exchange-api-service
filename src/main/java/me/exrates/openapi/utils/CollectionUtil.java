@@ -11,10 +11,6 @@ import java.util.Set;
 @NoArgsConstructor(access = AccessLevel.NONE)
 public final class CollectionUtil {
 
-    public static <T> boolean isNotEmpty(Collection<T> list) {
-        return !isEmpty(list);
-    }
-
     public static <T> List<T> requireNotEmpty(List<T> list, String message) {
         if (isEmpty(list)) {
             throw new IllegalArgumentException(message);
@@ -51,6 +47,10 @@ public final class CollectionUtil {
             startIndex += chunkSize;
         }
         return splitLists;
+    }
+
+    public static <T> boolean isNotEmpty(Collection<T> list) {
+        return !isEmpty(list);
     }
 
     private static boolean isLastIteration(int index, int number) {

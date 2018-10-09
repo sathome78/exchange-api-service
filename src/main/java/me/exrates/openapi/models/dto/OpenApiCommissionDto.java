@@ -1,10 +1,8 @@
-package me.exrates.openapi.models.dto.openAPI;
+package me.exrates.openapi.models.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
 
 import java.math.BigDecimal;
 

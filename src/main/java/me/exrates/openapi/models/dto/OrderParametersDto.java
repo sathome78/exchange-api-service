@@ -1,4 +1,4 @@
-package me.exrates.openapi.models.dto.openAPI;
+package me.exrates.openapi.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

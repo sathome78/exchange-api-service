@@ -1,14 +1,8 @@
 package me.exrates.openapi.models;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
-import me.exrates.openapi.models.serializer.LocalDateTimeSerializer;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,7 +23,6 @@ public class Transaction {
     private OperationType operationType;
     private Currency currency;
     private Merchant merchant;
-    @JsonSerialize(using = LocalDateTimeSerializer.class)
     private LocalDateTime datetime;
     private ExOrder order;
     private boolean provided;

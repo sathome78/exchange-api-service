@@ -3,63 +3,18 @@ package me.exrates.openapi.services;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.components.OrderValidator;
-import me.exrates.openapi.converters.TransactionDescriptionConverter;
-import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
-import me.exrates.openapi.exceptions.AttemptToAcceptBotOrderException;
-import me.exrates.openapi.exceptions.IncorrectCurrentUserException;
-import me.exrates.openapi.exceptions.NotCreatableOrderException;
-import me.exrates.openapi.exceptions.NotEnoughUserWalletMoneyException;
-import me.exrates.openapi.exceptions.OrderAcceptionException;
-import me.exrates.openapi.exceptions.OrderCancellingException;
-import me.exrates.openapi.exceptions.OrderCreationException;
-import me.exrates.openapi.exceptions.OrderDeletingException;
-import me.exrates.openapi.exceptions.WalletCreationException;
-import me.exrates.openapi.exceptions.api.OrderParamsWrongException;
-import me.exrates.openapi.models.Commission;
-import me.exrates.openapi.models.CompanyWallet;
-import me.exrates.openapi.models.Currency;
-import me.exrates.openapi.models.CurrencyPair;
-import me.exrates.openapi.models.ExOrder;
-import me.exrates.openapi.models.Transaction;
-import me.exrates.openapi.models.User;
-import me.exrates.openapi.models.UserRoleSettings;
-import me.exrates.openapi.models.Wallet;
-import me.exrates.openapi.models.dto.CandleChartItemDto;
-import me.exrates.openapi.models.dto.CoinmarketApiDto;
-import me.exrates.openapi.models.dto.OrderCreateDto;
-import me.exrates.openapi.models.dto.OrderCreationResultDto;
-import me.exrates.openapi.models.dto.OrderDetailDto;
-import me.exrates.openapi.models.dto.TradeHistoryDto;
-import me.exrates.openapi.models.dto.TransactionDto;
-import me.exrates.openapi.models.dto.UserTradeHistoryDto;
-import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
-import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
-import me.exrates.openapi.models.dto.WalletsForOrderCancelDto;
-import me.exrates.openapi.models.dto.mobileApiDto.OrderCreationParamsDto;
-import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
-import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
-import me.exrates.openapi.models.dto.openAPI.OrderBookItem;
-import me.exrates.openapi.models.dto.openAPI.UserOrdersDto;
-import me.exrates.openapi.models.enums.ActionType;
-import me.exrates.openapi.models.enums.CurrencyPairType;
-import me.exrates.openapi.models.enums.OperationType;
-import me.exrates.openapi.models.enums.OrderActionEnum;
-import me.exrates.openapi.models.enums.OrderBaseType;
-import me.exrates.openapi.models.enums.OrderDeleteStatus;
-import me.exrates.openapi.models.enums.OrderStatus;
-import me.exrates.openapi.models.enums.OrderType;
-import me.exrates.openapi.models.enums.TransactionSourceType;
-import me.exrates.openapi.models.enums.TransactionStatus;
-import me.exrates.openapi.models.enums.UserRole;
-import me.exrates.openapi.models.enums.WalletTransferStatus;
+import me.exrates.openapi.exceptions.*;
+import me.exrates.openapi.models.*;
+import me.exrates.openapi.models.dto.*;
+import me.exrates.openapi.models.enums.*;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.models.vo.WalletOperationData;
 import me.exrates.openapi.repositories.OrderDao;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
+import me.exrates.openapi.utils.TransactionDescriptionUtil;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -76,24 +31,16 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
-import static me.exrates.openapi.models.enums.OrderActionEnum.ACCEPT;
-import static me.exrates.openapi.models.enums.OrderActionEnum.ACCEPTED;
-import static me.exrates.openapi.models.enums.OrderActionEnum.CANCEL;
-import static me.exrates.openapi.models.enums.OrderActionEnum.CREATE;
-import static me.exrates.openapi.models.enums.OrderActionEnum.DELETE_SPLIT;
-import static me.exrates.openapi.models.enums.UserRole.USER;
+import static me.exrates.openapi.models.enums.OrderActionEnum.*;
 import static me.exrates.openapi.utils.CollectionUtil.isNotEmpty;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
@@ -235,7 +182,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public CommissionDto getAllCommissions() {
-        UserRole userRole = getUserRoleFromSecurityContext();
+        UserRole userRole = userService.getUserRoleFromSecurityContext();
 
         return orderDao.getAllCommissions(userRole);
     }
@@ -373,7 +320,7 @@ public class OrderService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         UserRole userRole = nonNull(authentication)
-                ? getUserRoleFromSecurityContext()
+                ? userService.getUserRoleFromSecurityContext()
                 : userService.getUserRoleFromDatabase(userEmail);
 
         return orderDao.getWalletAndCommission(userEmail, currency, operationType, userRole);
@@ -484,8 +431,8 @@ public class OrderService {
             WalletsForOrderAcceptionDto walletsForOrderAcceptionDto = walletService.getWalletsForOrderByOrderIdAndBlock(order.getId(), userAcceptorId);
 
             OrderStatus orderStatus = OrderStatus.convert(walletsForOrderAcceptionDto.getOrderStatusId());
-            String descriptionForCreator = TransactionDescriptionConverter.get(orderStatus, ACCEPTED);
-            String descriptionForAcceptor = TransactionDescriptionConverter.get(orderStatus, ACCEPT);
+            String descriptionForCreator = TransactionDescriptionUtil.get(orderStatus, ACCEPTED);
+            String descriptionForAcceptor = TransactionDescriptionUtil.get(orderStatus, ACCEPT);
 
             if (orderStatus != OrderStatus.OPENED) {
                 throw new AlreadyAcceptedOrderException("The order is accepted already");
@@ -761,7 +708,7 @@ public class OrderService {
         int processedRows = 1;
 
         OrderStatus currentOrderStatus = list.get(0).getOrderStatus();
-        String description = TransactionDescriptionConverter.get(currentOrderStatus, DELETE_SPLIT);
+        String description = TransactionDescriptionUtil.get(currentOrderStatus, DELETE_SPLIT);
 
         if (!setStatus(orderId, OrderStatus.SPLIT_CLOSED)) {
             return OrderDeleteStatus.ORDER_UPDATE_ERROR;
@@ -877,11 +824,11 @@ public class OrderService {
     public int createOrder(OrderCreateDto orderCreateDto, OrderActionEnum action) {
         StopWatch stopWatch = StopWatch.createStarted();
         try {
-            String description = TransactionDescriptionConverter.get(null, action);
+            String description = TransactionDescriptionUtil.get(null, action);
 
             int createdOrderId;
-            int outWalletId = 0;
-            BigDecimal outAmount = null;
+            int outWalletId;
+            BigDecimal outAmount;
 
             if (orderCreateDto.getOperationType() == OperationType.BUY) {
                 outWalletId = orderCreateDto.getWalletIdCurrencyConvert();
@@ -978,7 +925,7 @@ public class OrderService {
             if (currentStatus != OrderStatus.OPENED) {
                 throw new OrderAcceptionException("The order can not be deleted");
             }
-            String description = TransactionDescriptionConverter.get(currentStatus, CANCEL);
+            String description = TransactionDescriptionUtil.get(currentStatus, CANCEL);
 
             WalletTransferStatus transferResult = walletService.walletInnerTransfer(
                     walletsForOrderCancelDto.getWalletId(),
@@ -1048,22 +995,6 @@ public class OrderService {
 
     private List<CoinmarketApiDto> getCoinmarketDataForActivePairs(String pairName) {
         return orderDao.getCoinmarketData(pairName);
-    }
-
-    private UserRole getUserRoleFromSecurityContext() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Set<String> roles = Stream.of(UserRole.values())
-                .map(UserRole::name)
-                .collect(toSet());
-
-        String grantedAuthority = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .filter(roles::contains)
-                .findFirst()
-                .orElse(USER.name());
-
-        log.debug("Granted authority: {}", grantedAuthority);
-        return UserRole.valueOf(grantedAuthority);
     }
 }
 

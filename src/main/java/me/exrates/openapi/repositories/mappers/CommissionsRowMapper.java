@@ -2,7 +2,7 @@ package me.exrates.openapi.repositories.mappers;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import me.exrates.openapi.models.dto.mobileApiDto.dashboard.CommissionDto;
+import me.exrates.openapi.models.dto.CommissionDto;
 import org.springframework.jdbc.core.RowMapper;
 
 @NoArgsConstructor(access = AccessLevel.NONE)

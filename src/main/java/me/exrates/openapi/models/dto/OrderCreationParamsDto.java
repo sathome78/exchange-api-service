@@ -1,4 +1,4 @@
-package me.exrates.openapi.models.dto.mobileApiDto;
+package me.exrates.openapi.models.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,4 +1,4 @@
-package me.exrates.openapi.converters;
+package me.exrates.openapi.utils;
 
 import me.exrates.openapi.models.enums.OrderActionEnum;
 import me.exrates.openapi.models.enums.OrderStatus;
@@ -6,7 +6,7 @@ import org.apache.commons.lang.StringUtils;
 
 import static java.util.Objects.isNull;
 
-public final class TransactionDescriptionConverter {
+public final class TransactionDescriptionUtil {
 
     //+
     public static String get(OrderStatus currentStatus, OrderActionEnum action) {

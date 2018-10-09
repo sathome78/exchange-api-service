@@ -5,7 +5,7 @@ import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.dto.OrderDetailDto;
 import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
 import me.exrates.openapi.models.dto.WalletsForOrderCancelDto;
-import me.exrates.openapi.models.dto.openAPI.WalletBalanceDto;
+import me.exrates.openapi.models.dto.WalletBalanceDto;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
 import me.exrates.openapi.models.enums.WalletTransferStatus;

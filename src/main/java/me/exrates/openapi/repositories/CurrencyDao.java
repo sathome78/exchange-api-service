@@ -2,7 +2,7 @@ package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
-import me.exrates.openapi.models.dto.openAPI.CurrencyPairInfoItem;
+import me.exrates.openapi.models.dto.CurrencyPairInfoItem;
 import me.exrates.openapi.repositories.mappers.CurrencyPairInfoItemRowMapper;
 import me.exrates.openapi.repositories.mappers.CurrencyPairLimitRowMapper;
 import me.exrates.openapi.repositories.mappers.CurrencyPairRowMapper;

@@ -1,4 +1,4 @@
-package me.exrates.openapi.exceptions.api;
+package me.exrates.openapi.exceptions;
 
 public class InvalidCurrencyPairFormatException extends RuntimeException {
 

@@ -2,7 +2,7 @@ package me.exrates.openapi.repositories.mappers;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import me.exrates.openapi.models.dto.openAPI.OpenOrderDto;
+import me.exrates.openapi.models.dto.OpenOrderDto;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderType;
 import org.springframework.jdbc.core.RowMapper;

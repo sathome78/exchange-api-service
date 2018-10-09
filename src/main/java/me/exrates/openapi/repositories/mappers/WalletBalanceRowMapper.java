@@ -2,7 +2,7 @@ package me.exrates.openapi.repositories.mappers;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import me.exrates.openapi.models.dto.openAPI.WalletBalanceDto;
+import me.exrates.openapi.models.dto.WalletBalanceDto;
 import org.springframework.jdbc.core.RowMapper;
 
 @NoArgsConstructor(access = AccessLevel.NONE)
