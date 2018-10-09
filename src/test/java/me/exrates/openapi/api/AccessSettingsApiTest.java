@@ -28,7 +28,7 @@ public class AccessSettingsApiTest {
     @Value("${exrates-api.url}")
     private String url;
 
-    @Value("${exrates-api.path.access}")
+    @Value("${exrates-api.path}")
     private String path;
 
     @Autowired

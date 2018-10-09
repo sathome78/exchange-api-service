@@ -56,6 +56,4 @@ api:
 
 exrates-api:
   url: http://localhost:8081
-  path:
-    access: /openapi/v1/access/settings
-    token: /openapi/v1/token/settings
+  path: /openapi/v1/access/settings
