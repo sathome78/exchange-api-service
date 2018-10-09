@@ -15,13 +15,13 @@ import java.util.Map;
 import static java.util.Objects.nonNull;
 
 @RestController
-@RequestMapping("/admin")
-public class AdminController {
+@RequestMapping("/access/settings")
+public class AccessSettingsController {
 
     private final AccessPolicyService accessPolicyService;
 
     @Autowired
-    public AdminController(AccessPolicyService accessPolicyService) {
+    public AccessSettingsController(AccessPolicyService accessPolicyService) {
         this.accessPolicyService = accessPolicyService;
     }
 

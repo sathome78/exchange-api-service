@@ -8,11 +8,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.Map;
 
 @FeignClient(
-        value = "admin-client",
-        url = "${exrates-api.url}",
-        path = "${exrates-api.path}",
+        value = "access-settings-client",
         configuration = {FeignConfiguration.class})
-public interface ExratesApi {
+public interface AccessSettingsApi {
 
 //    @RequestLine("POST /limits/add")
 //    void setRequestLimit(@Param("user_email") String userEmail,

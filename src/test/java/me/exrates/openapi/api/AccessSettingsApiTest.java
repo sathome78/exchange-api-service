@@ -23,18 +23,18 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class ExratesApiTest {
+public class AccessSettingsApiTest {
 
     @Value("${exrates-api.url}")
     private String url;
 
-    @Value("${exrates-api.path}")
+    @Value("${exrates-api.path.access}")
     private String path;
 
     @Autowired
     private UserDao userDao;
 
-    private ExratesApi exratesApi;
+    private AccessSettingsApi accessSettingsApi;
 
     private User user;
 
@@ -42,35 +42,35 @@ public class ExratesApiTest {
     public void setUp() {
         user = userDao.getUserById(1);
 
-        exratesApi = Feign.builder()
+        accessSettingsApi = Feign.builder()
                 .contract(new SpringMvcContract())
                 .encoder(new JacksonEncoder())
                 .decoder(new JacksonDecoder())
-                .logger(new Slf4jLogger(ExratesApi.class))
-                .target(ExratesApi.class, url + path);
+                .logger(new Slf4jLogger(AccessSettingsApi.class))
+                .target(AccessSettingsApi.class, url + path);
     }
 
     @Test
     public void EndToEndAdminTest() {
         //setRequestLimit
-        boolean success = exratesApi.setRequestLimit(user.getEmail(), 1);
+        boolean success = accessSettingsApi.setRequestLimit(user.getEmail(), 1);
 
         assertTrue(success);
 
         //getRequestLimit
-        Map<String, Integer> requestLimit = exratesApi.getRequestLimit(user.getEmail());
+        Map<String, Integer> requestLimit = accessSettingsApi.getRequestLimit(user.getEmail());
 
         assertNotNull(requestLimit);
         assertFalse(requestLimit.isEmpty());
         assertTrue(requestLimit.containsKey(user.getEmail()));
 
         //disableAPI
-        success = exratesApi.disableAPI(user.getEmail());
+        success = accessSettingsApi.disableAPI(user.getEmail());
 
         assertTrue(success);
 
         //enableAPI
-        success = exratesApi.enableAPI(user.getEmail());
+        success = accessSettingsApi.enableAPI(user.getEmail());
 
         assertTrue(success);
     }
