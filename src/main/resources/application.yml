@@ -58,3 +58,6 @@ api:
   admin:
     attempts-limit: 5
     time-limit: 3600 #Seconds
+
+swagger:
+  enabled: true

@@ -14,6 +14,8 @@ import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import me.exrates.openapi.utils.TransactionDescriptionUtil;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -31,15 +33,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
+import static me.exrates.openapi.configurations.CacheConfiguration.CACHE_COIN_MARKET;
 import static me.exrates.openapi.models.enums.OrderActionEnum.*;
 import static me.exrates.openapi.utils.CollectionUtil.isNotEmpty;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -48,10 +48,8 @@ import static org.springframework.util.CollectionUtils.isEmpty;
 @Service
 public class OrderService {
 
+    private static final String ALL = "ALL";
     private static final Long LIMIT_TIME = 200L;
-
-    private List<CoinmarketApiDto> coinmarketCachedData = new CopyOnWriteArrayList<>();
-    private ScheduledExecutorService coinmarketScheduler = Executors.newSingleThreadScheduledExecutor();
 
     private final Object orderCreationLock = new Object();
     private final Object autoAcceptLock = new Object();
@@ -67,6 +65,7 @@ public class OrderService {
     private final StopOrderService stopOrderService;
     private final UserRoleService userRoleService;
     private final OrderValidator validator;
+    private final Cache cacheCoinmarket;
 
     @Autowired
     public OrderService(OrderDao orderDao,
@@ -79,7 +78,8 @@ public class OrderService {
                         ReferralService referralService,
                         StopOrderService stopOrderService,
                         UserRoleService userRoleService,
-                        OrderValidator validator) {
+                        OrderValidator validator,
+                        @Qualifier(CACHE_COIN_MARKET) Cache cacheCoinmarket) {
         this.orderDao = orderDao;
         this.commissionService = commissionService;
         this.transactionService = transactionService;
@@ -91,14 +91,12 @@ public class OrderService {
         this.stopOrderService = stopOrderService;
         this.userRoleService = userRoleService;
         this.validator = validator;
+        this.cacheCoinmarket = cacheCoinmarket;
     }
 
     @PostConstruct
     public void init() {
-        coinmarketScheduler.scheduleAtFixedRate(() -> {
-            List<CoinmarketApiDto> newData = getCoinmarketDataForActivePairs(null);
-            coinmarketCachedData = new CopyOnWriteArrayList<>(newData);
-        }, 0, 30, TimeUnit.MINUTES);
+        cacheCoinmarket.put(ALL, getCoinmarketDataForActivePairs(null));
     }
 
     @Transactional(readOnly = true)
@@ -110,10 +108,25 @@ public class OrderService {
     public List<CoinmarketApiDto> getDailyCoinmarketData(String pairName) {
         if (nonNull(pairName)) {
             validateCurrencyPair(pairName);
+
+            CoinmarketData coinmarketData = cacheCoinmarket.get(pairName, CoinmarketData.class);
+            if (nonNull(coinmarketData) && isNotEmpty(coinmarketData.getList())) {
+                return coinmarketData.getList();
+            } else {
+                coinmarketData = getCoinmarketDataForActivePairs(pairName);
+                cacheCoinmarket.put(pairName, coinmarketData);
+                return coinmarketData.getList();
+            }
+        } else {
+            CoinmarketData coinmarketData = cacheCoinmarket.get(ALL, CoinmarketData.class);
+            if (nonNull(coinmarketData) && isNotEmpty(coinmarketData.getList())) {
+                return coinmarketData.getList();
+            } else {
+                coinmarketData = getCoinmarketDataForActivePairs(null);
+                cacheCoinmarket.put(ALL, coinmarketData);
+                return coinmarketData.getList();
+            }
         }
-        return isNull(pairName) && isNotEmpty(coinmarketCachedData)
-                ? coinmarketCachedData
-                : getCoinmarketDataForActivePairs(pairName);
     }
 
     @Transactional(readOnly = true)
@@ -993,8 +1006,8 @@ public class OrderService {
         currencyService.findCurrencyPairIdByName(pairName);
     }
 
-    private List<CoinmarketApiDto> getCoinmarketDataForActivePairs(String pairName) {
-        return orderDao.getCoinmarketData(pairName);
+    private CoinmarketData getCoinmarketDataForActivePairs(String pairName) {
+        return new CoinmarketData(orderDao.getCoinmarketData(pairName));
     }
 }
 
