@@ -5,7 +5,7 @@ import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.slf4j.Slf4jLogger;
 import me.exrates.openapi.models.User;
-import me.exrates.openapi.repositories.UserDao;
+import me.exrates.openapi.repositories.UserRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,7 +32,7 @@ public class AccessSettingsApiTest {
     private String path;
 
     @Autowired
-    private UserDao userDao;
+    private UserRepository userRepository;
 
     private AccessSettingsApi accessSettingsApi;
 
@@ -40,7 +40,7 @@ public class AccessSettingsApiTest {
 
     @Before
     public void setUp() {
-        user = userDao.getUserById(1);
+        user = userRepository.getUserById(1);
 
         accessSettingsApi = Feign.builder()
                 .contract(new SpringMvcContract())

@@ -53,7 +53,7 @@ public class OrderController {
             throw new ValidationException(result.getAllErrors());
         }
 
-        final String pair = orderParametersDto.getPair();
+        final String pair = orderParametersDto.getPair().toUpperCase();
 
         validateCurrencyPair(pair);
 
@@ -79,6 +79,8 @@ public class OrderController {
     public ResponseEntity<Boolean> cancelOrdersByCurrencyPair(@RequestParam(value = "currency_pair", required = false) String pair) {
 
         if (nonNull(pair)) {
+            pair = pair.toUpperCase();
+
             validateCurrencyPair(pair);
 
             return ResponseEntity.ok(orderService.cancelOpenOrdersByCurrencyPair(pair));
@@ -98,6 +100,8 @@ public class OrderController {
     @GetMapping(value = "/opened", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<OpenOrderDto>> openOrders(@RequestParam(value = "currency_pair") String pair,
                                                          @RequestParam("order_type") OrderType orderType) {
+        pair = pair.toUpperCase();
+
         validateCurrencyPair(pair);
 
         return ResponseEntity.ok(orderService.getOpenOrders(pair, orderType));

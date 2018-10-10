@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public class CurrencyDao {
+public class CurrencyRepository {
 
     private static final String FIND_ACTIVE_CURRENCY_PAIR_ID_BY_NAME_SQL = "SELECT cp.id FROM CURRENCY_PAIR cp WHERE cp.name = :pair_name AND cp.hidden != 1";
 
@@ -51,7 +51,7 @@ public class CurrencyDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public CurrencyDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public CurrencyRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

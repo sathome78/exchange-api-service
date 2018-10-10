@@ -15,9 +15,9 @@ import java.util.Objects;
 
 @Slf4j
 @Repository
-public class StopOrderDao {
+public class StopOrderRepository {
 
-    private static final String CREATE_STOP_ORDER_SQL = "INSERT INTO STOP_ORDERS" +
+    private static final String CREATE_STOP_ORDER_SQL = "INSERT IGNORE INTO STOP_ORDERS" +
             "  (user_id, currency_pair_id, operation_type_id, stop_rate,  limit_rate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id)" +
             "  VALUES (:user_id, :currency_pair_id, :operation_type_id, :stop_rate, :limit_rate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id)";
 
@@ -26,7 +26,7 @@ public class StopOrderDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public StopOrderDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public StopOrderRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

@@ -8,7 +8,7 @@ import me.exrates.openapi.models.dto.CurrencyPairInfoItem;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.enums.UserRole;
-import me.exrates.openapi.repositories.CurrencyDao;
+import me.exrates.openapi.repositories.CurrencyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,22 +21,22 @@ import static java.util.Objects.isNull;
 @Service
 public class CurrencyService {
 
-    private final CurrencyDao currencyDao;
+    private final CurrencyRepository currencyRepository;
 
     @Autowired
-    public CurrencyService(CurrencyDao currencyDao) {
-        this.currencyDao = currencyDao;
+    public CurrencyService(CurrencyRepository currencyRepository) {
+        this.currencyRepository = currencyRepository;
     }
 
     @Transactional(readOnly = true)
     public List<CurrencyPairInfoItem> getActiveCurrencyPairs() {
-        return currencyDao.findActiveCurrencyPairs();
+        return currencyRepository.findActiveCurrencyPairs();
     }
 
     @Transactional(readOnly = true)
     public CurrencyPair getCurrencyPairByName(String pairName) {
         log.debug("Try to find currency pair by name: {}", pairName);
-        CurrencyPair currencyPair = currencyDao.findCurrencyPairByName(pairName);
+        CurrencyPair currencyPair = currencyRepository.findCurrencyPairByName(pairName);
         if (isNull(currencyPair)) {
             throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
         }
@@ -48,7 +48,7 @@ public class CurrencyService {
     public CurrencyPair getCurrencyPairById(int currencyPairId) {
         log.debug("Try to find currency pair by id: {}", currencyPairId);
 
-        CurrencyPair currencyPair = currencyDao.findCurrencyPairById(currencyPairId);
+        CurrencyPair currencyPair = currencyRepository.findCurrencyPairById(currencyPairId);
         if (isNull(currencyPair)) {
             throw new CurrencyPairNotFoundException(String.format("Currency pair with id: %s not found", currencyPairId));
         }
@@ -62,14 +62,14 @@ public class CurrencyService {
                                                 UserRole userRole) {
         OrderType orderType = OrderType.convert(operationType.getType());
 
-        return currencyDao.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
+        return currencyRepository.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
     }
 
     @Transactional(readOnly = true)
     public Integer findCurrencyPairIdByName(String pairName) {
         log.debug("Try to find currency pair by name: {}", pairName);
 
-        Integer currencyPairId = currencyDao.findActiveCurrencyPairIdByName(pairName);
+        Integer currencyPairId = currencyRepository.findActiveCurrencyPairIdByName(pairName);
         if (isNull(currencyPairId)) {
             throw new CurrencyPairNotFoundException(String.format("Currency pair with name: %s not found", pairName));
         }

@@ -13,9 +13,9 @@ import java.util.Map;
 import java.util.Objects;
 
 @Repository
-public class ReferralTransactionDao {
+public class ReferralTransactionRepository {
 
-    private static final String CREATE_REFERRAL_TRANSACTION_SQL = "INSERT INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id)" +
+    private static final String CREATE_REFERRAL_TRANSACTION_SQL = "INSERT IGNORE INTO REFERRAL_TRANSACTION (initiator_id, user_id, order_id, referral_level_id)" +
             " VALUES (:initiatorId, :userId, :orderId, :refLevelId)";
 
     private static final String SET_REFERRAL_TRANSACTION_STATUS_SQL = "UPDATE REFERRAL_TRANSACTION rt" +
@@ -25,7 +25,7 @@ public class ReferralTransactionDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public ReferralTransactionDao(final NamedParameterJdbcTemplate jdbcTemplate) {
+    public ReferralTransactionRepository(final NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

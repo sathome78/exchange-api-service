@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Map;
 
 @Repository
-public class UserAlertsDao {
+public class UserAlertsRepository {
 
     private static final String GET_ALERT_SQL = "SELECT * FROM SERVICE_ALERTS sa WHERE sa.alert_type = :name";
 
@@ -20,7 +20,7 @@ public class UserAlertsDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public UserAlertsDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public UserAlertsRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

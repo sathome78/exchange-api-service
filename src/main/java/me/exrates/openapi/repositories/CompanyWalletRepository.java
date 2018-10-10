@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 @Repository
-public class CompanyWalletDao {
+public class CompanyWalletRepository {
 
     private static final String UPDATE_COMPANY_WALLET = "UPDATE COMPANY_WALLET cw" +
             " SET cw.balance = :balance, cw.commission_balance = :commissionBalance" +
@@ -28,7 +28,7 @@ public class CompanyWalletDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public CompanyWalletDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public CompanyWalletRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

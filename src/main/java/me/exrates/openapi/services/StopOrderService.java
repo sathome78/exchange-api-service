@@ -4,7 +4,7 @@ package me.exrates.openapi.services;
 import me.exrates.openapi.models.ExOrder;
 import me.exrates.openapi.models.StopOrder;
 import me.exrates.openapi.models.enums.OrderStatus;
-import me.exrates.openapi.repositories.StopOrderDao;
+import me.exrates.openapi.repositories.StopOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,21 +12,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StopOrderService {
 
-    private final StopOrderDao stopOrderDao;
+    private final StopOrderRepository stopOrderRepository;
 
     @Autowired
-    public StopOrderService(StopOrderDao stopOrderDao) {
-        this.stopOrderDao = stopOrderDao;
+    public StopOrderService(StopOrderRepository stopOrderRepository) {
+        this.stopOrderRepository = stopOrderRepository;
     }
 
     @Transactional
     public boolean setStatus(int orderId, OrderStatus status) {
-        return stopOrderDao.setStatus(orderId, status);
+        return stopOrderRepository.setStatus(orderId, status);
     }
 
     @Transactional
     public Integer createOrder(ExOrder order) {
         StopOrder stopOrder = new StopOrder(order);
-        return stopOrderDao.create(stopOrder);
+        return stopOrderRepository.create(stopOrder);
     }
 }

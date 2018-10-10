@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.exceptions.AuthenticationNotAvailableException;
 import me.exrates.openapi.models.User;
 import me.exrates.openapi.models.enums.UserRole;
-import me.exrates.openapi.repositories.UserDao;
+import me.exrates.openapi.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,43 +24,43 @@ import static me.exrates.openapi.models.enums.UserRole.USER;
 @Service
 public class UserService {
 
-    private final UserDao userDao;
+    private final UserRepository userRepository;
 
     @Autowired
-    public UserService(UserDao userDao) {
-        this.userDao = userDao;
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
     public int getAuthenticatedUserId() {
         final String userEmail = getUserEmailFromSecurityContext();
 
-        return userDao.getIdByEmail(userEmail);
+        return userRepository.getIdByEmail(userEmail);
     }
 
     @Transactional(readOnly = true)
     public UserRole getUserRoleFromDatabase(String email) {
-        return userDao.getUserRoleByEmail(email);
+        return userRepository.getUserRoleByEmail(email);
     }
 
     @Transactional(readOnly = true)
     public UserRole getUserRoleFromDatabase(Integer userId) {
-        return userDao.getUserRoleById(userId);
+        return userRepository.getUserRoleById(userId);
     }
 
     @Transactional(readOnly = true)
     public User getUserById(int id) {
-        return userDao.getUserById(id);
+        return userRepository.getUserById(id);
     }
 
     @Transactional(readOnly = true)
     public String getEmailById(Integer id) {
-        return userDao.getEmailById(id);
+        return userRepository.getEmailById(id);
     }
 
     @Transactional(readOnly = true)
     public int getIdByEmail(String email) {
-        return userDao.getIdByEmail(email);
+        return userRepository.getIdByEmail(email);
     }
 
     public String getUserEmailFromSecurityContext() {

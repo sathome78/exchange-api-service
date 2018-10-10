@@ -8,14 +8,14 @@ import org.springframework.stereotype.Repository;
 import java.util.Map;
 
 @Repository
-public class ReferralUserGraphDao {
+public class ReferralUserGraphRepository {
 
     private static final String GET_PARENT_SQL = "SELECT rug.parent FROM REFERRAL_USER_GRAPH rug WHERE rug.child = :child";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public ReferralUserGraphDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public ReferralUserGraphRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

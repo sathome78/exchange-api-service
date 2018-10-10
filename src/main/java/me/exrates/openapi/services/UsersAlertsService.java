@@ -3,7 +3,7 @@ package me.exrates.openapi.services;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.models.dto.AlertDto;
 import me.exrates.openapi.models.enums.AlertType;
-import me.exrates.openapi.repositories.UserAlertsDao;
+import me.exrates.openapi.repositories.UserAlertsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,11 +15,11 @@ import java.time.LocalDateTime;
 @Service
 public class UsersAlertsService {
 
-    private final UserAlertsDao userAlertsDao;
+    private final UserAlertsRepository userAlertsRepository;
 
     @Autowired
-    public UsersAlertsService(UserAlertsDao userAlertsDao) {
-        this.userAlertsDao = userAlertsDao;
+    public UsersAlertsService(UserAlertsRepository userAlertsRepository) {
+        this.userAlertsRepository = userAlertsRepository;
     }
 
     @PostConstruct
@@ -35,7 +35,7 @@ public class UsersAlertsService {
 
     @Transactional(readOnly = true)
     public AlertDto getAlert(AlertType alertType) {
-        return userAlertsDao.getAlert(alertType.name());
+        return userAlertsRepository.getAlert(alertType.name());
     }
 
     private boolean disableAlert(AlertType alertType) {
@@ -47,6 +47,6 @@ public class UsersAlertsService {
                 .enabled(false)
                 .build();
 
-        return userAlertsDao.updateAlert(alertDto);
+        return userAlertsRepository.updateAlert(alertDto);
     }
 }

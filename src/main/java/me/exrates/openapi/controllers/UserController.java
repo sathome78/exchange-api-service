@@ -56,6 +56,8 @@ public class UserController {
     public ResponseEntity<List<UserOrdersDto>> getUserOpenOrdersByCurrencyPair(@RequestParam(value = "currency_pair", required = false) String pair,
                                                                                @RequestParam(defaultValue = "50") Integer limit) {
         if (nonNull(pair)) {
+            pair = pair.toUpperCase();
+
             validateCurrencyPair(pair);
         }
 
@@ -70,6 +72,8 @@ public class UserController {
     public ResponseEntity<List<UserOrdersDto>> getUserClosedOrdersByCurrencyPair(@RequestParam(value = "currency_pair", required = false) String pair,
                                                                                  @RequestParam(defaultValue = "50") Integer limit) {
         if (nonNull(pair)) {
+            pair = pair.toUpperCase();
+
             validateCurrencyPair(pair);
         }
 
@@ -84,6 +88,8 @@ public class UserController {
     public ResponseEntity<List<UserOrdersDto>> userCanceledOrders(@RequestParam(value = "currency_pair", required = false) String pair,
                                                                   @RequestParam(defaultValue = "50") Integer limit) {
         if (nonNull(pair)) {
+            pair = pair.toUpperCase();
+
             validateCurrencyPair(pair);
         }
 
@@ -108,10 +114,10 @@ public class UserController {
                                                                                        @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
                                                                                        @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
                                                                                        @RequestParam(required = false, defaultValue = "50") Integer limit) {
+        pair = pair.toUpperCase();
+
         validateDate(fromDate, toDate);
-
         validateCurrencyPair(pair);
-
         validateLimit(limit);
 
         return ResponseEntity.ok(orderService.getUserTradeHistoryByCurrencyPair(pair, fromDate, toDate, limit));

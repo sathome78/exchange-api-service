@@ -2,9 +2,9 @@ package me.exrates.openapi.utils;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import me.exrates.openapi.exceptions.InvalidCurrencyPairFormatException;
 import me.exrates.openapi.exceptions.WrongDateOrderException;
 import me.exrates.openapi.exceptions.WrongLimitException;
-import me.exrates.openapi.exceptions.InvalidCurrencyPairFormatException;
 
 import java.time.LocalDate;
 import java.util.regex.Pattern;
@@ -14,7 +14,7 @@ import static java.util.Objects.nonNull;
 @NoArgsConstructor(access = AccessLevel.NONE)
 public final class ValidationUtil {
 
-    private static final Pattern CURRENCY_PAIR_NAME_PATTERN = Pattern.compile("^[a-z0-9]{2,8}/[a-z0-9]{2,8}$");
+    private static final Pattern CURRENCY_PAIR_NAME_PATTERN = Pattern.compile("^[A-Z0-9]{2,8}/[A-Z0-9]{2,8}$");
 
     public static void validateCurrencyPair(String pair) {
         boolean isValid = CURRENCY_PAIR_NAME_PATTERN.matcher(pair).matches();

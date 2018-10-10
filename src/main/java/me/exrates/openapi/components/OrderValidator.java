@@ -7,7 +7,7 @@ import me.exrates.openapi.models.enums.CurrencyPairType;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderBaseType;
 import me.exrates.openapi.models.enums.UserRole;
-import me.exrates.openapi.repositories.OrderDao;
+import me.exrates.openapi.repositories.OrderRepository;
 import me.exrates.openapi.services.CurrencyService;
 import me.exrates.openapi.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,15 +24,15 @@ public class OrderValidator {
 
     private final UserService userService;
     private final CurrencyService currencyService;
-    private final OrderDao orderDao;
+    private final OrderRepository orderRepository;
 
     @Autowired
     public OrderValidator(UserService userService,
                           CurrencyService currencyService,
-                          OrderDao orderDao) {
+                          OrderRepository orderRepository) {
         this.userService = userService;
         this.currencyService = currencyService;
-        this.orderDao = orderDao;
+        this.orderRepository = orderRepository;
     }
 
     public boolean validate(OrderCreateDto orderCreateDto) {
@@ -73,7 +73,7 @@ public class OrderValidator {
                         .orElseThrow(() -> new RuntimeException("User role not allowed"));
             }
             if (orderCreateDto.getOperationType() == OperationType.BUY) {
-                BigDecimal lastRate = orderDao.getLowestOpenOrderPriceByCurrencyPairAndOperationType(
+                BigDecimal lastRate = orderRepository.getLowestOpenOrderPriceByCurrencyPairAndOperationType(
                         orderCreateDto.getCurrencyPair().getId(),
                         OperationType.SELL.getType());
                 if (isNull(lastRate) || orderCreateDto.getExchangeRate().compareTo(lastRate) < 0) {

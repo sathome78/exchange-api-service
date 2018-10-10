@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Map;
 
 @Repository
-public class UserRoleDao {
+public class UserRoleRepository {
 
     private static final String IS_ORDER_ACCEPTANCE_ALLOWED_FOR_USER_SQL = "SELECT urs.order_acception_same_role_only" +
             " FROM USER_ROLE_SETTINGS urs" +
@@ -23,7 +23,7 @@ public class UserRoleDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public UserRoleDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public UserRoleRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -33,7 +33,7 @@ public class UserRoleDao {
                 Map.of("user_id", userId),
                 Boolean.class);
     }
- 
+
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
         return jdbcTemplate.queryForObject(
                 RETRIEVE_SETTINGS_FOR_ROLE_SQL,

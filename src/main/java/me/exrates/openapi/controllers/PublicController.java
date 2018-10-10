@@ -1,12 +1,17 @@
 package me.exrates.openapi.controllers;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import me.exrates.openapi.aspect.AccessCheck;
 import me.exrates.openapi.aspect.RateLimitCheck;
 import me.exrates.openapi.models.dto.CandleChartItemReducedDto;
-import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.CurrencyPairInfoItem;
-import me.exrates.openapi.models.dto.OrderBookItem;
+import me.exrates.openapi.models.dto.OrderBookDto;
+import me.exrates.openapi.models.dto.OrderBookItemDto;
 import me.exrates.openapi.models.dto.TickerDto;
+import me.exrates.openapi.models.dto.TickerItemDto;
+import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.enums.IntervalType;
 import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.vo.BackDealInterval;
@@ -31,6 +36,10 @@ import static me.exrates.openapi.utils.ValidationUtil.validateCurrencyPair;
 import static me.exrates.openapi.utils.ValidationUtil.validateDate;
 import static me.exrates.openapi.utils.ValidationUtil.validateLimit;
 
+@Api(
+        value = "Public API",
+        description = "Public API operations"
+)
 @RestController
 @RequestMapping("/public")
 public class PublicController {
@@ -47,29 +56,35 @@ public class PublicController {
 
     @AccessCheck
     @RateLimitCheck
+    @ApiOperation(value = "Get ticker information by currency pair (get information about all tickers, if you leave the pair field blank)", position = 1)
     @GetMapping(value = "/ticker", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TickerDto>> getTicker(@RequestParam(value = "currency_pair", required = false) String pair) {
+    public ResponseEntity<TickerDto> getTicker(@ApiParam(value = "Currency pair", example = "BTC/USD") @RequestParam(value = "currency_pair", required = false) String pair) {
         if (nonNull(pair)) {
+            pair = pair.toUpperCase();
+
             validateCurrencyPair(pair);
         }
-        List<TickerDto> result = orderService.getDailyCoinmarketData(pair).stream()
-                .map(TickerDto::new)
+        List<TickerItemDto> result = orderService.getDailyCoinmarketData(pair).stream()
+                .map(TickerItemDto::new)
                 .collect(toList());
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(new TickerDto(result));
     }
 
     @AccessCheck
     @RateLimitCheck
+    @ApiOperation(value = "Get order book information by currency pair and order type", position = 2)
     @GetMapping(value = "/order_book", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<OrderType, List<OrderBookItem>>> getOrderBook(@RequestParam(value = "currency_pair") String pair,
-                                                                            @RequestParam(value = "order_type", required = false) OrderType orderType,
-                                                                            @RequestParam(required = false, defaultValue = "50") Integer limit) {
-        validateCurrencyPair(pair);
+    public ResponseEntity<OrderBookDto> getOrderBook(@ApiParam(value = "Currency pair", example = "BTC/USD", required = true) @RequestParam(value = "currency_pair") String pair,
+                                                     @ApiParam(value = "Order type", example = "BUY") @RequestParam(value = "order_type", required = false) OrderType orderType,
+                                                     @ApiParam(value = "Limit", example = "50") @RequestParam(required = false, defaultValue = "50") Integer limit) {
+        pair = pair.toUpperCase();
 
+        validateCurrencyPair(pair);
         validateLimit(limit);
 
-        return ResponseEntity.ok(orderService.getOrderBook(pair, orderType, limit));
+        Map<OrderType, List<OrderBookItemDto>> result = orderService.getOrderBook(pair, orderType, limit);
+        return ResponseEntity.ok(new OrderBookDto(result));
     }
 
     @AccessCheck
@@ -79,10 +94,10 @@ public class PublicController {
                                                                                @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
                                                                                @RequestParam(value = "currency_pair") String pair,
                                                                                @RequestParam(defaultValue = "50", required = false) Integer limit) {
+        pair = pair.toUpperCase();
+
         validateDate(fromDate, toDate);
-
         validateCurrencyPair(pair);
-
         validateLimit(limit);
 
         return ResponseEntity.ok(orderService.getTradeHistory(pair, fromDate, toDate, limit));
@@ -101,6 +116,8 @@ public class PublicController {
     public ResponseEntity<List<CandleChartItemReducedDto>> getCandleChartData(@RequestParam(value = "currency_pair") String pair,
                                                                               @RequestParam(value = "interval_type") IntervalType intervalType,
                                                                               @RequestParam(value = "interval_value") Integer intervalValue) {
+        pair = pair.toUpperCase();
+
         validateCurrencyPair(pair);
 
         List<CandleChartItemReducedDto> resultList = orderService.getDataForCandleChart(pair, new BackDealInterval(intervalValue, intervalType)).stream()

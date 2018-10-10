@@ -12,7 +12,7 @@ import java.util.List;
 import static java.util.Collections.emptyList;
 
 @Repository
-public class ReferralLevelDao {
+public class ReferralLevelRepository {
 
     private static final String FIND_ALL_REFERRAL_LEVELS_SQL = "SELECT *" +
             " FROM REFERRAL_LEVEL rl1" +
@@ -23,7 +23,7 @@ public class ReferralLevelDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public ReferralLevelDao(final NamedParameterJdbcTemplate jdbcTemplate) {
+    public ReferralLevelRepository(final NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

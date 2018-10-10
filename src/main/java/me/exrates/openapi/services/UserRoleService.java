@@ -1,7 +1,7 @@
 package me.exrates.openapi.services;
 
 import me.exrates.openapi.models.UserRoleSettings;
-import me.exrates.openapi.repositories.UserRoleDao;
+import me.exrates.openapi.repositories.UserRoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,20 +9,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserRoleService {
 
-    private final UserRoleDao userRoleDao;
+    private final UserRoleRepository userRoleRepository;
 
     @Autowired
-    public UserRoleService(UserRoleDao userRoleDao) {
-        this.userRoleDao = userRoleDao;
+    public UserRoleService(UserRoleRepository userRoleRepository) {
+        this.userRoleRepository = userRoleRepository;
     }
 
     @Transactional(readOnly = true)
     public boolean isOrderAcceptanceAllowedForUser(Integer userId) {
-        return userRoleDao.isOrderAcceptanceAllowedForUser(userId);
+        return userRoleRepository.isOrderAcceptanceAllowedForUser(userId);
     }
 
     @Transactional(readOnly = true)
     public UserRoleSettings retrieveSettingsForRole(Integer roleId) {
-        return userRoleDao.retrieveSettingsForRole(roleId);
+        return userRoleRepository.retrieveSettingsForRole(roleId);
     }
 }

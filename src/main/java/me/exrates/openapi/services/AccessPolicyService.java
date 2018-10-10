@@ -1,7 +1,7 @@
 package me.exrates.openapi.services;
 
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.repositories.UserDao;
+import me.exrates.openapi.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static java.util.Objects.isNull;
+
 @Slf4j
 @Service
 public class AccessPolicyService {
@@ -27,15 +29,15 @@ public class AccessPolicyService {
     private int attemptsLimit;
     private int timeLimit;
 
-    private final UserDao userDao;
+    private final UserRepository userRepository;
 
     @Autowired
     public AccessPolicyService(@Value("${api.admin.attempts-limit:5}") int attemptsLimit,
                                @Value("${api.admin.time-limit:3600}") int timeLimit,
-                               UserDao userDao) {
+                               UserRepository userRepository) {
         this.attemptsLimit = attemptsLimit;
         this.timeLimit = timeLimit;
-        this.userDao = userDao;
+        this.userRepository = userRepository;
     }
 
     @Scheduled(initialDelay = 30 * 60 * 1000, fixedDelay = 30 * 60 * 1000)
@@ -59,12 +61,15 @@ public class AccessPolicyService {
 
     public boolean isLimitExceed() {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
+        //todo: delete
+        if (userEmail.equals("anonymousUser")) {
+            return false;
+        }
         LocalDateTime beginTime = LocalDateTime.now().minusSeconds(timeLimit);
         Integer limit = getRequestLimit(userEmail);
 
         List<LocalDateTime> list = userTimes.get(userEmail);
-        if (list == null) {
+        if (isNull(list)) {
             return false;
         } else {
             long counter = list.stream().filter(p -> p.isAfter(beginTime)).count();
@@ -74,12 +79,12 @@ public class AccessPolicyService {
 
     @Transactional
     public void setRequestLimit(String userEmail, Integer limit) {
-        Integer requestsLimit = userDao.getRequestsLimit(userEmail);
+        Integer requestsLimit = userRepository.getRequestsLimit(userEmail);
 
         if (requestsLimit != 0) {
-            userDao.updateRequestsLimit(userEmail, limit);
+            userRepository.updateRequestsLimit(userEmail, limit);
         } else {
-            userDao.setRequestsLimit(userEmail, limit);
+            userRepository.setRequestsLimit(userEmail, limit);
         }
         userLimits.put(userEmail, limit);
         userTimes.remove(userEmail);
@@ -90,9 +95,9 @@ public class AccessPolicyService {
         if (userLimits.containsKey(userEmail)) {
             return userLimits.get(userEmail);
         } else {
-            Integer limit = userDao.getRequestsLimit(userEmail);
+            Integer limit = userRepository.getRequestsLimit(userEmail);
             if (limit == 0) {
-                userDao.setRequestsLimit(userEmail, attemptsLimit);
+                userRepository.setRequestsLimit(userEmail, attemptsLimit);
                 limit = attemptsLimit;
             }
             userLimits.put(userEmail, limit);
@@ -102,22 +107,22 @@ public class AccessPolicyService {
 
     @Transactional
     public void enableApiForUser(String userEmail) {
-        userDao.enableApiForUser(userEmail);
+        userRepository.enableApiForUser(userEmail);
     }
 
     @Transactional
     public void disableApiForUser(String userEmail) {
-        userDao.disableApiForUser(userEmail);
+        userRepository.disableApiForUser(userEmail);
     }
 
     @Transactional
     public void enableApiForAll() {
-        userDao.enableApiForAll();
+        userRepository.enableApiForAll();
     }
 
     @Transactional
     public void disableApiForAll() {
-        userDao.disableApiForAll();
+        userRepository.disableApiForAll();
     }
 
     public Map<String, Integer> getUserLimits() {
@@ -127,7 +132,10 @@ public class AccessPolicyService {
     @Transactional(readOnly = true)
     public boolean isEnabled() {
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        return userDao.isEnabled(userEmail);
+        //todo: delete
+        if (userEmail.equals("anonymousUser")) {
+            return true;
+        }
+        return userRepository.isEnabled(userEmail);
     }
 }

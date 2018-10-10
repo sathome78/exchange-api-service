@@ -1,40 +1,19 @@
 package me.exrates.openapi.models.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import me.exrates.openapi.models.dto.CoinmarketApiDto;
+import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
+import java.util.List;
 
+@ApiModel("TickerResponse")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class TickerDto {
 
-    private Integer id;
-    private String name;
-    private BigDecimal last;
-    @JsonProperty("lowest_ask")
-    private BigDecimal lowestAsk;
-    @JsonProperty("highest_bid")
-    private BigDecimal highestBid;
-    @JsonProperty("percent_change")
-    private BigDecimal percentChange;
-    @JsonProperty("base_volume")
-    private BigDecimal baseVolume;
-    @JsonProperty("quote_volume")
-    private BigDecimal quoteVolume;
-    private BigDecimal high;
-    private BigDecimal low;
-
-    public TickerDto(CoinmarketApiDto coinmarketApiDto) {
-        this.id = coinmarketApiDto.getCurrencyPairId();
-        this.name = coinmarketApiDto.getCurrencyPairName().replace('/', '_');
-        this.last = coinmarketApiDto.getLast();
-        this.lowestAsk = coinmarketApiDto.getLowestAsk();
-        this.highestBid = coinmarketApiDto.getHighestBid();
-        this.percentChange = coinmarketApiDto.getPercentChange();
-        this.baseVolume = coinmarketApiDto.getBaseVolume();
-        this.quoteVolume = coinmarketApiDto.getQuoteVolume();
-        this.high = coinmarketApiDto.getHigh24hr();
-        this.low = coinmarketApiDto.getLow24hr();
-    }
+    @ApiModelProperty(value = "ticker items", position = 1, required = true)
+    private List<TickerItemDto> tickerItems;
 }

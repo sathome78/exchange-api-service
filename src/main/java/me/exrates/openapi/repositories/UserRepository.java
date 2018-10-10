@@ -16,7 +16,7 @@ import static java.util.Objects.nonNull;
 
 @Slf4j
 @Repository
-public class UserDao {
+public class UserRepository {
 
     private static final String SELECT_USER_SQL = "SELECT u.id, pu.email AS parent_email, u.finpassword, u.nickname, u.email, " +
             "u.password, u.regdate, u.phone, u.status, ur.name AS role_name" +
@@ -48,7 +48,7 @@ public class UserDao {
             " SET ua.attempts = :attempts" +
             " WHERE ua.user_id = (SELECT u.id FROM USER u WHERE u.email = :email)";
 
-    private static final String INSERT_ATTEMPTS_SQL = "INSERT INTO USER_API (user_id, attempts)" +
+    private static final String INSERT_ATTEMPTS_SQL = "INSERT IGNORE INTO USER_API (user_id, attempts)" +
             " VALUES ((SELECT u.id FROM USER u WHERE u.email = :email), :attempts)";
 
     private static final String ENABLE_API_FOR_USER_SQL = "UPDATE USER_API ua" +
@@ -64,7 +64,7 @@ public class UserDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public UserDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public UserRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

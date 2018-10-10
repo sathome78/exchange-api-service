@@ -16,9 +16,9 @@ import static java.util.Objects.isNull;
 
 @Slf4j
 @Repository
-public class TransactionDao {
+public class TransactionRepository {
 
-    private static final String CREATE_TRANSACTION_SQL = "INSERT INTO TRANSACTION (user_wallet_id, company_wallet_id, amount, " +
+    private static final String CREATE_TRANSACTION_SQL = "INSERT IGNORE INTO TRANSACTION (user_wallet_id, company_wallet_id, amount, " +
             "commission_amount, commission_id, operation_type_id, currency_id, merchant_id, datetime, confirmation, " +
             "provided, active_balance_before, reserved_balance_before, company_balance_before, company_commission_balance_before, " +
             "source_type, source_id, description)" +
@@ -48,7 +48,7 @@ public class TransactionDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public TransactionDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public TransactionRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Map;
 
 @Repository
-public class CommissionDao {
+public class CommissionRepository {
 
     private static final String GET_COMMISSION_SQL = "SELECT c.id, c.operation_type, c.date, c.value" +
             " FROM COMMISSION c" +
@@ -25,7 +25,7 @@ public class CommissionDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public CommissionDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public CommissionRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 

@@ -11,7 +11,7 @@ import me.exrates.openapi.models.dto.UserTradeHistoryDto;
 import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
 import me.exrates.openapi.models.dto.CommissionDto;
 import me.exrates.openapi.models.dto.OpenOrderDto;
-import me.exrates.openapi.models.dto.OrderBookItem;
+import me.exrates.openapi.models.dto.OrderBookItemDto;
 import me.exrates.openapi.models.dto.UserOrdersDto;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderBaseType;
@@ -56,7 +56,7 @@ import static me.exrates.openapi.models.enums.OrderStatus.OPENED;
 import static me.exrates.openapi.models.enums.TransactionSourceType.ORDER;
 
 @Repository
-public class OrderDao {
+public class OrderRepository {
 
     private static final String CALL_GET_COINMARKETCAP_STATISTICS_PROCEDURE_SQL = "{call GET_COINMARKETCAP_STATISTICS('%s')}";
     private static final String CALL_GET_DATA_FOR_CANDLE_SQL = "{call GET_DATA_FOR_CANDLE(NOW(), %d, '%s', %d)}";
@@ -167,7 +167,7 @@ public class OrderDao {
             " SET o.user_acceptor_id = :user_acceptor_id, o.status_id = :status_id, o.date_acception = NOW()" +
             " WHERE o.id = :id";
 
-    private static final String CREATE_ORDER_SQL = "INSERT INTO EXORDERS" +
+    private static final String CREATE_ORDER_SQL = "INSERT IGNORE INTO EXORDERS" +
             " (user_id, currency_pair_id, operation_type_id, exrate, amount_base, amount_convert, commission_id, commission_fixed_amount, status_id, order_source_id, base_type)" +
             " VALUES (:user_id, :currency_pair_id, :operation_type_id, :exrate, :amount_base, :amount_convert, :commission_id, :commission_fixed_amount, :status_id, :order_source_id, :base_type)";
 
@@ -191,7 +191,7 @@ public class OrderDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public OrderDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public OrderRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -205,7 +205,7 @@ public class OrderDao {
         }
     }
 
-    public List<OrderBookItem> getOrderBookItemsByType(Integer currencyPairId, OrderType orderType, Integer limit) {
+    public List<OrderBookItemDto> getOrderBookItemsByType(Integer currencyPairId, OrderType orderType, Integer limit) {
         String directionSql = orderType == OrderType.BUY ? "DESC" : StringUtils.EMPTY;
         String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
@@ -223,7 +223,7 @@ public class OrderDao {
         }
     }
 
-    public List<OrderBookItem> getOrderBookItems(Integer currencyPairId, Integer limit) {
+    public List<OrderBookItemDto> getOrderBookItems(Integer currencyPairId, Integer limit) {
         String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
         try {

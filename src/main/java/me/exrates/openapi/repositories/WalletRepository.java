@@ -41,7 +41,7 @@ import static me.exrates.openapi.models.enums.OperationType.SELL;
 
 @Slf4j
 @Repository
-public class WalletDao {
+public class WalletRepository {
 
     private static final String GET_USER_BALANCES_SQL = "SELECT c.name AS currency_name, w.active_balance, w.reserved_balance" +
             " FROM WALLET w" +
@@ -74,7 +74,7 @@ public class WalletDao {
             " WHERE o.id = :order_id" +
             " FOR UPDATE";
 
-    private static final String CREATE_NEW_WALLET_SQL = "INSERT INTO WALLET (currency_id, user_id, active_balance) VALUES(:currId, :userId, :activeBalance)";
+    private static final String CREATE_NEW_WALLET_SQL = "INSERT IGNORE INTO WALLET (currency_id, user_id, active_balance) VALUES(:currId, :userId, :activeBalance)";
 
     private static final String GET_WALLET_BY_ID_SQL = "SELECT w.id AS wallet_id, w.currency_id, w.active_balance, w.reserved_balance" +
             " FROM WALLET w" +
@@ -121,16 +121,16 @@ public class WalletDao {
             " WHERE o.id = :order_id" +
             " FOR UPDATE ";
 
-    private final TransactionDao transactionDao;
-    private final CurrencyDao currencyDao;
+    private final TransactionRepository transactionRepository;
+    private final CurrencyRepository currencyRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public WalletDao(TransactionDao transactionDao,
-                     CurrencyDao currencyDao,
-                     NamedParameterJdbcTemplate jdbcTemplate) {
-        this.transactionDao = transactionDao;
-        this.currencyDao = currencyDao;
+    public WalletRepository(TransactionRepository transactionRepository,
+                            CurrencyRepository currencyRepository,
+                            NamedParameterJdbcTemplate jdbcTemplate) {
+        this.transactionRepository = transactionRepository;
+        this.currencyRepository = currencyRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -142,7 +142,7 @@ public class WalletDao {
     }
 
     public WalletsForOrderAcceptionDto getWalletsForOrderByOrderIdAndBlock(Integer orderId, Integer userAcceptorId) {
-        CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
+        CurrencyPair currencyPair = currencyRepository.findCurrencyPairByOrderId(orderId);
 
         String acceptorId = isNull(userAcceptorId) ? "o.user_acceptor_id" : ":user_acceptor_id";
 
@@ -232,7 +232,7 @@ public class WalletDao {
                 .description(description)
                 .build();
         try {
-            transactionDao.create(transaction);
+            transactionRepository.create(transaction);
         } catch (Exception ex) {
             log.error("Something happened wrong", ex);
             return WalletTransferStatus.TRANSACTION_CREATION_ERROR;
@@ -310,7 +310,7 @@ public class WalletDao {
                     .description(walletOperationData.getDescription())
                     .build();
             try {
-                transactionDao.create(transaction);
+                transactionRepository.create(transaction);
             } catch (Exception ex) {
                 log.error("Something happened wrong", ex);
                 return WalletTransferStatus.TRANSACTION_CREATION_ERROR;
@@ -329,7 +329,7 @@ public class WalletDao {
                     .sourceId(walletOperationData.getSourceId())
                     .build();
             try {
-                transactionDao.updateForProvided(transaction);
+                transactionRepository.updateForProvided(transaction);
             } catch (Exception ex) {
                 log.error("Something happened wrong", ex);
                 return WalletTransferStatus.TRANSACTION_UPDATE_ERROR;
@@ -354,7 +354,7 @@ public class WalletDao {
     }
 
     public List<OrderDetailDto> getOrderRelatedDataAndBlock(int orderId) {
-        CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
+        CurrencyPair currencyPair = currencyRepository.findCurrencyPairByOrderId(orderId);
 
         return jdbcTemplate.query(
                 GET_ORDER_RELATED_DATA_AND_BLOCK_SQL,
@@ -377,7 +377,7 @@ public class WalletDao {
     }
 
     public WalletsForOrderCancelDto getWalletForOrderByOrderIdAndOperationTypeAndBlock(Integer orderId, OperationType operationType) {
-        CurrencyPair currencyPair = currencyDao.findCurrencyPairByOrderId(orderId);
+        CurrencyPair currencyPair = currencyRepository.findCurrencyPairByOrderId(orderId);
 
         try {
             return jdbcTemplate.queryForObject(

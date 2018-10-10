@@ -3,13 +3,58 @@ package me.exrates.openapi.services;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.components.OrderValidator;
-import me.exrates.openapi.exceptions.*;
-import me.exrates.openapi.models.*;
-import me.exrates.openapi.models.dto.*;
-import me.exrates.openapi.models.enums.*;
+import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
+import me.exrates.openapi.exceptions.AttemptToAcceptBotOrderException;
+import me.exrates.openapi.exceptions.IncorrectCurrentUserException;
+import me.exrates.openapi.exceptions.NotCreatableOrderException;
+import me.exrates.openapi.exceptions.NotEnoughUserWalletMoneyException;
+import me.exrates.openapi.exceptions.OrderAcceptionException;
+import me.exrates.openapi.exceptions.OrderCancellingException;
+import me.exrates.openapi.exceptions.OrderCreationException;
+import me.exrates.openapi.exceptions.OrderDeletingException;
+import me.exrates.openapi.exceptions.OrderParamsWrongException;
+import me.exrates.openapi.exceptions.WalletCreationException;
+import me.exrates.openapi.models.CoinmarketData;
+import me.exrates.openapi.models.Commission;
+import me.exrates.openapi.models.CompanyWallet;
+import me.exrates.openapi.models.Currency;
+import me.exrates.openapi.models.CurrencyPair;
+import me.exrates.openapi.models.ExOrder;
+import me.exrates.openapi.models.Transaction;
+import me.exrates.openapi.models.User;
+import me.exrates.openapi.models.UserRoleSettings;
+import me.exrates.openapi.models.Wallet;
+import me.exrates.openapi.models.dto.CandleChartItemDto;
+import me.exrates.openapi.models.dto.CoinmarketApiDto;
+import me.exrates.openapi.models.dto.CommissionDto;
+import me.exrates.openapi.models.dto.OpenOrderDto;
+import me.exrates.openapi.models.dto.OrderBookItemDto;
+import me.exrates.openapi.models.dto.OrderCreateDto;
+import me.exrates.openapi.models.dto.OrderCreationParamsDto;
+import me.exrates.openapi.models.dto.OrderCreationResultDto;
+import me.exrates.openapi.models.dto.OrderDetailDto;
+import me.exrates.openapi.models.dto.TradeHistoryDto;
+import me.exrates.openapi.models.dto.TransactionDto;
+import me.exrates.openapi.models.dto.UserOrdersDto;
+import me.exrates.openapi.models.dto.UserTradeHistoryDto;
+import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
+import me.exrates.openapi.models.dto.WalletsForOrderAcceptionDto;
+import me.exrates.openapi.models.dto.WalletsForOrderCancelDto;
+import me.exrates.openapi.models.enums.ActionType;
+import me.exrates.openapi.models.enums.CurrencyPairType;
+import me.exrates.openapi.models.enums.OperationType;
+import me.exrates.openapi.models.enums.OrderActionEnum;
+import me.exrates.openapi.models.enums.OrderBaseType;
+import me.exrates.openapi.models.enums.OrderDeleteStatus;
+import me.exrates.openapi.models.enums.OrderStatus;
+import me.exrates.openapi.models.enums.OrderType;
+import me.exrates.openapi.models.enums.TransactionSourceType;
+import me.exrates.openapi.models.enums.TransactionStatus;
+import me.exrates.openapi.models.enums.UserRole;
+import me.exrates.openapi.models.enums.WalletTransferStatus;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.models.vo.WalletOperationData;
-import me.exrates.openapi.repositories.OrderDao;
+import me.exrates.openapi.repositories.OrderRepository;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import me.exrates.openapi.utils.TransactionDescriptionUtil;
 import org.apache.commons.lang3.time.StopWatch;
@@ -40,7 +85,11 @@ import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static me.exrates.openapi.configurations.CacheConfiguration.CACHE_COIN_MARKET;
-import static me.exrates.openapi.models.enums.OrderActionEnum.*;
+import static me.exrates.openapi.models.enums.OrderActionEnum.ACCEPT;
+import static me.exrates.openapi.models.enums.OrderActionEnum.ACCEPTED;
+import static me.exrates.openapi.models.enums.OrderActionEnum.CANCEL;
+import static me.exrates.openapi.models.enums.OrderActionEnum.CREATE;
+import static me.exrates.openapi.models.enums.OrderActionEnum.DELETE_SPLIT;
 import static me.exrates.openapi.utils.CollectionUtil.isNotEmpty;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
@@ -54,7 +103,7 @@ public class OrderService {
     private final Object orderCreationLock = new Object();
     private final Object autoAcceptLock = new Object();
 
-    private final OrderDao orderDao;
+    private final OrderRepository orderRepository;
     private final CommissionService commissionService;
     private final TransactionService transactionService;
     private final UserService userService;
@@ -68,7 +117,7 @@ public class OrderService {
     private final Cache cacheCoinmarket;
 
     @Autowired
-    public OrderService(OrderDao orderDao,
+    public OrderService(OrderRepository orderRepository,
                         CommissionService commissionService,
                         TransactionService transactionService,
                         UserService userService,
@@ -80,7 +129,7 @@ public class OrderService {
                         UserRoleService userRoleService,
                         OrderValidator validator,
                         @Qualifier(CACHE_COIN_MARKET) Cache cacheCoinmarket) {
-        this.orderDao = orderDao;
+        this.orderRepository = orderRepository;
         this.commissionService = commissionService;
         this.transactionService = transactionService;
         this.userService = userService;
@@ -96,50 +145,57 @@ public class OrderService {
 
     @PostConstruct
     public void init() {
-        cacheCoinmarket.put(ALL, getCoinmarketDataForActivePairs(null));
+        CoinmarketData coinmarketData = getCoinmarketDataForActivePairs(null);
+        if (isNotEmpty(coinmarketData.getList())) {
+            cacheCoinmarket.put(ALL, coinmarketData);
+        }
     }
 
     @Transactional(readOnly = true)
     public ExOrder getOrderById(int orderId) {
-        return orderDao.getOrderById(orderId);
+        return orderRepository.getOrderById(orderId);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CoinmarketApiDto> getDailyCoinmarketData(String pairName) {
         if (nonNull(pairName)) {
             validateCurrencyPair(pairName);
 
             CoinmarketData coinmarketData = cacheCoinmarket.get(pairName, CoinmarketData.class);
-            if (nonNull(coinmarketData) && isNotEmpty(coinmarketData.getList())) {
-                return coinmarketData.getList();
-            } else {
+            if (isNull(coinmarketData)) {
                 coinmarketData = getCoinmarketDataForActivePairs(pairName);
+            }
+            if (isNotEmpty(coinmarketData.getList())) {
                 cacheCoinmarket.put(pairName, coinmarketData);
                 return coinmarketData.getList();
+            } else {
+                return Collections.emptyList();
             }
         } else {
             CoinmarketData coinmarketData = cacheCoinmarket.get(ALL, CoinmarketData.class);
-            if (nonNull(coinmarketData) && isNotEmpty(coinmarketData.getList())) {
-                return coinmarketData.getList();
-            } else {
+            if (isNull(coinmarketData)) {
                 coinmarketData = getCoinmarketDataForActivePairs(null);
+            }
+            if (isNotEmpty(coinmarketData.getList())) {
                 cacheCoinmarket.put(ALL, coinmarketData);
                 return coinmarketData.getList();
+            } else {
+                return Collections.emptyList();
             }
         }
     }
 
     @Transactional(readOnly = true)
-    public Map<OrderType, List<OrderBookItem>> getOrderBook(String pairName,
-                                                            @Null OrderType orderType,
-                                                            @Null Integer limit) {
+    public Map<OrderType, List<OrderBookItemDto>> getOrderBook(String pairName,
+                                                               @Null OrderType orderType,
+                                                               @Null Integer limit) {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(pairName);
 
         return nonNull(orderType)
-                ? Collections.singletonMap(orderType, orderDao.getOrderBookItemsByType(currencyPairId, orderType, limit))
-                : orderDao.getOrderBookItems(currencyPairId, limit).stream()
-                .sorted(Comparator.comparing(OrderBookItem::getOrderType).thenComparing(OrderBookItem::getRate))
-                .collect(groupingBy(OrderBookItem::getOrderType));
+                ? Collections.singletonMap(orderType, orderRepository.getOrderBookItemsByType(currencyPairId, orderType, limit))
+                : orderRepository.getOrderBookItems(currencyPairId, limit).stream()
+                .sorted(Comparator.comparing(OrderBookItemDto::getOrderType).thenComparing(OrderBookItemDto::getRate))
+                .collect(groupingBy(OrderBookItemDto::getOrderType));
     }
 
     @Transactional(readOnly = true)
@@ -149,7 +205,7 @@ public class OrderService {
                                                  @Null Integer limit) {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(pairName);
 
-        return orderDao.getTradeHistory(
+        return orderRepository.getTradeHistory(
                 currencyPairId,
                 LocalDateTime.of(fromDate, LocalTime.MIN),
                 LocalDateTime.of(toDate, LocalTime.MAX),
@@ -160,7 +216,7 @@ public class OrderService {
     public List<CandleChartItemDto> getDataForCandleChart(String pairName, BackDealInterval interval) {
         CurrencyPair currencyPair = currencyService.getCurrencyPairByName(pairName);
 
-        return orderDao.getDataForCandleChart(currencyPair, interval);
+        return orderRepository.getDataForCandleChart(currencyPair, interval);
     }
 
     @Transactional(readOnly = true)
@@ -170,7 +226,7 @@ public class OrderService {
 
         Integer currencyPairId = isNull(pairName) ? null : currencyService.findCurrencyPairIdByName(pairName);
 
-        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.OPENED, limit);
+        return orderRepository.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.OPENED, limit);
     }
 
     @Transactional(readOnly = true)
@@ -180,7 +236,7 @@ public class OrderService {
 
         Integer currencyPairId = isNull(pairName) ? null : currencyService.findCurrencyPairIdByName(pairName);
 
-        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CLOSED, limit);
+        return orderRepository.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CLOSED, limit);
     }
 
     @Transactional(readOnly = true)
@@ -190,14 +246,14 @@ public class OrderService {
 
         Integer currencyPairId = isNull(pairName) ? null : currencyService.findCurrencyPairIdByName(pairName);
 
-        return orderDao.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CANCELLED, limit);
+        return orderRepository.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CANCELLED, limit);
     }
 
     @Transactional(readOnly = true)
     public CommissionDto getAllCommissions() {
         UserRole userRole = userService.getUserRoleFromSecurityContext();
 
-        return orderDao.getAllCommissions(userRole);
+        return orderRepository.getAllCommissions(userRole);
     }
 
     @Transactional(readOnly = true)
@@ -208,7 +264,7 @@ public class OrderService {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(currencyPairName);
         final int userId = userService.getAuthenticatedUserId();
 
-        return orderDao.getUserTradeHistoryByCurrencyPair(
+        return orderRepository.getUserTradeHistoryByCurrencyPair(
                 userId,
                 currencyPairId,
                 LocalDateTime.of(fromDate, LocalTime.MIN),
@@ -220,7 +276,7 @@ public class OrderService {
     public List<TransactionDto> getOrderTransactions(Integer orderId) {
         final int userId = userService.getAuthenticatedUserId();
 
-        return orderDao.getOrderTransactions(userId, orderId);
+        return orderRepository.getOrderTransactions(userId, orderId);
     }
 
     @Transactional
@@ -336,7 +392,7 @@ public class OrderService {
                 ? userService.getUserRoleFromSecurityContext()
                 : userService.getUserRoleFromDatabase(userEmail);
 
-        return orderDao.getWalletAndCommission(userEmail, currency, operationType, userRole);
+        return orderRepository.getWalletAndCommission(userEmail, currency, operationType, userRole);
     }
 
     @Transactional
@@ -368,7 +424,7 @@ public class OrderService {
                 boolean acceptSameRoleOnly = userRoleService.isOrderAcceptanceAllowedForUser(orderCreateDto.getUserId());
                 UserRole userRole = userService.getUserRoleFromDatabase(orderCreateDto.getUserId());
 
-                List<ExOrder> acceptableOrders = orderDao.selectTopOrders(
+                List<ExOrder> acceptableOrders = orderRepository.selectTopOrders(
                         orderCreateDto.getCurrencyPair().getId(),
                         orderCreateDto.getExchangeRate(),
                         oppositeOperationType,
@@ -672,7 +728,7 @@ public class OrderService {
 
     @Transactional(propagation = Propagation.NESTED)
     public boolean updateOrder(ExOrder order) {
-        return orderDao.updateOrder(order);
+        return orderRepository.updateOrder(order);
     }
 
     private BigDecimal acceptPartially(OrderCreateDto newOrder, ExOrder orderForPartialAccept, BigDecimal cumulativeSum) {
@@ -870,7 +926,7 @@ public class OrderService {
                             return 0;
                         }
                     default: {
-                        createdOrderId = orderDao.createOrder(order);
+                        createdOrderId = orderRepository.createOrder(order);
                         sourceType = TransactionSourceType.ORDER;
                     }
                 }
@@ -911,7 +967,7 @@ public class OrderService {
 
     @Transactional(propagation = Propagation.NESTED)
     public boolean setStatus(int orderId, OrderStatus status) {
-        return orderDao.setStatus(orderId, status);
+        return orderRepository.setStatus(orderId, status);
     }
 
     @Transactional
@@ -960,7 +1016,7 @@ public class OrderService {
     public boolean cancelOpenOrdersByCurrencyPair(String currencyPair) {
         final int userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
 
-        List<ExOrder> openedOrders = orderDao.getOpenedOrdersByCurrencyPair(userId, currencyPair);
+        List<ExOrder> openedOrders = orderRepository.getOpenedOrdersByCurrencyPair(userId, currencyPair);
 
         return openedOrders.stream().allMatch(this::cancelOrder);
     }
@@ -969,7 +1025,7 @@ public class OrderService {
     public boolean cancelAllOpenOrders() {
         final int userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
 
-        List<ExOrder> openedOrders = orderDao.getAllOpenedOrdersByUserId(userId);
+        List<ExOrder> openedOrders = orderRepository.getAllOpenedOrdersByUserId(userId);
 
         return openedOrders.stream().allMatch(this::cancelOrder);
     }
@@ -983,7 +1039,7 @@ public class OrderService {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean acceptOrdersList(int userAcceptorId, List<Integer> orderIds) {
-        if (orderDao.lockOrdersListForAcceptance(orderIds)) {
+        if (orderRepository.lockOrdersListForAcceptance(orderIds)) {
             orderIds.forEach(orderId -> acceptOrder(userAcceptorId, orderId));
         } else {
             throw new OrderAcceptionException("The selected list of orders may not be grabbed for acceptance");
@@ -995,7 +1051,7 @@ public class OrderService {
     public List<OpenOrderDto> getOpenOrders(String pairName, OrderType orderType) {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(pairName);
 
-        return orderDao.getOpenOrders(currencyPairId, orderType);
+        return orderRepository.getOpenOrders(currencyPairId, orderType);
     }
 
     private String getUserEmailFromSecurityContext() {
@@ -1007,7 +1063,7 @@ public class OrderService {
     }
 
     private CoinmarketData getCoinmarketDataForActivePairs(String pairName) {
-        return new CoinmarketData(orderDao.getCoinmarketData(pairName));
+        return new CoinmarketData(orderRepository.getCoinmarketData(pairName));
     }
 }
 
