@@ -29,7 +29,7 @@ public class SwaggerConfiguration {
                 .groupName("jsonDoc")
                 .select()
                 .apis(RequestHandlerSelectors.any())
-                .paths(Predicates.not(regex("/error.*")))
+                .paths(Predicates.not(regex("/access.*")))
                 .paths(Predicates.not(regex("/actuator.*")))
                 .paths(Predicates.not(regex("/error.*")))
                 .paths(PathSelectors.any())

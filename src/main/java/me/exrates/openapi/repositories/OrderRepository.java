@@ -5,14 +5,13 @@ import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.ExOrder;
 import me.exrates.openapi.models.dto.CandleChartItemDto;
 import me.exrates.openapi.models.dto.CoinmarketApiDto;
+import me.exrates.openapi.models.dto.CommissionDto;
+import me.exrates.openapi.models.dto.OrderBookDto;
 import me.exrates.openapi.models.dto.TradeHistoryDto;
 import me.exrates.openapi.models.dto.TransactionDto;
+import me.exrates.openapi.models.dto.UserOrdersDto;
 import me.exrates.openapi.models.dto.UserTradeHistoryDto;
 import me.exrates.openapi.models.dto.WalletsAndCommissionsDto;
-import me.exrates.openapi.models.dto.CommissionDto;
-import me.exrates.openapi.models.dto.OpenOrderDto;
-import me.exrates.openapi.models.dto.OrderBookItemDto;
-import me.exrates.openapi.models.dto.UserOrdersDto;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderBaseType;
 import me.exrates.openapi.models.enums.OrderStatus;
@@ -21,7 +20,6 @@ import me.exrates.openapi.models.enums.UserRole;
 import me.exrates.openapi.models.vo.BackDealInterval;
 import me.exrates.openapi.repositories.callbacks.StoredProcedureCallback;
 import me.exrates.openapi.repositories.mappers.CommissionsRowMapper;
-import me.exrates.openapi.repositories.mappers.OpenOrderRowMapper;
 import me.exrates.openapi.repositories.mappers.OrderBookItemRowMapper;
 import me.exrates.openapi.repositories.mappers.OrderRowMapper;
 import me.exrates.openapi.repositories.mappers.TradeHistoryRowMapper;
@@ -77,7 +75,7 @@ public class OrderRepository {
             " JOIN COMMISSION c on o.commission_id = c.id" +
             " WHERE o.currency_pair_id=:currency_pair_id AND o.status_id=:status_id" +
             " AND o.date_acception BETWEEN :start_date AND :end_date" +
-            " ORDER BY o.date_acception ASC %s";
+            " ORDER BY o.date_acception %s";
 
     private static final String GET_USER_ORDERS_BY_STATUS_SQL = "SELECT o.id AS order_id, o.amount_base AS amount, o.exrate AS price, " +
             "cp.name AS currency_pair_name, o.operation_type_id, o.date_creation AS created, o.date_acception AS accepted" +
@@ -147,14 +145,14 @@ public class OrderRepository {
     private static final String GET_LOWEST_OPEN_ORDER_PRICE_BY_CURRENCY_PAIR_AND_OPERATION_TYPE_SQL = "SELECT o.exrate" +
             " FROM EXORDERS o" +
             " WHERE o.status_id = 2 AND o.currency_pair_id = :currency_pair_id AND o.operation_type_id = :operation_type_id" +
-            " ORDER BY o.exrate ASC LIMIT 1";
+            " ORDER BY o.exrate LIMIT 1";
 
     private static final String SELECT_TOP_ORDERS_SQL = "SELECT o.id, o.user_id, o.currency_pair_id, o.operation_type_id, o.exrate, " +
             "o.amount_base, o.amount_convert, o.commission_id, o.commission_fixed_amount, o.date_creation, o.status_id, o.base_type" +
             " FROM EXORDERS o %s" +
             " WHERE o.status_id = 2 AND o.currency_pair_id = :currency_pair_id AND o.base_type =:order_base_type" +
             " AND o.operation_type_id = :operation_type_id %s" +
-            " ORDER BY o.exrate %s, EO.amount_base ASC ";
+            " ORDER BY o.exrate %s, EO.amount_base";
 
     private static final String LOCK_ORDERS_LIST_FOR_ACCEPTANCE_SQL = "SELECT o.id" +
             " FROM EXORDERS o" +
@@ -177,10 +175,6 @@ public class OrderRepository {
     private static final String GET_OPENED_ORDERS_BY_CURRENCY_PAIR_SQL = "SELECT * FROM EXORDERS o" +
             " JOIN CURRENCY_PAIR cp on o.currency_pair_id = cp.id" +
             " WHERE o.user_id = :user_id AND cp.name = :currency_pair AND o.status_id = : status_id";
-
-    private static final String GET_OPENED_ORDERS_SQL = "SELECT o.id, o.operation_type_id, o.amount_base, o.exrate" +
-            " FROM EXORDERS o" +
-            " WHERE o.currency_pair_id = :currency_pair_id AND o.status_id = :status_id AND o.operation_type_id = :operation_type_id %s";
 
     private static final String GET_ALL_OPENED_ORDERS_SQL = "SELECT o.id AS order_id, o.currency_pair_id, o.operation_type_id, " +
             "o.exrate AS price, o.amount_base AS amount, o.amount_convert AS sum, o.commission_id, o.commission_fixed_amount, " +
@@ -205,7 +199,7 @@ public class OrderRepository {
         }
     }
 
-    public List<OrderBookItemDto> getOrderBookItemsByType(Integer currencyPairId, OrderType orderType, Integer limit) {
+    public List<OrderBookDto> getOrderBookItemsByType(Integer currencyPairId, OrderType orderType, Integer limit) {
         String directionSql = orderType == OrderType.BUY ? "DESC" : StringUtils.EMPTY;
         String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
@@ -223,7 +217,7 @@ public class OrderRepository {
         }
     }
 
-    public List<OrderBookItemDto> getOrderBookItems(Integer currencyPairId, Integer limit) {
+    public List<OrderBookDto> getOrderBookItems(Integer currencyPairId, Integer limit) {
         String limitSql = nonNull(limit) ? "LIMIT :limit" : StringUtils.EMPTY;
 
         try {
@@ -491,22 +485,6 @@ public class OrderRepository {
                             "currency_pair", currencyPair,
                             "status_id", OPENED.getStatus()),
                     OrderRowMapper.map());
-        } catch (EmptyResultDataAccessException ex) {
-            return emptyList();
-        }
-    }
-
-    public List<OpenOrderDto> getOpenOrders(Integer currencyPairId, OrderType orderType) {
-        String orderBySql = orderType == OrderType.SELL ? "ORDER BY o.exrate ASC" : "ORDER BY o.exrate DESC";
-
-        try {
-            return jdbcTemplate.query(
-                    String.format(GET_OPENED_ORDERS_SQL, orderBySql),
-                    Map.of(
-                            "currency_pair_id", currencyPairId,
-                            "status_id", OPENED.getStatus(),
-                            "operation_type_id", orderType.getOperationType().getType()),
-                    OpenOrderRowMapper.map());
         } catch (EmptyResultDataAccessException ex) {
             return emptyList();
         }

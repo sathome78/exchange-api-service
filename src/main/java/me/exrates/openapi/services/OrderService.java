@@ -27,8 +27,7 @@ import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.dto.CandleChartItemDto;
 import me.exrates.openapi.models.dto.CoinmarketApiDto;
 import me.exrates.openapi.models.dto.CommissionDto;
-import me.exrates.openapi.models.dto.OpenOrderDto;
-import me.exrates.openapi.models.dto.OrderBookItemDto;
+import me.exrates.openapi.models.dto.OrderBookDto;
 import me.exrates.openapi.models.dto.OrderCreateDto;
 import me.exrates.openapi.models.dto.OrderCreationParamsDto;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
@@ -186,16 +185,16 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public Map<OrderType, List<OrderBookItemDto>> getOrderBook(String pairName,
-                                                               @Null OrderType orderType,
-                                                               @Null Integer limit) {
+    public Map<OrderType, List<OrderBookDto>> getOrderBook(String pairName,
+                                                           @Null OrderType orderType,
+                                                           @Null Integer limit) {
         Integer currencyPairId = currencyService.findCurrencyPairIdByName(pairName);
 
         return nonNull(orderType)
                 ? Collections.singletonMap(orderType, orderRepository.getOrderBookItemsByType(currencyPairId, orderType, limit))
                 : orderRepository.getOrderBookItems(currencyPairId, limit).stream()
-                .sorted(Comparator.comparing(OrderBookItemDto::getOrderType).thenComparing(OrderBookItemDto::getRate))
-                .collect(groupingBy(OrderBookItemDto::getOrderType));
+                .sorted(Comparator.comparing(OrderBookDto::getOrderType).thenComparing(OrderBookDto::getRate))
+                .collect(groupingBy(OrderBookDto::getOrderType));
     }
 
     @Transactional(readOnly = true)
@@ -212,7 +211,7 @@ public class OrderService {
                 limit);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CandleChartItemDto> getDataForCandleChart(String pairName, BackDealInterval interval) {
         CurrencyPair currencyPair = currencyService.getCurrencyPairByName(pairName);
 
@@ -1045,13 +1044,6 @@ public class OrderService {
             throw new OrderAcceptionException("The selected list of orders may not be grabbed for acceptance");
         }
         return true;
-    }
-
-    @Transactional(readOnly = true)
-    public List<OpenOrderDto> getOpenOrders(String pairName, OrderType orderType) {
-        Integer currencyPairId = currencyService.findCurrencyPairIdByName(pairName);
-
-        return orderRepository.getOpenOrders(currencyPairId, orderType);
     }
 
     private String getUserEmailFromSecurityContext() {

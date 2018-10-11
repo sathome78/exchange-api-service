@@ -1,5 +1,6 @@
 package me.exrates.openapi.controllers;
 
+import io.swagger.annotations.Api;
 import me.exrates.openapi.aspect.AccessCheck;
 import me.exrates.openapi.aspect.RateLimitCheck;
 import me.exrates.openapi.models.dto.TransactionDto;
@@ -28,7 +29,7 @@ import static me.exrates.openapi.utils.ValidationUtil.validateCurrencyPair;
 import static me.exrates.openapi.utils.ValidationUtil.validateDate;
 import static me.exrates.openapi.utils.ValidationUtil.validateLimit;
 
-@SuppressWarnings("DanglingJavadoc")
+@Api(value = "User API", description = "User API operations", tags = {"User API"})
 @RestController
 @RequestMapping("/user")
 public class UserController {

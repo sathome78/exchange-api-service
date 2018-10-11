@@ -2,7 +2,7 @@ package me.exrates.openapi.repositories;
 
 import me.exrates.openapi.models.CurrencyPair;
 import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
-import me.exrates.openapi.models.dto.CurrencyPairInfoItem;
+import me.exrates.openapi.models.dto.CurrencyPairInfo;
 import me.exrates.openapi.repositories.mappers.CurrencyPairInfoItemRowMapper;
 import me.exrates.openapi.repositories.mappers.CurrencyPairLimitRowMapper;
 import me.exrates.openapi.repositories.mappers.CurrencyPairRowMapper;
@@ -19,7 +19,7 @@ public class CurrencyRepository {
 
     private static final String FIND_ACTIVE_CURRENCY_PAIR_ID_BY_NAME_SQL = "SELECT cp.id FROM CURRENCY_PAIR cp WHERE cp.name = :pair_name AND cp.hidden != 1";
 
-    private static final String FIND_ACTIVE_CURRENCY_PAIRS_SQL = "SELECT cp.name FROM CURRENCY_PAIR cp WHERE cp.hidden != 1 ORDER BY cp.name ASC";
+    private static final String FIND_ACTIVE_CURRENCY_PAIRS_SQL = "SELECT cp.name FROM CURRENCY_PAIR cp WHERE cp.hidden != 1 ORDER BY cp.name";
 
     private static final String FIND_CURRENCY_PAIR_BY_NAME_SQL = "SELECT cp.id, cp.currency1_id, cp.currency2_id, cp.name, cp.market, cp.type, " +
             "(SELECT name FROM CURRENCY c WHERE c.id = cp.currency1_id) AS currency1_name, " +
@@ -55,7 +55,7 @@ public class CurrencyRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<CurrencyPairInfoItem> findActiveCurrencyPairs() {
+    public List<CurrencyPairInfo> findActiveCurrencyPairs() {
         return jdbcTemplate.query(FIND_ACTIVE_CURRENCY_PAIRS_SQL, CurrencyPairInfoItemRowMapper.map());
     }
 

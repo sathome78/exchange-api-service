@@ -1,21 +1,19 @@
 package me.exrates.openapi.controllers;
 
+import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.openapi.aspect.AccessCheck;
 import me.exrates.openapi.aspect.RateLimitCheck;
 import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
-import me.exrates.openapi.models.dto.OpenOrderDto;
 import me.exrates.openapi.models.dto.OrderCreationResultOpenApiDto;
 import me.exrates.openapi.models.dto.OrderParametersDto;
-import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,14 +24,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
-import java.util.List;
 
 import static java.util.Objects.nonNull;
 import static me.exrates.openapi.utils.ValidationUtil.validateCurrencyPair;
 
+@Api(value = "Order API", description = "Order API operations", tags = {"Order API"})
 @Slf4j
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/order")
 public class OrderController {
 
     private final OrderService orderService;
@@ -93,17 +91,5 @@ public class OrderController {
     @RequestMapping(value = "/accept/{order_id}", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Boolean> acceptOrder(@PathVariable(value = "order_id") Integer orderId) {
         return ResponseEntity.ok(orderService.acceptOrder(orderId));
-    }
-
-    @AccessCheck
-    @RateLimitCheck
-    @GetMapping(value = "/opened", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<OpenOrderDto>> openOrders(@RequestParam(value = "currency_pair") String pair,
-                                                         @RequestParam("order_type") OrderType orderType) {
-        pair = pair.toUpperCase();
-
-        validateCurrencyPair(pair);
-
-        return ResponseEntity.ok(orderService.getOpenOrders(pair, orderType));
     }
 }
