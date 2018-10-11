@@ -2,6 +2,7 @@ package me.exrates.openapi.services;
 
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
+import me.exrates.openapi.aspects.Loggable;
 import me.exrates.openapi.components.OrderValidator;
 import me.exrates.openapi.exceptions.AlreadyAcceptedOrderException;
 import me.exrates.openapi.exceptions.AttemptToAcceptBotOrderException;
@@ -57,6 +58,7 @@ import me.exrates.openapi.repositories.OrderRepository;
 import me.exrates.openapi.utils.BigDecimalProcessingUtil;
 import me.exrates.openapi.utils.TransactionDescriptionUtil;
 import org.apache.commons.lang3.time.StopWatch;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
@@ -150,11 +152,13 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Get order by id")
     @Transactional(readOnly = true)
     public ExOrder getOrderById(int orderId) {
         return orderRepository.getOrderById(orderId);
     }
 
+    @Loggable(caption = "Get daily coinmarket data")
     @Transactional
     public List<CoinmarketApiDto> getDailyCoinmarketData(String pairName) {
         if (nonNull(pairName)) {
@@ -184,6 +188,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Get order book info")
     @Transactional(readOnly = true)
     public Map<OrderType, List<OrderBookDto>> getOrderBook(String pairName,
                                                            @Null OrderType orderType,
@@ -197,6 +202,7 @@ public class OrderService {
                 .collect(groupingBy(OrderBookDto::getOrderType));
     }
 
+    @Loggable(caption = "Get Trade history")
     @Transactional(readOnly = true)
     public List<TradeHistoryDto> getTradeHistory(String pairName,
                                                  @NotNull LocalDate fromDate,
@@ -211,6 +217,7 @@ public class OrderService {
                 limit);
     }
 
+    @Loggable(caption = "Get data for candle chart")
     @Transactional
     public List<CandleChartItemDto> getDataForCandleChart(String pairName, BackDealInterval interval) {
         CurrencyPair currencyPair = currencyService.getCurrencyPairByName(pairName);
@@ -218,6 +225,7 @@ public class OrderService {
         return orderRepository.getDataForCandleChart(currencyPair, interval);
     }
 
+    @Loggable(caption = "Get user open orders")
     @Transactional(readOnly = true)
     public List<UserOrdersDto> getUserOpenOrders(@Null String pairName,
                                                  @NotNull Integer limit) {
@@ -228,6 +236,7 @@ public class OrderService {
         return orderRepository.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.OPENED, limit);
     }
 
+    @Loggable(caption = "Get user closed orders")
     @Transactional(readOnly = true)
     public List<UserOrdersDto> getUserClosedOrders(@Null String pairName,
                                                    @NotNull Integer limit) {
@@ -238,6 +247,7 @@ public class OrderService {
         return orderRepository.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CLOSED, limit);
     }
 
+    @Loggable(caption = "Get user canceled orders")
     @Transactional(readOnly = true)
     public List<UserOrdersDto> getUserCanceledOrders(@Null String pairName,
                                                      @NotNull Integer limit) {
@@ -248,6 +258,7 @@ public class OrderService {
         return orderRepository.getUserOrdersByStatus(userId, currencyPairId, OrderStatus.CANCELLED, limit);
     }
 
+    @Loggable(caption = "Get all commissions")
     @Transactional(readOnly = true)
     public CommissionDto getAllCommissions() {
         UserRole userRole = userService.getUserRoleFromSecurityContext();
@@ -255,6 +266,7 @@ public class OrderService {
         return orderRepository.getAllCommissions(userRole);
     }
 
+    @Loggable(caption = "Get user trade history by currency pair")
     @Transactional(readOnly = true)
     public List<UserTradeHistoryDto> getUserTradeHistoryByCurrencyPair(String currencyPairName,
                                                                        @NotNull LocalDate fromDate,
@@ -271,6 +283,7 @@ public class OrderService {
                 limit);
     }
 
+    @Loggable(caption = "Get order transactions")
     @Transactional(readOnly = true)
     public List<TransactionDto> getOrderTransactions(Integer orderId) {
         final int userId = userService.getAuthenticatedUserId();
@@ -278,6 +291,7 @@ public class OrderService {
         return orderRepository.getOrderTransactions(userId, orderId);
     }
 
+    @Loggable(caption = "Process of preparing and creating order")
     @Transactional
     public OrderCreationResultDto prepareAndCreateOrder(String pairName,
                                                         OperationType orderType,
@@ -303,6 +317,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Prepare order", logLevel = Level.DEBUG)
     private OrderCreateDto prepareOrder(OrderCreationParamsDto orderCreationParamsDto, OrderBaseType orderBaseType) {
         OrderCreateDto orderCreateDto = prepareNewOrder(orderCreationParamsDto.getCurrencyPair(),
                 orderCreationParamsDto.getOrderType(),
@@ -319,6 +334,7 @@ public class OrderService {
         return orderCreateDto;
     }
 
+    @Loggable(caption = "Prepare new order", logLevel = Level.DEBUG)
     private OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair,
                                            OperationType orderType,
                                            BigDecimal amount,
@@ -327,6 +343,7 @@ public class OrderService {
         return prepareNewOrder(activeCurrencyPair, orderType, amount, rate, null, baseType);
     }
 
+    @Loggable(caption = "Prepare new order", logLevel = Level.DEBUG)
     private OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair,
                                            OperationType orderType,
                                            BigDecimal amount,
@@ -381,6 +398,7 @@ public class OrderService {
         return builder.build().calculateAmounts();
     }
 
+    @Loggable(caption = "Get wallet and commission")
     @Transactional(readOnly = true)
     public WalletsAndCommissionsDto getWalletAndCommission(Currency currency, OperationType operationType) {
         String userEmail = userService.getUserEmailFromSecurityContext();
@@ -389,14 +407,15 @@ public class OrderService {
 
         UserRole userRole = nonNull(authentication)
                 ? userService.getUserRoleFromSecurityContext()
-                : userService.getUserRoleFromDatabase(userEmail);
+                : userService.getUserRoleFromDatabaseByEmail(userEmail);
 
         return orderRepository.getWalletAndCommission(userEmail, currency, operationType, userRole);
     }
 
+    @Loggable(caption = "Create prepared order")
     @Transactional
     public OrderCreationResultDto createPreparedOrder(OrderCreateDto orderCreateDto) {
-        OrderCreationResultDto autoAcceptResult = autoAcceptOrders(orderCreateDto);
+        OrderCreationResultDto autoAcceptResult = autoAcceptOrder(orderCreateDto);
         log.info("Auto accept result: " + autoAcceptResult);
         if (nonNull(autoAcceptResult)) {
             return autoAcceptResult;
@@ -413,15 +432,16 @@ public class OrderService {
         return orderCreationResultDto;
     }
 
+    @Loggable(caption = "Process of auto accepting order")
     @Transactional(rollbackFor = Exception.class)
-    public OrderCreationResultDto autoAcceptOrders(OrderCreateDto orderCreateDto) {
+    public OrderCreationResultDto autoAcceptOrder(OrderCreateDto orderCreateDto) {
         synchronized (autoAcceptLock) {
             StopWatch stopWatch = StopWatch.createStarted();
             try {
                 OperationType oppositeOperationType = OperationType.getOpposite(orderCreateDto.getOperationType());
 
                 boolean acceptSameRoleOnly = userRoleService.isOrderAcceptanceAllowedForUser(orderCreateDto.getUserId());
-                UserRole userRole = userService.getUserRoleFromDatabase(orderCreateDto.getUserId());
+                UserRole userRole = userService.getUserRoleFromDatabaseById(orderCreateDto.getUserId());
 
                 List<ExOrder> acceptableOrders = orderRepository.selectTopOrders(
                         orderCreateDto.getCurrencyPair().getId(),
@@ -489,6 +509,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Accept order")
     @Transactional(rollbackFor = Exception.class)
     public void acceptOrder(int userAcceptorId, int orderId) {
         try {
@@ -550,7 +571,7 @@ public class OrderService {
 //            calculate convert currency amount for acceptor - calculate at the current commission rate
             OperationType operationTypeForAcceptor = order.getOperationType() == OperationType.BUY ? OperationType.SELL : OperationType.BUY;
 
-            UserRole acceptorUserRole = userService.getUserRoleFromDatabase(userAcceptorId);
+            UserRole acceptorUserRole = userService.getUserRoleFromDatabaseById(userAcceptorId);
 
             Commission commissionForAcceptor = commissionService.getCommission(operationTypeForAcceptor, acceptorUserRole);
 
@@ -699,9 +720,10 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Check acceptance permission for user", logLevel = Level.DEBUG)
     private void checkAcceptPermissionForUser(Integer acceptorId, Integer creatorId) {
-        UserRole acceptorRole = userService.getUserRoleFromDatabase(acceptorId);
-        UserRole creatorRole = userService.getUserRoleFromDatabase(creatorId);
+        UserRole acceptorRole = userService.getUserRoleFromDatabaseById(acceptorId);
+        UserRole creatorRole = userService.getUserRoleFromDatabaseById(creatorId);
 
         UserRoleSettings creatorSettings = userRoleService.retrieveSettingsForRole(creatorRole.getRole());
         if (creatorSettings.isBotAcceptionAllowedOnly() && acceptorRole != UserRole.BOT_TRADER) {
@@ -714,6 +736,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Get amount sum with commission for creator", logLevel = Level.DEBUG)
     private BigDecimal getAmountWithCommissionForCreator(ExOrder order) {
         switch (order.getOperationType()) {
             case SELL:
@@ -725,6 +748,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Process of updating order")
     @Transactional(propagation = Propagation.NESTED)
     public boolean updateOrder(ExOrder order) {
         return orderRepository.updateOrder(order);
@@ -758,6 +782,7 @@ public class OrderService {
         return amountForPartialAccept;
     }
 
+    @Loggable(caption = "Process of deleting order for partial accept")
     @Transactional(rollbackFor = {Exception.class})
     public void deleteOrderForPartialAccept(int orderId) {
         Object result = deleteOrder(orderId);
@@ -767,6 +792,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Process of deleting order")
     @Transactional
     Object deleteOrder(int orderId) {
         List<OrderDetailDto> list = walletService.getOrderRelatedDataAndBlock(orderId);
@@ -823,7 +849,7 @@ public class OrderService {
                     }
                 }
                 log.debug("rows before refs {}", processedRows);
-                int processedRefRows = unprocessableReferralTransactionByOrder(orderDetailDto.getOrderId(), description);
+                int processedRefRows = processReferralTransactionByOrder(orderDetailDto.getOrderId(), description);
                 processedRows = processedRefRows + processedRows;
                 log.debug("rows after refs {}", processedRows);
                 /**/
@@ -855,8 +881,9 @@ public class OrderService {
         return processedRows;
     }
 
-    private int unprocessableReferralTransactionByOrder(int orderId, String description) {
-        List<Transaction> transactions = transactionService.getPayedRefTransactionsByOrderId(orderId);
+    @Loggable(caption = "Process referral transaction by order", logLevel = Level.DEBUG)
+    private int processReferralTransactionByOrder(int orderId, String description) {
+        List<Transaction> transactions = transactionService.getPayedReferralTransactionsByOrderId(orderId);
 
         for (Transaction transaction : transactions) {
             WalletTransferStatus walletTransferStatus = null;
@@ -874,20 +901,21 @@ public class OrderService {
                         .build();
 
                 walletTransferStatus = walletService.walletBalanceChange(walletOperationData);
-                referralService.setRefTransactionStatus(transaction.getSourceId());
+                referralService.setReferralTransactionStatus(transaction.getSourceId());
                 companyWalletService.subtractCommissionBalanceById(transaction.getCompanyWallet().getId(), transaction.getAmount().negate());
             } catch (Exception ex) {
                 log.error("Error unprocessable ref transactions", ex);
             }
             log.debug("status: {}", walletTransferStatus);
             if (walletTransferStatus != WalletTransferStatus.SUCCESS) {
-                throw new RuntimeException("Can't unprocess referral transaction for order " + orderId);
+                throw new RuntimeException("Can't process referral transaction for order " + orderId);
             }
         }
         log.debug("End unprocessable refs");
         return transactions.size();
     }
 
+    @Loggable(caption = "Create order")
     @Transactional(rollbackFor = {Exception.class})
     public int createOrder(OrderCreateDto orderCreateDto, OrderActionEnum action) {
         StopWatch stopWatch = StopWatch.createStarted();
@@ -954,21 +982,26 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Set order status")
     @Transactional
-    public boolean setStatus(int orderId, OrderStatus status, OrderBaseType orderBaseType) {
+    public void setStatus(int orderId, OrderStatus status, OrderBaseType orderBaseType) {
         switch (orderBaseType) {
             case STOP_LIMIT:
-                return stopOrderService.setStatus(orderId, status);
+                stopOrderService.setStatus(orderId, status);
+                break;
             default:
-                return setStatus(orderId, status);
+                setStatus(orderId, status);
+                break;
         }
     }
 
+    @Loggable(caption = "Set order status")
     @Transactional(propagation = Propagation.NESTED)
     public boolean setStatus(int orderId, OrderStatus status) {
         return orderRepository.setStatus(orderId, status);
     }
 
+    @Loggable(caption = "Process of canceling order")
     @Transactional
     public boolean cancelOrder(Integer orderId) {
         ExOrder order = getOrderById(orderId);
@@ -976,6 +1009,7 @@ public class OrderService {
         return cancelOrder(order);
     }
 
+    @Loggable(caption = "Cancel order")
     @Transactional(rollbackFor = {Exception.class})
     public boolean cancelOrder(ExOrder order) {
         final String currentUserEmail = getUserEmailFromSecurityContext();
@@ -1011,6 +1045,7 @@ public class OrderService {
         }
     }
 
+    @Loggable(caption = "Process of canceling open orders by currency pair")
     @Transactional
     public boolean cancelOpenOrdersByCurrencyPair(String currencyPair) {
         final int userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
@@ -1020,6 +1055,7 @@ public class OrderService {
         return openedOrders.stream().allMatch(this::cancelOrder);
     }
 
+    @Loggable(caption = "Process of canceling all open orders")
     @Transactional
     public boolean cancelAllOpenOrders() {
         final int userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
@@ -1029,6 +1065,7 @@ public class OrderService {
         return openedOrders.stream().allMatch(this::cancelOrder);
     }
 
+    @Loggable(caption = "Process of accepting order")
     @Transactional
     public boolean acceptOrder(Integer orderId) {
         final int userId = userService.getIdByEmail(getUserEmailFromSecurityContext());
@@ -1036,6 +1073,7 @@ public class OrderService {
         return acceptOrdersList(userId, Collections.singletonList(orderId));
     }
 
+    @Loggable(caption = "Process of accepting order list")
     @Transactional(rollbackFor = Exception.class)
     public boolean acceptOrdersList(int userAcceptorId, List<Integer> orderIds) {
         if (orderRepository.lockOrdersListForAcceptance(orderIds)) {
@@ -1046,14 +1084,17 @@ public class OrderService {
         return true;
     }
 
+    @Loggable(caption = "Get user email from security context", logLevel = Level.DEBUG)
     private String getUserEmailFromSecurityContext() {
         return userService.getUserEmailFromSecurityContext();
     }
 
+    @Loggable(caption = "Process of validating currency pair", logLevel = Level.DEBUG)
     private void validateCurrencyPair(String pairName) {
         currencyService.findCurrencyPairIdByName(pairName);
     }
 
+    @Loggable(caption = "Get coinmarket data for active pairs", logLevel = Level.DEBUG)
     private CoinmarketData getCoinmarketDataForActivePairs(String pairName) {
         return new CoinmarketData(orderRepository.getCoinmarketData(pairName));
     }

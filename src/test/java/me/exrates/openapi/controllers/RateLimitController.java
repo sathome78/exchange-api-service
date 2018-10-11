@@ -1,6 +1,6 @@
 package me.exrates.openapi.controllers;
 
-import me.exrates.openapi.aspect.RateLimitCheck;
+import me.exrates.openapi.aspects.RateLimitCheck;
 import me.exrates.openapi.exceptions.RequestsLimitException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;

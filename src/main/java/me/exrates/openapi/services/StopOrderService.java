@@ -1,6 +1,7 @@
 package me.exrates.openapi.services;
 
 
+import me.exrates.openapi.aspects.Loggable;
 import me.exrates.openapi.models.ExOrder;
 import me.exrates.openapi.models.StopOrder;
 import me.exrates.openapi.models.enums.OrderStatus;
@@ -19,11 +20,13 @@ public class StopOrderService {
         this.stopOrderRepository = stopOrderRepository;
     }
 
+    @Loggable(caption = "Set stop order status")
     @Transactional
     public boolean setStatus(int orderId, OrderStatus status) {
         return stopOrderRepository.setStatus(orderId, status);
     }
 
+    @Loggable(caption = "Create stop order")
     @Transactional
     public Integer createOrder(ExOrder order) {
         StopOrder stopOrder = new StopOrder(order);

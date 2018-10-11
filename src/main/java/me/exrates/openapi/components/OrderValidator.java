@@ -47,7 +47,7 @@ public class OrderValidator {
         final OperationType operationType = orderCreateDto.getOperationType();
         final UserRole userRole = userService.getUserRoleFromSecurityContext();
 
-        CurrencyPairLimitDto currencyPairLimit = currencyService.getLimitForRole(currencyPair, operationType, userRole);
+        CurrencyPairLimitDto currencyPairLimit = currencyService.getLimitByRole(currencyPair, operationType, userRole);
 
         if (nonNull(orderCreateDto.getOrderBaseType()) && orderCreateDto.getOrderBaseType() == OrderBaseType.STOP_LIMIT) {
             if (isNull(orderCreateDto.getStop()) || orderCreateDto.getStop().compareTo(BigDecimal.ZERO) <= 0) {

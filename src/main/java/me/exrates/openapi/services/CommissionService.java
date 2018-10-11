@@ -1,5 +1,6 @@
 package me.exrates.openapi.services;
 
+import me.exrates.openapi.aspects.Loggable;
 import me.exrates.openapi.models.Commission;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.UserRole;
@@ -18,11 +19,13 @@ public class CommissionService {
         this.commissionRepository = commissionRepository;
     }
 
+    @Loggable(caption = "Get commission")
     @Transactional(readOnly = true)
     public Commission getCommission(OperationType operationType, UserRole userRole) {
         return commissionRepository.getCommission(operationType, userRole);
     }
 
+    @Loggable(caption = "Get default commission")
     @Transactional(readOnly = true)
     public Commission getDefaultCommission(OperationType operationType) {
         return commissionRepository.getDefaultCommission(operationType);

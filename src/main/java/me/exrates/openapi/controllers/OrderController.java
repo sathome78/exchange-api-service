@@ -2,8 +2,8 @@ package me.exrates.openapi.controllers;
 
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
-import me.exrates.openapi.aspect.AccessCheck;
-import me.exrates.openapi.aspect.RateLimitCheck;
+import me.exrates.openapi.aspects.AccessCheck;
+import me.exrates.openapi.aspects.RateLimitCheck;
 import me.exrates.openapi.exceptions.ValidationException;
 import me.exrates.openapi.models.dto.OrderCreationResultDto;
 import me.exrates.openapi.models.dto.OrderCreationResultOpenApiDto;

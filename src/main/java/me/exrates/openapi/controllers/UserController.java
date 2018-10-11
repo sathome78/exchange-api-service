@@ -1,8 +1,8 @@
 package me.exrates.openapi.controllers;
 
 import io.swagger.annotations.Api;
-import me.exrates.openapi.aspect.AccessCheck;
-import me.exrates.openapi.aspect.RateLimitCheck;
+import me.exrates.openapi.aspects.AccessCheck;
+import me.exrates.openapi.aspects.RateLimitCheck;
 import me.exrates.openapi.models.dto.TransactionDto;
 import me.exrates.openapi.models.dto.UserTradeHistoryDto;
 import me.exrates.openapi.models.dto.CommissionDto;

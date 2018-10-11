@@ -1,10 +1,11 @@
 package me.exrates.openapi.services;
 
 import lombok.extern.slf4j.Slf4j;
+import me.exrates.openapi.aspects.Loggable;
 import me.exrates.openapi.exceptions.CurrencyPairNotFoundException;
 import me.exrates.openapi.models.CurrencyPair;
-import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
 import me.exrates.openapi.models.dto.CurrencyPairInfo;
+import me.exrates.openapi.models.dto.CurrencyPairLimitDto;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.OrderType;
 import me.exrates.openapi.models.enums.UserRole;
@@ -28,11 +29,13 @@ public class CurrencyService {
         this.currencyRepository = currencyRepository;
     }
 
+    @Loggable(caption = "Get active currency pairs")
     @Transactional(readOnly = true)
     public List<CurrencyPairInfo> getActiveCurrencyPairs() {
         return currencyRepository.findActiveCurrencyPairs();
     }
 
+    @Loggable(caption = "Get currency pair by name")
     @Transactional(readOnly = true)
     public CurrencyPair getCurrencyPairByName(String pairName) {
         log.debug("Try to find currency pair by name: {}", pairName);
@@ -44,6 +47,7 @@ public class CurrencyService {
         return currencyPair;
     }
 
+    @Loggable(caption = "Get currency pair by id")
     @Transactional(readOnly = true)
     public CurrencyPair getCurrencyPairById(int currencyPairId) {
         log.debug("Try to find currency pair by id: {}", currencyPairId);
@@ -56,15 +60,17 @@ public class CurrencyService {
         return currencyPair;
     }
 
+    @Loggable(caption = "Get currency pair limit by user role")
     @Transactional(readOnly = true)
-    public CurrencyPairLimitDto getLimitForRole(CurrencyPair currencyPair,
-                                                OperationType operationType,
-                                                UserRole userRole) {
+    public CurrencyPairLimitDto getLimitByRole(CurrencyPair currencyPair,
+                                               OperationType operationType,
+                                               UserRole userRole) {
         OrderType orderType = OrderType.convert(operationType.getType());
 
         return currencyRepository.findCurrencyPairLimitForRoleByPairAndType(currencyPair.getId(), userRole.getRole(), orderType.getType());
     }
 
+    @Loggable(caption = "Find currency pair by name")
     @Transactional(readOnly = true)
     public Integer findCurrencyPairIdByName(String pairName) {
         log.debug("Try to find currency pair by name: {}", pairName);

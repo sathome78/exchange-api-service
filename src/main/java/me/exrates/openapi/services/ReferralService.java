@@ -1,7 +1,15 @@
 package me.exrates.openapi.services;
 
 import lombok.extern.log4j.Log4j2;
-import me.exrates.openapi.models.*;
+import me.exrates.openapi.aspects.Loggable;
+import me.exrates.openapi.models.Commission;
+import me.exrates.openapi.models.CompanyWallet;
+import me.exrates.openapi.models.Currency;
+import me.exrates.openapi.models.ExOrder;
+import me.exrates.openapi.models.ReferralLevel;
+import me.exrates.openapi.models.ReferralTransaction;
+import me.exrates.openapi.models.User;
+import me.exrates.openapi.models.Wallet;
 import me.exrates.openapi.models.enums.ActionType;
 import me.exrates.openapi.models.enums.OperationType;
 import me.exrates.openapi.models.enums.TransactionSourceType;
@@ -59,6 +67,7 @@ public class ReferralService {
         this.commission = commissionService.getDefaultCommission(OperationType.REFERRAL);
     }
 
+    @Loggable(caption = "Process referral")
     @Transactional(propagation = Propagation.MANDATORY)
     public void processReferral(ExOrder order,
                                 BigDecimal commissionAmount,
@@ -114,8 +123,9 @@ public class ReferralService {
         }
     }
 
+    @Loggable(caption = "Set referral transaction status")
     @Transactional
-    public void setRefTransactionStatus(int refTransactionId) {
+    public void setReferralTransactionStatus(int refTransactionId) {
         referralTransactionRepository.setRefTransactionStatus(refTransactionId);
     }
 }

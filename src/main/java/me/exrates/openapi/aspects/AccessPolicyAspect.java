@@ -1,4 +1,4 @@
-package me.exrates.openapi.aspect;
+package me.exrates.openapi.aspects;
 
 import me.exrates.openapi.exceptions.AccessException;
 import me.exrates.openapi.exceptions.RequestsLimitException;
@@ -19,7 +19,7 @@ public class AccessPolicyAspect {
         this.accessPolicyService = accessPolicyService;
     }
 
-    @Before(value = "@annotation(me.exrates.openapi.aspect.RateLimitCheck)")
+    @Before(value = "@annotation(me.exrates.openapi.aspects.RateLimitCheck)")
     public void checkRateLimit() throws RequestsLimitException {
         accessPolicyService.registerRequest();
         if (accessPolicyService.isLimitExceed()) {
@@ -27,7 +27,7 @@ public class AccessPolicyAspect {
         }
     }
 
-    @Before(value = "@annotation(me.exrates.openapi.aspect.AccessCheck)")
+    @Before(value = "@annotation(me.exrates.openapi.aspects.AccessCheck)")
     public void checkAccess() throws AccessException {
         if (!accessPolicyService.isEnabled()) {
             throw new AccessException("Access to API denied");

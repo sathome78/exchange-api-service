@@ -1,5 +1,6 @@
 package me.exrates.openapi.services;
 
+import me.exrates.openapi.aspects.Loggable;
 import me.exrates.openapi.exceptions.NotEnoughUserWalletMoneyException;
 import me.exrates.openapi.exceptions.WalletPersistException;
 import me.exrates.openapi.models.CompanyWallet;
@@ -25,6 +26,7 @@ public class CompanyWalletService {
         this.companyWalletRepository = companyWalletRepository;
     }
 
+    @Loggable(caption = "Process of deposit")
     @Transactional(propagation = Propagation.NESTED)
     public void deposit(CompanyWallet companyWallet, BigDecimal commissionAmount) {
         companyWallet.setBalance(companyWallet.getBalance());
@@ -34,6 +36,7 @@ public class CompanyWalletService {
         }
     }
 
+    @Loggable(caption = "Process of withdraw reserved balance")
     @Transactional(propagation = Propagation.NESTED)
     public void withdrawReservedBalance(CompanyWallet companyWallet, BigDecimal amount) {
         BigDecimal newReservedBalance = BigDecimalProcessingUtil.doAction(companyWallet.getCommissionBalance(), amount, SUBTRACT);
@@ -46,11 +49,13 @@ public class CompanyWalletService {
         }
     }
 
+    @Loggable(caption = "Find company wallet by currency")
     @Transactional(readOnly = true)
     public CompanyWallet findByCurrency(Currency currency) {
         return companyWalletRepository.findByCurrencyId(currency.getId());
     }
 
+    @Loggable(caption = "Subtract commission balance by id")
     @Transactional
     public boolean subtractCommissionBalanceById(Integer id, BigDecimal amount) {
         return companyWalletRepository.subtarctCommissionBalanceById(id, amount);

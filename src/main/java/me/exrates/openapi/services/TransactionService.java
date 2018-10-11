@@ -1,5 +1,6 @@
 package me.exrates.openapi.services;
 
+import me.exrates.openapi.aspects.Loggable;
 import me.exrates.openapi.models.Transaction;
 import me.exrates.openapi.repositories.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +19,13 @@ public class TransactionService {
         this.transactionRepository = transactionRepository;
     }
 
+    @Loggable(caption = "Get payed referral transactions by order id")
     @Transactional(readOnly = true)
-    public List<Transaction> getPayedRefTransactionsByOrderId(int orderId) {
+    public List<Transaction> getPayedReferralTransactionsByOrderId(int orderId) {
         return transactionRepository.getPayedRefTransactionsByOrderId(orderId);
     }
 
+    @Loggable(caption = "Set transaction status by id")
     @Transactional
     public boolean setStatusById(Integer trasactionId, Integer statusId) {
         return !transactionRepository.setStatusById(trasactionId, statusId);
