@@ -89,10 +89,11 @@ public class PublicController {
 
     @AccessCheck
     @RateLimitCheck
+    @ApiOperation(value = "Get history information by currency pair", position = 3)
     @GetMapping(value = "/history", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TradeHistoryDto>> getTradeHistoryByCurrencyPair(@RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-                                                                               @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-                                                                               @RequestParam(value = "currency_pair") String pair,
+    public ResponseEntity<List<TradeHistoryDto>> getTradeHistoryByCurrencyPair(@ApiParam(value = "From date", example = "2018-10-01", required = true) @RequestParam(value = "from_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                                                                               @ApiParam(value = "To date", example = "2018-10-02", required = true) @RequestParam(value = "to_date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                                                                               @ApiParam(value = "Currency pair", example = "BTC/USD", required = true) @RequestParam(value = "currency_pair") String pair,
                                                                                @RequestParam(defaultValue = "50", required = false) Integer limit) {
         pair = pair.toUpperCase();
 
