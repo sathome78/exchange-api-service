@@ -8,11 +8,11 @@ spring:
     name: OpenApiService
   profiles:
     active: dev
-  #     - with-flyway-migration
   datasource:
-    url: jdbc:mysql://localhost:3306/birzha?characterEncoding=UTF-8&autoReconnect=true&useSSL=false
-    username: root
-    password: root
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://prodex-replicatest.cedlveyttji9.us-east-2.rds.amazonaws.com:3306/birzha?useSSL=false
+    username: devprod
+    password: Fh24soaf8sy3
     hikari:
       connection-timeout: 10000
       idle-timeout: 180000
@@ -25,9 +25,51 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
   redis:
     host: 172.10.10.236
     port: 6379
+  jackson:
+    serialization:
+      write_dates_as_timestamps: false
+    mapper:
+      default_view_inclusion: true
+    default-property-inclusion: 'non_null'
+  cloud:
+    consul:
+      port: 8500
+      host: 172.50.10.5
+      enabled: true
+      discovery:
+        enabled: true
+        lifecycle:
+          enabled: true
+        heartbeat:
+          enabled: true
+          interval-ratio: 0.1
+        health-check-timeout: 3s
+        health-check-interval: 3ss
+        tags: api-service
+        service-name: api-service
+        port: 8081
+  flyway:
+    baseline-on-migrate: true
+    validate-on-migrate: false
+    table: schema_version
 
-referral:
-  url: localhost:8080/register?ref=
+logging:
+  level:
+    org:
+      hibernate:
+        type: debug
+
+api:
+  admin:
+    attempts-limit: 5
+    time-limit: 3600 #Seconds
+
+swagger:
+  enabled: true

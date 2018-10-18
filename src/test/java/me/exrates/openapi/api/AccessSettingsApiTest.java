@@ -51,7 +51,7 @@ public class AccessSettingsApiTest {
     }
 
     @Test
-    public void EndToEndAdminTest() {
+    public void endToEndAdminTest() {
         //setRequestLimit
         boolean success = accessSettingsApi.setRequestLimit(user.getEmail(), 1);
 

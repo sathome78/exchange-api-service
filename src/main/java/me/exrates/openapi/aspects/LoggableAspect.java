@@ -38,12 +38,12 @@ public class LoggableAspect {
         stopWatch.stop();
 
         if (result instanceof Collection) {
-            logMessage(logLevel, "Finished '{}' with {} results in {} seconds",
+            logMessage(logLevel, "Finished '{}' with {} results in {} second(s)",
                     caption,
                     ((Collection) result).size(),
                     stopWatch.getTime(TimeUnit.SECONDS));
         } else if (result instanceof Map && mapValue(result) instanceof Collection) {
-            logMessage(logLevel, "Finished '{}' with [{} values/{} keys] results in {} seconds",
+            logMessage(logLevel, "Finished '{}' with [{} values/{} keys] results in {} second(s)",
                     caption,
                     ((Map) result).values().stream()
                             .mapToInt(list -> ((Collection) list).size())
@@ -51,12 +51,12 @@ public class LoggableAspect {
                     ((Map) result).size(),
                     stopWatch.getTime(TimeUnit.SECONDS));
         } else if (result instanceof Map) {
-            logMessage(logLevel, "Finished '{}' with {} results in {} seconds",
+            logMessage(logLevel, "Finished '{}' with {} results in {} second(s)",
                     caption,
                     ((Map) result).size(),
                     stopWatch.getTime(TimeUnit.SECONDS));
         } else {
-            logMessage(logLevel, "Finished '{}' in {} seconds",
+            logMessage(logLevel, "Finished '{}' in {} second(s)",
                     caption,
                     stopWatch.getTime(TimeUnit.SECONDS));
         }

@@ -164,27 +164,13 @@ public class OrderService {
         if (nonNull(pairName)) {
             validateCurrencyPair(pairName);
 
-            CoinmarketData coinmarketData = cacheCoinmarket.get(pairName, CoinmarketData.class);
-            if (isNull(coinmarketData)) {
-                coinmarketData = getCoinmarketDataForActivePairs(pairName);
-            }
-            if (isNotEmpty(coinmarketData.getList())) {
-                cacheCoinmarket.put(pairName, coinmarketData);
-                return coinmarketData.getList();
-            } else {
-                return Collections.emptyList();
-            }
+            CoinmarketData coinmarketData = cacheCoinmarket.get(pairName, () -> getCoinmarketDataForActivePairs(pairName));
+
+            return nonNull(coinmarketData) && isNotEmpty(coinmarketData.getList()) ? coinmarketData.getList() : Collections.emptyList();
         } else {
-            CoinmarketData coinmarketData = cacheCoinmarket.get(ALL, CoinmarketData.class);
-            if (isNull(coinmarketData)) {
-                coinmarketData = getCoinmarketDataForActivePairs(null);
-            }
-            if (isNotEmpty(coinmarketData.getList())) {
-                cacheCoinmarket.put(ALL, coinmarketData);
-                return coinmarketData.getList();
-            } else {
-                return Collections.emptyList();
-            }
+            CoinmarketData coinmarketData = cacheCoinmarket.get(ALL, () -> getCoinmarketDataForActivePairs(null));
+
+            return nonNull(coinmarketData) && isNotEmpty(coinmarketData.getList()) ? coinmarketData.getList() : Collections.emptyList();
         }
     }
 

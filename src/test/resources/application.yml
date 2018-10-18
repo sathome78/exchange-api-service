@@ -38,6 +38,23 @@ spring:
     mapper:
       default_view_inclusion: true
     default-property-inclusion: 'non_null'
+  cloud:
+    consul:
+      port: 8500
+      host: 172.50.10.5
+      enabled: true
+      discovery:
+        enabled: true
+        lifecycle:
+          enabled: true
+        heartbeat:
+          enabled: true
+          interval-ratio: 0.1
+        health-check-timeout: 3s
+        health-check-interval: 3ss
+        tags: api-service
+        service-name: api-service
+        port: 8081
   flyway:
     baseline-on-migrate: true
     validate-on-migrate: false
