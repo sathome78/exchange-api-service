@@ -17,8 +17,6 @@ import me.exrates.service.api.ExchangeApi;
 import me.exrates.service.exception.*;
 import me.exrates.service.exception.api.UniqueEmailConstraintException;
 import me.exrates.service.exception.api.UniqueNicknameConstraintException;
-import me.exrates.service.notifications.G2faService;
-import me.exrates.service.notifications.NotificationsSettingsService;
 import me.exrates.service.session.UserSessionService;
 import me.exrates.service.token.TokenScheduler;
 import org.apache.commons.lang3.tuple.Pair;
@@ -91,10 +89,6 @@ public class UserServiceImpl implements UserService {
     private TokenScheduler tokenScheduler;
     @Autowired
     private ReferralService referralService;
-    @Autowired
-    private NotificationsSettingsService settingsService;
-    @Autowired
-    private G2faService g2faService;
     @Autowired
     private ExchangeApi exchangeApi;
     @Autowired
@@ -562,7 +556,7 @@ public class UserServiceImpl implements UserService {
 
     @PostConstruct
     private void initTokenTriggers() {
-        tokenScheduler.initTrigers();
+//        tokenScheduler.initTrigers();
     }
 
     @Override
@@ -747,31 +741,8 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    /*todo refator it*/
-    @Override
-    public boolean checkPin(String email, String pin, NotificationMessageEventEnum event) {
-        int userId = getIdByEmail(email);
-        NotificationsUserSetting setting = settingsService.getByUserAndEvent(userId, event);
-        if (setting == null || setting.getNotificatorId() == null) {
-            setting = NotificationsUserSetting.builder()
-                    .notificatorId(NotificationTypeEnum.EMAIL.getCode())
-                    .userId(userId)
-                    .notificationMessageEventEnum(event)
-                    .build();
-        }
-        if (setting.getNotificatorId().equals(NotificationTypeEnum.GOOGLE2FA.getCode())) {
-            return g2faService.checkGoogle2faVerifyCode(pin, userId);
-        }
-        return passwordEncoder.matches(pin, getPinForEvent(email, event));
-    }
-
     private String getPinForEvent(String email, NotificationMessageEventEnum event) {
         return userDao.getPinByEmailAndEvent(email, event);
-    }
-
-    @Override
-    public boolean isLogin2faUsed(String email) {
-        return g2faService.isGoogleAuthenticatorEnable(userDao.getIdByEmail(email));
     }
 
     @Override

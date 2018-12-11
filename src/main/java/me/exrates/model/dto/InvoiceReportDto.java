@@ -3,7 +3,6 @@ package me.exrates.model.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import me.exrates.model.enums.invoice.InvoiceStatus;
 import org.apache.commons.lang3.StringUtils;
 
@@ -16,7 +15,6 @@ import static me.exrates.model.enums.OperationType.OUTPUT;
 
 @Data
 @Builder(builderClassName = "Builder", toBuilder = true)
-@NoArgsConstructor
 @AllArgsConstructor
 public class InvoiceReportDto {
 

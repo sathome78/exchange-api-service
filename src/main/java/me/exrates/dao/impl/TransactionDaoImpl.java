@@ -40,7 +40,7 @@ import static java.util.stream.Collectors.toList;
 
 @Log4j2
 @Repository
-public final class TransactionDaoImpl implements TransactionDao {
+public class TransactionDaoImpl implements TransactionDao {
 
     protected static RowMapper<Transaction> transactionRowMapper = (resultSet, i) -> {
 

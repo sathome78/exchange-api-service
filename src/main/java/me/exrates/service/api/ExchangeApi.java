@@ -1,8 +1,11 @@
 package me.exrates.service.api;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.service.exception.ExchangeApiException;
 import org.apache.commons.lang3.tuple.Pair;
@@ -62,7 +65,24 @@ public class ExchangeApi {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    private static class ExchangeData {
+
+        Map<String, Rates> rates = Maps.newTreeMap();
+
+        @JsonAnySetter
+        void setRates(String key, Rates value) {
+            rates.put(key, value);
+        }
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     private static class Rates {
 
+        @JsonProperty("usd_rate")
+        double usdRate;
+        @JsonProperty("btc_rate")
+        double btcRate;
     }
 }

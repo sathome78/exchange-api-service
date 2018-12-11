@@ -1,9 +1,11 @@
 package me.exrates.service.api;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +25,11 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.toMap;
@@ -183,6 +189,21 @@ public class WalletsApi {
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     public static class WalletsData {
 
+        String name;
+        String currentAmount;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+    public static class ReservedWalletsData {
+
+        Map<String, BigDecimal> balances = Maps.newTreeMap();
+
+        @JsonAnySetter
+        void setRates(String key, BigDecimal value) {
+            balances.put(key, value);
+        }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -190,6 +211,7 @@ public class WalletsApi {
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
     public static class WalletBalanceData {
 
+        double balance;
     }
 
     @Builder(builderClassName = "Builder")

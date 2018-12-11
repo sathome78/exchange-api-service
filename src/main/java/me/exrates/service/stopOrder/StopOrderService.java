@@ -19,7 +19,4 @@ public interface StopOrderService {
     @Transactional
     boolean setStatus(int orderId, OrderStatus status);
 
-    /*@Transactional
-    OrderInfoDto getStopOrderInfo(int orderId, Locale locale);*/
-
 }

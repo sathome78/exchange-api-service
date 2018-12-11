@@ -1,7 +1,19 @@
 package me.exrates.dao;
 
-import me.exrates.model.*;
-import me.exrates.model.dto.*;
+import me.exrates.model.AdminAuthorityOption;
+import me.exrates.model.Comment;
+import me.exrates.model.PagingData;
+import me.exrates.model.TemporalToken;
+import me.exrates.model.User;
+import me.exrates.model.UserFile;
+import me.exrates.model.dto.UpdateUserDto;
+import me.exrates.model.dto.UserBalancesDto;
+import me.exrates.model.dto.UserCurrencyOperationPermissionDto;
+import me.exrates.model.dto.UserIpDto;
+import me.exrates.model.dto.UserIpReportDto;
+import me.exrates.model.dto.UserSessionInfoDto;
+import me.exrates.model.dto.UserShortDto;
+import me.exrates.model.dto.UsersInfoDto;
 import me.exrates.model.dto.mobileApiDto.TemporaryPasswordDto;
 import me.exrates.model.enums.NotificationMessageEventEnum;
 import me.exrates.model.enums.TokenType;
@@ -10,8 +22,13 @@ import me.exrates.model.enums.invoice.InvoiceOperationDirection;
 import me.exrates.model.enums.invoice.InvoiceOperationPermission;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 
 public interface UserDao {
 
@@ -31,7 +48,11 @@ public interface UserDao {
 
     List<UserRole> getAllRoles();
 
+    List<User> getUsersByRoles(List<UserRole> listRoles);
+
     UserRole getUserRoleById(Integer id);
+
+    List<String> getUserRoleAndAuthorities(String email);
 
     List<AdminAuthorityOption> getAuthorityOptionsForUser(Integer userId);
 
@@ -46,7 +67,15 @@ public interface UserDao {
 
     User findByEmail(String email);
 
+    PagingData<List<User>> getUsersByRolesPaginated(List<UserRole> roles, int offset, int limit,
+                                                    String orderColumnName, String orderDirection,
+                                                    String searchValue);
+
+    String getBriefInfo(int login);
+
     boolean ifNicknameIsUnique(String nickname);
+
+    boolean ifPhoneIsUnique(int phone);
 
     boolean ifEmailIsUnique(String email);
 
@@ -60,7 +89,11 @@ public interface UserDao {
 
     boolean update(UpdateUserDto user);
 
+    UserShortDto findShortByEmail(String email);
+
     User findByNickname(String nickname);
+
+    List<User> getAllUsers();
 
     User getUserById(int id);
 
@@ -86,6 +119,8 @@ public interface UserDao {
     boolean deleteTemporalTokensOfTokentypeForUser(TemporalToken token);
 
     List<TemporalToken> getTokenByUserAndType(int userId, TokenType tokenType);
+
+    boolean updateUserStatus(User user);
 
     List<TemporalToken> getAllTokens();
 
@@ -143,7 +178,13 @@ public interface UserDao {
 
     UserRole getUserRoleByEmail(String email);
 
+    void savePollAsDoneByUser(String email);
+
+    boolean checkPollIsDoneByUser(String email);
+
     boolean updateLast2faNotifyDate(String email);
+
+    LocalDate getLast2faNotifyDate(String email);
 
     List<UserIpReportDto> getUserIpReportByRoleList(List<Integer> userRoleList);
 

@@ -59,7 +59,7 @@ public class StopOrdersHolderImpl implements StopOrdersHolder {
             buyOrdersMap.put(p.getId(), buySet);
             log.debug("buy set for currency {} size: {}", p.getId(), buySet.size());
         });
-        }
+    }
 
     /**
      * return set with orders by this currency pair @pairId pair which has higher or equal @rate*/

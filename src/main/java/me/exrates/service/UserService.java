@@ -188,10 +188,6 @@ public interface UserService {
     @Transactional
     String updatePinForUserForEvent(String userEmail, NotificationMessageEventEnum event);
 
-    boolean checkPin(String email, String pin, NotificationMessageEventEnum event);
-
-    boolean isLogin2faUsed(String email);
-
     boolean checkIsNotifyUserAbout2fa(String email);
 
     List<UserIpReportDto> getUserIpReportForRoles(List<Integer> roleIds);

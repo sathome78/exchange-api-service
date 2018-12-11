@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
@@ -67,14 +68,14 @@ public class WebAppConfig {
         List<String> arguments = runtimeMxBean.getInputArguments();
         Properties properties = new Properties();
 
-        dbMasterUser = properties.getProperty("db.master.user");
-        dbMasterPassword = properties.getProperty("db.master.password");
-        dbMasterUrl = properties.getProperty("db.master.url");
-        dbMasterClassname = properties.getProperty("db.master.classname");
-        dbSlaveUser = properties.getProperty("db.slave.user");
-        dbSlavePassword = properties.getProperty("db.slave.password");
-        dbSlaveUrl = properties.getProperty("db.slave.url");
-        dbSlaveClassname = properties.getProperty("db.slave.classname");
+        dbMasterUser = "root";
+        dbMasterPassword = "root";
+        dbMasterUrl = "jdbc:mysql://localhost:3306/birzha?useUnicode=true&characterEncoding=UTF-8&useSSL=false&autoReconnect=true";
+        dbMasterClassname = "com.mysql.jdbc.Driver";
+        dbSlaveUser = "root";
+        dbSlavePassword = "root";
+        dbSlaveUrl = "jdbc:mysql://localhost:3306/birzha?useUnicode=true&characterEncoding=UTF-8&useSSL=false&autoReconnect=true";
+        dbSlaveClassname = "com.mysql.jdbc.Driver";
     }
 
 
@@ -167,4 +168,12 @@ public class WebAppConfig {
     public NamedParameterJdbcTemplate slaveNamedParameterJdbcTemplate(@Qualifier("slaveHikariDataSource") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
     }
+
+    @Primary
+    @DependsOn("masterHikariDataSource")
+    @Bean
+    public JdbcTemplate jdbcTemplate(@Qualifier("masterHikariDataSource") DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+
 }

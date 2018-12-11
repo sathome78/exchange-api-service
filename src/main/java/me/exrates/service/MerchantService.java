@@ -8,8 +8,6 @@ import me.exrates.model.dto.MerchantCurrencyLifetimeDto;
 import me.exrates.model.dto.MerchantCurrencyOptionsDto;
 import me.exrates.model.dto.MerchantCurrencyScaleDto;
 import me.exrates.model.dto.merchants.btc.CoreWalletDto;
-import me.exrates.model.dto.mobileApiDto.MerchantCurrencyApiDto;
-import me.exrates.model.dto.mobileApiDto.TransferMerchantApiDto;
 import me.exrates.model.enums.OperationType;
 
 import java.math.BigDecimal;
@@ -35,11 +33,8 @@ public interface MerchantService {
 
     List<MerchantCurrency> getAllUnblockedForOperationTypeByCurrencies(List<Integer> currenciesId, OperationType operationType);
 
-    List<MerchantCurrencyApiDto> findNonTransferMerchantCurrencies(Integer currencyId);
-
     Optional<MerchantCurrency> findByMerchantAndCurrency(int merchantId, int currencyId);
 
-    List<TransferMerchantApiDto> findTransferMerchants();
 
     List<MerchantCurrencyOptionsDto> findMerchantCurrencyOptions(List<String> processTypes);
 
@@ -83,9 +78,6 @@ public interface MerchantService {
                                                            String currency,
                                                            String merchant);
 
-    void checkDestinationTag(Integer merchantId, String memo);
-
-    boolean isValidDestinationAddress(Integer merchantId, String address);
 
     List<String> getWarningsForMerchant(OperationType operationType, Integer merchantId, Locale locale);
 

@@ -10,9 +10,6 @@ import me.exrates.model.dto.MerchantCurrencyLifetimeDto;
 import me.exrates.model.dto.MerchantCurrencyOptionsDto;
 import me.exrates.model.dto.MerchantCurrencyScaleDto;
 import me.exrates.model.dto.merchants.btc.CoreWalletDto;
-import me.exrates.model.dto.mobileApiDto.MerchantCurrencyApiDto;
-import me.exrates.model.dto.mobileApiDto.TransferMerchantApiDto;
-import me.exrates.model.enums.MerchantProcessType;
 import me.exrates.model.enums.OperationType;
 import me.exrates.model.enums.TransactionSourceType;
 import me.exrates.model.enums.UserCommentTopicEnum;
@@ -20,8 +17,10 @@ import me.exrates.model.enums.invoice.RefillStatusEnum;
 import me.exrates.model.enums.invoice.WithdrawStatusEnum;
 import me.exrates.model.util.BigDecimalProcessing;
 import me.exrates.service.*;
-import me.exrates.service.exception.*;
-import me.exrates.service.merchantStrategy.*;
+import me.exrates.service.exception.InvalidAmountException;
+import me.exrates.service.exception.MerchantCurrencyBlockedException;
+import me.exrates.service.exception.MerchantNotFoundException;
+import me.exrates.service.exception.ScaleForAmountNotSetException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,9 +69,6 @@ public class MerchantServiceImpl implements MerchantService {
 
     @Autowired
     private NotificationService notificationService;
-
-    @Autowired
-    private MerchantServiceContext merchantServiceContext;
     @Autowired
     private CommissionService commissionService;
     @Autowired
@@ -167,54 +163,12 @@ public class MerchantServiceImpl implements MerchantService {
         return merchantDao.findAllUnblockedForOperationTypeByCurrencies(currenciesId, operationType);
     }
 
-    @Override
-    public List<MerchantCurrencyApiDto> findNonTransferMerchantCurrencies(Integer currencyId) {
-        return findMerchantCurrenciesByCurrencyAndProcessTypes(currencyId, Arrays.stream(MerchantProcessType.values())
-                .filter(item -> item != MerchantProcessType.TRANSFER).map(Enum::name).collect(Collectors.toList()));
-    }
 
     @Override
     public Optional<MerchantCurrency> findByMerchantAndCurrency(int merchantId, int currencyId) {
         return merchantDao.findByMerchantAndCurrency(merchantId, currencyId);
     }
 
-    @Override
-    public List<TransferMerchantApiDto> findTransferMerchants() {
-        List<TransferMerchantApiDto> result = merchantDao.findTransferMerchants();
-        result.forEach(item -> {
-            IMerchantService merchantService = merchantServiceContext.getMerchantService(item.getServiceBeanName());
-            if (merchantService instanceof ITransferable) {
-                ITransferable transferService = (ITransferable) merchantService;
-                item.setIsVoucher(transferService.isVoucher());
-                item.setRecipientUserIsNeeded(transferService.recipientUserIsNeeded());
-            }
-        });
-        return result;
-    }
-
-
-    private List<MerchantCurrencyApiDto> findMerchantCurrenciesByCurrencyAndProcessTypes(Integer currencyId, List<String> processTypes) {
-        List<MerchantCurrencyApiDto> result = merchantDao.findAllMerchantCurrencies(currencyId, userService.getUserRoleFromSecurityContext(), processTypes);
-        result.forEach(item -> {
-            try {
-                IMerchantService merchantService = merchantServiceContext.getMerchantService(item.getServiceBeanName());
-                if (merchantService instanceof IWithdrawable) {
-                    IWithdrawable withdrawService = (IWithdrawable) merchantService;
-                    if (withdrawService.additionalTagForWithdrawAddressIsUsed()) {
-                        item.setAdditionalFieldName(withdrawService.additionalWithdrawFieldName());
-                        item.setWithdrawCommissionDependsOnDestinationTag(withdrawService.comissionDependsOnDestinationTag());
-                    }
-                } else if (merchantService instanceof IRefillable) {
-                    if (((IRefillable) merchantService).additionalFieldForRefillIsUsed()) {
-                        item.setAdditionalFieldName(((IRefillable) merchantService).additionalRefillFieldName());
-                    }
-                }
-            } catch (MerchantServiceNotFoundException | MerchantServiceBeanNameNotDefinedException e) {
-                LOG.warn(e);
-            }
-        });
-        return result;
-    }
 
     @Override
     public List<MerchantCurrencyOptionsDto> findMerchantCurrencyOptions(List<String> processTypes) {
@@ -439,25 +393,6 @@ public class MerchantServiceImpl implements MerchantService {
         result.put("commissionAmount", currencyService.amountToString(commissionAmount, currency));
         result.put("amount", currencyService.amountToString(resultAmount, currency));
         return result;
-    }
-
-    @Override
-    public void checkDestinationTag(Integer merchantId, String destinationTag) {
-        IMerchantService merchantService = merchantServiceContext.getMerchantService(merchantId);
-        if (merchantService instanceof IWithdrawable && ((IWithdrawable) merchantService).additionalTagForWithdrawAddressIsUsed()) {
-            ((IWithdrawable) merchantService).checkDestinationTag(destinationTag);
-        }
-    }
-
-    @Override
-    public boolean isValidDestinationAddress(Integer merchantId, String address) {
-
-        IMerchantService merchantService = merchantServiceContext.getMerchantService(merchantId);
-        if (merchantService instanceof IWithdrawable) {
-            return ((IWithdrawable) merchantService).isValidDestinationAddress(address);
-        } else {
-            return true;
-        }
     }
 
     @Override

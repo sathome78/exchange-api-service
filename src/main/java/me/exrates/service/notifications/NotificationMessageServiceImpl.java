@@ -16,8 +16,6 @@ import org.springframework.stereotype.Component;
 public class NotificationMessageServiceImpl implements NotificationMessageService {
 
     @Autowired
-    private NotificatorsService notificatorsService;
-    @Autowired
     private NotificationMessagesDao notificationMessagesDao;
 
 

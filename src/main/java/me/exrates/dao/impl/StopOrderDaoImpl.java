@@ -187,9 +187,10 @@ public class StopOrderDaoImpl implements StopOrderDao {
         return getMyOrdersWithState(email, currencyPair, Collections.singletonList(status), operationType, scope, offset, limit, locale);
     }
 
-    private List<OrderWideListDto> getMyOrdersWithState(String email, CurrencyPair currencyPair, List<OrderStatus> statuses,
-                                                        OperationType operationType,
-                                                        String scope, Integer offset, Integer limit, Locale locale) {
+    @Override
+    public List<OrderWideListDto> getMyOrdersWithState(String email, CurrencyPair currencyPair, List<OrderStatus> statuses,
+                                                       OperationType operationType,
+                                                       String scope, Integer offset, Integer limit, Locale locale) {
         String userFilterClause;
         String userJoinClause;
         if(scope == null || scope.isEmpty()) {
@@ -254,6 +255,7 @@ public class StopOrderDaoImpl implements StopOrderDao {
         });
     }
 
+    @Override
     public PagingData<List<OrderBasicInfoDto>> searchOrders(AdminStopOrderFilterData adminOrderFilterData, DataTableParams dataTableParams, Locale locale) {
         String sqlSelect = " SELECT  " +
                 "     STOP_ORDERS.id, STOP_ORDERS.date_creation, STOP_ORDERS.status_id AS status, " +

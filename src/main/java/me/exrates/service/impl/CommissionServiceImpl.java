@@ -5,7 +5,6 @@ import me.exrates.model.Commission;
 import me.exrates.model.enums.OperationType;
 import me.exrates.model.enums.UserRole;
 import me.exrates.service.*;
-import me.exrates.service.merchantStrategy.MerchantServiceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
@@ -29,9 +28,6 @@ public class CommissionServiceImpl implements CommissionService {
 
   @Autowired
   CurrencyService currencyService;
-
-  @Autowired
-  MerchantServiceContext merchantServiceContext;
 
   @Autowired
   private MessageSource messageSource;

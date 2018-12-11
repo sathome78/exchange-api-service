@@ -2,10 +2,27 @@ package me.exrates.dao.impl;
 
 import me.exrates.dao.UserDao;
 import me.exrates.dao.exception.UserNotFoundException;
-import me.exrates.model.*;
-import me.exrates.model.dto.*;
+import me.exrates.model.AdminAuthorityOption;
+import me.exrates.model.Comment;
+import me.exrates.model.PagingData;
+import me.exrates.model.TemporalToken;
+import me.exrates.model.User;
+import me.exrates.model.UserFile;
+import me.exrates.model.dto.UpdateUserDto;
+import me.exrates.model.dto.UserBalancesDto;
+import me.exrates.model.dto.UserCurrencyOperationPermissionDto;
+import me.exrates.model.dto.UserIpDto;
+import me.exrates.model.dto.UserIpReportDto;
+import me.exrates.model.dto.UserSessionInfoDto;
+import me.exrates.model.dto.UserShortDto;
+import me.exrates.model.dto.UsersInfoDto;
 import me.exrates.model.dto.mobileApiDto.TemporaryPasswordDto;
-import me.exrates.model.enums.*;
+import me.exrates.model.enums.AdminAuthority;
+import me.exrates.model.enums.NotificationMessageEventEnum;
+import me.exrates.model.enums.TokenType;
+import me.exrates.model.enums.UserIpState;
+import me.exrates.model.enums.UserRole;
+import me.exrates.model.enums.UserStatus;
 import me.exrates.model.enums.invoice.InvoiceOperationDirection;
 import me.exrates.model.enums.invoice.InvoiceOperationPermission;
 import org.apache.logging.log4j.LogManager;
@@ -36,7 +53,16 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
@@ -245,6 +271,20 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
+    public List<String> getUserRoleAndAuthorities(String email) {
+        String sql = "select USER_ROLE.name as role_name from USER " +
+                "inner join USER_ROLE on USER.roleid = USER_ROLE.id " +
+                "where USER.email = :email " +
+                "UNION " +
+                "SELECT ADMIN_AUTHORITY.name AS role_name from USER " +
+                "inner join USER_ADMIN_AUTHORITY on USER_ADMIN_AUTHORITY.user_id = USER.id " +
+                "inner join ADMIN_AUTHORITY on USER_ADMIN_AUTHORITY.admin_authority_id = ADMIN_AUTHORITY.id " +
+                "where USER.email = :email AND USER_ADMIN_AUTHORITY.enabled = 1 ";
+        Map<String, String> namedParameters = Collections.singletonMap("email", email);
+        return namedParameterJdbcTemplate.query(sql, namedParameters, (rs, row) -> rs.getString("role_name"));
+    }
+
+    @Override
     public List<AdminAuthorityOption> getAuthorityOptionsForUser(Integer userId) {
         String sql = "SELECT USER_ADMIN_AUTHORITY.admin_authority_id, USER_ADMIN_AUTHORITY.enabled FROM USER_ADMIN_AUTHORITY " +
                 "JOIN ADMIN_AUTHORITY ON ADMIN_AUTHORITY.id = USER_ADMIN_AUTHORITY.admin_authority_id AND ADMIN_AUTHORITY.hidden != 1 " +
@@ -324,6 +364,23 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
+    public UserShortDto findShortByEmail(String email) {
+        String sql = "SELECT id, email, password, status FROM USER WHERE email = :email";
+        try {
+            return namedParameterJdbcTemplate.queryForObject(sql, Collections.singletonMap("email", email), (rs, rowNum) -> {
+                UserShortDto dto = new UserShortDto();
+                dto.setEmail(rs.getString("email"));
+                dto.setId(rs.getInt("id"));
+                dto.setPassword(rs.getString("password"));
+                dto.setStatus(UserStatus.convert(rs.getInt("status")));
+                return dto;
+            });
+        } catch (EmptyResultDataAccessException e) {
+            throw new UserNotFoundException(String.format("email: %s", email));
+        }
+    }
+
+    @Override
     public User findByNickname(String nickname) {
         String sql = SELECT_USER + "WHERE USER.nickname = :nickname";
         final Map<String, String> params = new HashMap<String, String>() {
@@ -336,6 +393,19 @@ public class UserDaoImpl implements UserDao {
         } catch (EmptyResultDataAccessException e) {
             throw new UserNotFoundException(String.format("nickname: %s", nickname));
         }
+    }
+
+    public List<User> getAllUsers() {
+        String sql = "select email, password, status, nickname, id from USER";
+        return namedParameterJdbcTemplate.query(sql, (rs, row) -> {
+            User user = new User();
+            user.setEmail(rs.getString("email"));
+            user.setPassword(rs.getString("password"));
+            user.setStatus(UserStatus.values()[rs.getInt("status") - 1]);
+            user.setNickname(rs.getString("nickname"));
+            user.setId(rs.getInt("id"));
+            return user;
+        });
     }
 
     public User getUserById(int id) {
@@ -369,6 +439,52 @@ public class UserDaoImpl implements UserDao {
         namedParameterJdbcTemplate.update(sql, params);
     }
 
+    public List<User> getUsersByRoles(List<UserRole> listRoles) {
+        String sql = SELECT_USER + " WHERE USER_ROLE.name IN (:roles)";
+        Map<String, List> namedParameters = new HashMap<>();
+        List<String> stringList = listRoles.stream().map(Enum::name).collect(Collectors.toList());
+        namedParameters.put("roles", stringList);
+        return namedParameterJdbcTemplate.query(sql, namedParameters, getUserRowMapper());
+    }
+
+    @Override
+    public PagingData<List<User>> getUsersByRolesPaginated(List<UserRole> roles, int offset, int limit,
+                                                           String orderColumnName, String orderDirection,
+                                                           String searchValue) {
+        StringJoiner sqlJoiner = new StringJoiner(" ");
+        String whereClause = "WHERE USER_ROLE.name IN (:roles)";
+        sqlJoiner.add(SELECT_USER)
+                .add(whereClause);
+        String searchClause = "";
+        if (!(searchValue == null || searchValue.isEmpty())) {
+            searchClause = "AND (CONVERT(USER.nickname USING utf8) LIKE :searchValue OR CONVERT(USER.email USING utf8) LIKE :searchValue " +
+                    "OR CONVERT(USER.regdate USING utf8) LIKE :searchValue)";
+        }
+        sqlJoiner.add(searchClause).add("ORDER BY").add("USER." + orderColumnName).add(orderDirection)
+                .add("LIMIT").add(String.valueOf(limit))
+                .add("OFFSET").add(String.valueOf(offset));
+        String sql = sqlJoiner.toString();
+        LOGGER.debug(sql);
+        Map<String, Object> namedParameters = new HashMap<>();
+        namedParameters.put("roles", roles.stream().map(Enum::name).collect(Collectors.toList()));
+        namedParameters.put("searchValue", "%" + searchValue + "%");
+        String selectCountSql = new StringJoiner(" ")
+                .add(SELECT_COUNT)
+                .add(whereClause).add(searchClause).toString();
+        LOGGER.debug(selectCountSql);
+        List<User> selectedUsers = namedParameterJdbcTemplate.query(sql, namedParameters, getUserRowMapper());
+        Integer total = namedParameterJdbcTemplate.queryForObject(selectCountSql, namedParameters, Integer.class);
+        PagingData<List<User>> result = new PagingData<>();
+        result.setData(selectedUsers);
+        result.setFiltered(total);
+        result.setTotal(total);
+        return result;
+    }
+
+    public String getBriefInfo(int login) {
+        return null;
+    }
+
     public boolean ifNicknameIsUnique(String nickname) {
         String sql = "SELECT id FROM USER WHERE nickname = :nickname";
         Map<String, String> namedParameters = new HashMap<>();
@@ -380,6 +496,10 @@ public class UserDaoImpl implements UserDao {
         }).isEmpty();
     }
 
+    public boolean ifPhoneIsUnique(int phone) {
+        return false;
+    }
+
     public boolean ifEmailIsUnique(String email) {
         String sql = "SELECT id FROM USER WHERE email = :email";
         Map<String, String> namedParameters = new HashMap<>();
@@ -389,6 +509,10 @@ public class UserDaoImpl implements UserDao {
                 return rs.getInt("id");
             } else return 0;
         }).isEmpty();
+    }
+
+    public String getPasswordByEmail(String email) {
+        return null;
     }
 
     public String getIP(int userId) {
@@ -526,6 +650,14 @@ public class UserDaoImpl implements UserDao {
             }
         });
         return result;
+    }
+
+    public boolean updateUserStatus(User user) {
+        String sql = "update USER set status=:status where id=:id";
+        Map<String, String> namedParameters = new HashMap<String, String>();
+        namedParameters.put("status", String.valueOf(user.getStatus().getStatus()));
+        namedParameters.put("id", String.valueOf(user.getId()));
+        return namedParameterJdbcTemplate.update(sql, namedParameters) > 0;
     }
 
     public List<TemporalToken> getAllTokens() {
@@ -884,6 +1016,23 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
+    public void savePollAsDoneByUser(String email) {
+        String sql = "UPDATE USER SET USER.tmp_poll_passed = 1 " +
+                " WHERE USER.email = :email ";
+        Map<String, String> namedParameters = Collections.singletonMap("email", email);
+        namedParameterJdbcTemplate.update(sql, namedParameters);
+    }
+
+    @Override
+    public boolean checkPollIsDoneByUser(String email) {
+        String sql = "SELECT tmp_poll_passed = 1 " +
+                "  FROM USER " +
+                "  WHERE USER.email = :email ";
+        Map<String, String> namedParameters = Collections.singletonMap("email", email);
+        return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, Boolean.class);
+    }
+
+    @Override
     public boolean updateLast2faNotifyDate(String email) {
         String sql = "UPDATE USER SET USER.2fa_last_notify_date =:date " +
                 "WHERE USER.email = :email";
@@ -892,6 +1041,18 @@ public class UserDaoImpl implements UserDao {
             put("date", LocalDate.now());
         }};
         return namedParameterJdbcTemplate.update(sql, namedParameters) > 0;
+    }
+
+    @Override
+    public LocalDate getLast2faNotifyDate(String email) {
+        String sql = "SELECT USER.2fa_last_notify_date FROM USER WHERE email = :email";
+        LocalDate date = null;
+        try {
+            date = namedParameterJdbcTemplate.queryForObject(sql, Collections.singletonMap("email", email), LocalDate.class);
+        } catch (Exception e) {
+            return null;
+        }
+        return date;
     }
 
     @Override
