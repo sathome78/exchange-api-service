@@ -1,0 +1,85 @@
+Skip to content
+This repository  
+Search
+Pull requests
+Issues
+Gist
+ @lilacelephant
+ Unwatch 2
+  Star 0
+ Fork 2 lilacelephant/birzha
+ Code  Issues 0  Pull requests 0  Wiki  Pulse  Graphs  Settings
+Branch: master Find file Copy pathbirzha/.gitignore
+4f2fb3a  6 days ago
+@lilacelephant lilacelephant add files to gitignore
+1 contributor
+RawBlameHistory     50 lines (38 sloc)  621 Bytes
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# =========================
+# Operating System Files
+# =========================
+
+# OSX
+# =========================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+.settings
+target/
+~/
+.project
+.classpath
+*.class
+*.iml
+.idea/
+*.spvchain
+*.wallet
+Status API Training Shop Blog About Pricing
+© 2016 GitHub, Inc. Terms Privacy Security Contact Help
+/my
+/Service/src/main/java/me/exrates/service/util/test.java
+/ripp
+/script.sql
+/dev_exrates_dump.sql
+/Service/src/main/java/me/exrates/service/nem/test.java
+/mongo
+/jvm.txt
+/achain
+/orders_events.txt
+/queries
+/decred
+/decred
