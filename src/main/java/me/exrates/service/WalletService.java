@@ -9,7 +9,6 @@ import me.exrates.model.dto.onlineTableDto.MyWalletsDetailedDto;
 import me.exrates.model.dto.onlineTableDto.MyWalletsStatisticsDto;
 import me.exrates.model.dto.openAPI.WalletBalanceDto;
 import me.exrates.model.enums.*;
-import me.exrates.model.vo.CacheData;
 import me.exrates.model.vo.WalletOperationData;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,11 +1,8 @@
 package me.exrates.service.notifications;
 
 import me.exrates.model.dto.Notificator;
-import me.exrates.model.dto.NotificatorTotalPriceDto;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Created by Maks on 06.10.2017.

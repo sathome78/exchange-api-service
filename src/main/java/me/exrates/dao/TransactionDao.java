@@ -1,9 +1,13 @@
 package me.exrates.dao;
 
+import me.exrates.model.PagingData;
 import me.exrates.model.Transaction;
+import me.exrates.model.dto.InOutReportDto;
 import me.exrates.model.dto.TransactionFlatForReportDto;
 import me.exrates.model.dto.UserSummaryDto;
+import me.exrates.model.dto.UserSummaryOrdersDto;
 import me.exrates.model.dto.dataTable.DataTableParams;
+import me.exrates.model.dto.filterData.AdminTransactionsFilterData;
 import me.exrates.model.dto.onlineTableDto.AccountStatementDto;
 import me.exrates.model.enums.UserRole;
 

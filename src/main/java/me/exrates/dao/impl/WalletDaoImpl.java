@@ -8,6 +8,7 @@ import me.exrates.dao.WalletDao;
 import me.exrates.model.Currency;
 import me.exrates.model.*;
 import me.exrates.model.dto.*;
+import me.exrates.model.dto.mobileApiDto.dashboard.MyWalletsStatisticsApiDto;
 import me.exrates.model.dto.onlineTableDto.MyWalletsDetailedDto;
 import me.exrates.model.dto.onlineTableDto.MyWalletsStatisticsDto;
 import me.exrates.model.dto.openAPI.WalletBalanceDto;

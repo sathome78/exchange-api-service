@@ -2,7 +2,7 @@ package me.exrates.service.exception.api;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 @Getter
 @ToString

@@ -2,16 +2,9 @@ package me.exrates.service.impl;
 
 import me.exrates.dao.CommissionDao;
 import me.exrates.model.Commission;
-import me.exrates.model.Merchant;
-import me.exrates.model.dto.CommissionDataDto;
-import me.exrates.model.enums.MerchantProcessType;
 import me.exrates.model.enums.OperationType;
 import me.exrates.model.enums.UserRole;
-import me.exrates.model.util.BigDecimalProcessing;
 import me.exrates.service.*;
-import me.exrates.service.exception.IllegalOperationTypeException;
-import me.exrates.service.exception.InvalidAmountException;
-import me.exrates.service.merchantStrategy.IWithdrawable;
 import me.exrates.service.merchantStrategy.MerchantServiceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -19,12 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-
-import static java.math.BigDecimal.*;
-import static me.exrates.model.enums.ActionType.*;
-import static me.exrates.model.enums.OperationType.*;
 
 @Service
 public class CommissionServiceImpl implements CommissionService {

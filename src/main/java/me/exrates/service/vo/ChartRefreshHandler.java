@@ -1,7 +1,6 @@
 package me.exrates.service.vo;
 
 import lombok.EqualsAndHashCode;
-import me.exrates.service.stomp.StompMessenger;
 import org.springframework.web.context.support.SpringBeanAutowiringSupport;
 
 /**

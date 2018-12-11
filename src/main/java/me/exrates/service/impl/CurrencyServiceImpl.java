@@ -20,7 +20,6 @@ import me.exrates.service.exception.CurrencyPairNotFoundException;
 import me.exrates.service.exception.ScaleForAmountNotSetException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

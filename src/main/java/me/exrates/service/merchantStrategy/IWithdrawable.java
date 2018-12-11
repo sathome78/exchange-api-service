@@ -1,9 +1,6 @@
 package me.exrates.service.merchantStrategy;
 
-import me.exrates.model.dto.WithdrawMerchantOperationDto;
-
 import java.math.BigDecimal;
-import java.util.Map;
 
 /**
  * Created by ValkSam on 24.03.2017.

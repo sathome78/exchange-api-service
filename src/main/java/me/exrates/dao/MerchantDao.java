@@ -2,7 +2,10 @@ package me.exrates.dao;
 
 import me.exrates.model.Merchant;
 import me.exrates.model.MerchantCurrency;
-import me.exrates.model.dto.*;
+import me.exrates.model.dto.MerchantCurrencyBasicInfoDto;
+import me.exrates.model.dto.MerchantCurrencyLifetimeDto;
+import me.exrates.model.dto.MerchantCurrencyOptionsDto;
+import me.exrates.model.dto.MerchantCurrencyScaleDto;
 import me.exrates.model.dto.merchants.btc.CoreWalletDto;
 import me.exrates.model.dto.mobileApiDto.MerchantCurrencyApiDto;
 import me.exrates.model.dto.mobileApiDto.TransferMerchantApiDto;

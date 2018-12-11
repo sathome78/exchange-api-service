@@ -1,8 +1,5 @@
 package me.exrates.dao;
 
-import me.exrates.model.TemporalToken;
-
-
 public interface TemporalTokenDao {
 
     String UPDATE_BY_VALUE = "UPDATE TEMPORAL_TOKEN token SET token.already_used=TRUE WHERE token.value=:value and token.user_id=:user_id and token.id=:id";

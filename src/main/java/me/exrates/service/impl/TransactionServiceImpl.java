@@ -1,7 +1,8 @@
 package me.exrates.service.impl;
 
 import me.exrates.dao.TransactionDao;
-import me.exrates.model.*;
+import me.exrates.model.Merchant;
+import me.exrates.model.Transaction;
 import me.exrates.model.dto.OperationViewDto;
 import me.exrates.model.enums.OperationType;
 import me.exrates.model.enums.TransactionSourceType;

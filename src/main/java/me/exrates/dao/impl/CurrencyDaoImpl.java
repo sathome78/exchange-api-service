@@ -2,10 +2,12 @@ package me.exrates.dao.impl;
 
 import me.exrates.dao.CurrencyDao;
 import me.exrates.model.Currency;
+import me.exrates.model.CurrencyLimit;
 import me.exrates.model.CurrencyPair;
 import me.exrates.model.dto.CurrencyPairLimitDto;
 import me.exrates.model.dto.MerchantCurrencyScaleDto;
 import me.exrates.model.dto.UserCurrencyOperationPermissionDto;
+import me.exrates.model.dto.mobileApiDto.TransferLimitDto;
 import me.exrates.model.dto.mobileApiDto.dashboard.CurrencyPairWithLimitsDto;
 import me.exrates.model.dto.openAPI.CurrencyPairInfoItem;
 import me.exrates.model.enums.*;

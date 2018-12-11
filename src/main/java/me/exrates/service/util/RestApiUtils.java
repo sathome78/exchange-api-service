@@ -1,9 +1,8 @@
 package me.exrates.service.util;
 
 import me.exrates.service.exception.api.MissingBodyParamException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.Base64;
 import java.util.Map;
 
 /**

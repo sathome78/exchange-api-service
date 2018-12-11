@@ -1,7 +1,7 @@
 package me.exrates.dao.impl;
 
 import me.exrates.dao.WithdrawRequestDao;
-import me.exrates.model.dto.*;
+import me.exrates.model.dto.WithdrawRequestFlatDto;
 import me.exrates.model.enums.invoice.WithdrawStatusEnum;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.Optional;
 
 import static java.util.Collections.singletonMap;
 import static java.util.Optional.of;

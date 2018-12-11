@@ -2,6 +2,7 @@ package me.exrates.dao.impl;
 
 import lombok.extern.log4j.Log4j2;
 import me.exrates.dao.ReferralUserGraphDao;
+import me.exrates.model.dto.RefFilterData;
 import me.exrates.model.dto.ReferralInfoDto;
 import me.exrates.model.dto.ReferralProfitDto;
 import org.springframework.beans.factory.annotation.Autowired;

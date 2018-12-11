@@ -4,12 +4,11 @@ import me.exrates.dao.CommissionDao;
 import me.exrates.dao.OrderDao;
 import me.exrates.dao.WalletDao;
 import me.exrates.dao.exception.OrderDaoException;
-import me.exrates.jdbc.OrderRowMapper;
+import me.exrates.model.*;
 import me.exrates.model.Currency;
-import me.exrates.model.CurrencyPair;
-import me.exrates.model.ExOrder;
 import me.exrates.model.dto.*;
 import me.exrates.model.dto.dataTable.DataTableParams;
+import me.exrates.model.dto.filterData.AdminOrderFilterData;
 import me.exrates.model.dto.mobileApiDto.dashboard.CommissionsDto;
 import me.exrates.model.dto.onlineTableDto.ExOrderStatisticsShortByPairsDto;
 import me.exrates.model.dto.onlineTableDto.OrderAcceptedHistoryDto;
@@ -19,6 +18,7 @@ import me.exrates.model.dto.openAPI.*;
 import me.exrates.model.enums.*;
 import me.exrates.model.util.BigDecimalProcessing;
 import me.exrates.model.vo.BackDealInterval;
+import me.exrates.model.vo.OrderRoleInfoForDelete;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -225,6 +225,13 @@ public class OrderDaoImpl implements OrderDao {
             return namedParameterJdbcTemplate.queryForObject(sql, namedParameters, new OrderRowMapper());
         } catch (EmptyResultDataAccessException e) {
             return null;
+        }
+    }
+
+    public class OrderRowMapper implements RowMapper<ExOrder> {
+        public ExOrder mapRow(ResultSet rs, int rowNum) throws SQLException {
+            OrderExtractor orderExtractor = new OrderExtractor();
+            return orderExtractor.extractData(rs);
         }
     }
 

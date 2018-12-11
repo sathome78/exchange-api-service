@@ -1,7 +1,8 @@
 package me.exrates.service.api;
 
-import com.fasterxml.jackson.annotation.*;
-import com.google.common.collect.Maps;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import me.exrates.service.exception.ExchangeApiException;
 import org.apache.commons.lang3.tuple.Pair;

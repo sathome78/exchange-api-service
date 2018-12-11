@@ -4,6 +4,7 @@ import me.exrates.dao.UserDao;
 import me.exrates.dao.exception.UserNotFoundException;
 import me.exrates.model.*;
 import me.exrates.model.dto.*;
+import me.exrates.model.dto.mobileApiDto.TemporaryPasswordDto;
 import me.exrates.model.enums.*;
 import me.exrates.model.enums.invoice.InvoiceOperationDirection;
 import me.exrates.model.enums.invoice.InvoiceOperationPermission;

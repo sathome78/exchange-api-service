@@ -1,6 +1,7 @@
 package me.exrates.dao.impl;
 
 import me.exrates.dao.NotificationDao;
+import me.exrates.model.Notification;
 import me.exrates.model.NotificationOption;
 import me.exrates.model.dto.onlineTableDto.NotificationDto;
 import me.exrates.model.enums.NotificationEvent;

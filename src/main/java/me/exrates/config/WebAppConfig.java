@@ -1,10 +1,21 @@
 package me.exrates.config;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
+import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.util.List;
 import java.util.Properties;
 
 @Configuration
@@ -40,6 +51,32 @@ public class WebAppConfig {
     String mailInfoUser;
     @Value("${mail_info.password}")
     String mailInfoPassword;
+
+    private String dbMasterUser;
+    private String dbMasterPassword;
+    private String dbMasterUrl;
+    private String dbMasterClassname;
+    private String dbSlaveUser;
+    private String dbSlavePassword;
+    private String dbSlaveUrl;
+    private String dbSlaveClassname;
+
+    @PostConstruct
+    public void init() {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+        Properties properties = new Properties();
+
+        dbMasterUser = properties.getProperty("db.master.user");
+        dbMasterPassword = properties.getProperty("db.master.password");
+        dbMasterUrl = properties.getProperty("db.master.url");
+        dbMasterClassname = properties.getProperty("db.master.classname");
+        dbSlaveUser = properties.getProperty("db.slave.user");
+        dbSlavePassword = properties.getProperty("db.slave.password");
+        dbSlaveUrl = properties.getProperty("db.slave.url");
+        dbSlaveClassname = properties.getProperty("db.slave.classname");
+    }
+
 
     @Bean(name = "SupportMailSender")
     public JavaMailSenderImpl javaMailSenderImpl() {
@@ -87,5 +124,47 @@ public class WebAppConfig {
         javaMailProps.put("mail.smtp.ssl.trust", mailInfoHost);
         mailSenderImpl.setJavaMailProperties(javaMailProps);
         return mailSenderImpl;
+    }
+
+    @Bean(name = "masterHikariDataSource")
+    public DataSource masterHikariDataSource() {
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setDriverClassName(dbMasterClassname);
+        hikariConfig.setJdbcUrl(dbMasterUrl);
+        hikariConfig.setUsername(dbMasterUser);
+        hikariConfig.setPassword(dbMasterPassword);
+        hikariConfig.setMaximumPoolSize(50);
+        DataSource dataSource = new HikariDataSource(hikariConfig);
+//        Flyway flyway = new Flyway();
+//        flyway.setDataSource(dataSource);
+//        flyway.setBaselineOnMigrate(true);
+//        flyway.repair();
+//        flyway.migrate();
+        return dataSource;
+    }
+
+    @Bean(name = "slaveHikariDataSource")
+    public DataSource slaveHikariDataSource() {
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setDriverClassName(dbSlaveClassname);
+        hikariConfig.setJdbcUrl(dbSlaveUrl);
+        hikariConfig.setUsername(dbSlaveUser);
+        hikariConfig.setPassword(dbSlavePassword);
+        hikariConfig.setMaximumPoolSize(50);
+        hikariConfig.setReadOnly(true);
+        return new HikariDataSource(hikariConfig);
+    }
+
+    @Primary
+    @DependsOn("masterHikariDataSource")
+    @Bean(name = "masterTemplate")
+    public NamedParameterJdbcTemplate masterNamedParameterJdbcTemplate(@Qualifier("masterHikariDataSource") DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    @DependsOn("slaveHikariDataSource")
+    @Bean(name = "slaveTemplate")
+    public NamedParameterJdbcTemplate slaveNamedParameterJdbcTemplate(@Qualifier("slaveHikariDataSource") DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
     }
 }

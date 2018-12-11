@@ -1,7 +1,6 @@
 package me.exrates.service.vo;
 
 
-import me.exrates.service.stomp.StompMessenger;
 import org.springframework.stereotype.Component;
 
 /**

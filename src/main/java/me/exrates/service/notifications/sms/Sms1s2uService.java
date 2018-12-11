@@ -3,8 +3,6 @@ package me.exrates.service.notifications.sms;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
-import static rx.internal.operators.NotificationLite.isError;
-
 /**
  * Created by Maks on 09.10.2017.
  */

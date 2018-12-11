@@ -1,14 +1,19 @@
 package me.exrates.dao.impl;
 
-import lombok.extern.log4j.Log4j;
+import lombok.extern.log4j.Log4j2;
 import me.exrates.dao.MerchantDao;
 import me.exrates.model.Merchant;
 import me.exrates.model.MerchantCurrency;
 import me.exrates.model.MerchantImage;
-import me.exrates.model.dto.*;
+import me.exrates.model.dto.MerchantCurrencyBasicInfoDto;
+import me.exrates.model.dto.MerchantCurrencyLifetimeDto;
+import me.exrates.model.dto.MerchantCurrencyOptionsDto;
+import me.exrates.model.dto.MerchantCurrencyScaleDto;
 import me.exrates.model.dto.merchants.btc.CoreWalletDto;
 import me.exrates.model.dto.mobileApiDto.MerchantCurrencyApiDto;
+import me.exrates.model.dto.mobileApiDto.MerchantImageShortenedDto;
 import me.exrates.model.dto.mobileApiDto.TransferMerchantApiDto;
+import me.exrates.model.enums.MerchantProcessType;
 import me.exrates.model.enums.OperationType;
 import me.exrates.model.enums.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +32,7 @@ import java.util.*;
 /**
  * @author Denis Savin (pilgrimm333@gmail.com)
  */
-@Log4j
+@Log4j2
 @Repository
 public class MerchantDaoImpl implements MerchantDao {
 

@@ -1,8 +1,8 @@
 package me.exrates.service;
 
 import lombok.SneakyThrows;
-import me.exrates.model.*;
 import me.exrates.model.Currency;
+import me.exrates.model.*;
 import me.exrates.model.dto.MerchantCurrencyBasicInfoDto;
 import me.exrates.model.dto.MerchantCurrencyLifetimeDto;
 import me.exrates.model.dto.MerchantCurrencyOptionsDto;

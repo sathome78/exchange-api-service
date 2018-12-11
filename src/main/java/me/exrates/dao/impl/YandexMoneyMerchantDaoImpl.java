@@ -8,8 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 
-import static me.exrates.jdbc.TokenRowMapper.tokenRowMapper;
-
 /**
  * @author Denis Savin (pilgrimm333@gmail.com)
  */

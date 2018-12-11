@@ -3,11 +3,13 @@ package me.exrates.dao.impl;
 import lombok.extern.log4j.Log4j2;
 import me.exrates.dao.StopOrderDao;
 import me.exrates.model.CurrencyPair;
+import me.exrates.model.PagingData;
 import me.exrates.model.StopOrder;
 import me.exrates.model.dto.OrderBasicInfoDto;
 import me.exrates.model.dto.OrderCreateDto;
 import me.exrates.model.dto.OrderInfoDto;
 import me.exrates.model.dto.dataTable.DataTableParams;
+import me.exrates.model.dto.filterData.AdminStopOrderFilterData;
 import me.exrates.model.dto.onlineTableDto.OrderWideListDto;
 import me.exrates.model.enums.ActionType;
 import me.exrates.model.enums.OperationType;
@@ -252,7 +254,6 @@ public class StopOrderDaoImpl implements StopOrderDao {
         });
     }
 
-    @Override
     public PagingData<List<OrderBasicInfoDto>> searchOrders(AdminStopOrderFilterData adminOrderFilterData, DataTableParams dataTableParams, Locale locale) {
         String sqlSelect = " SELECT  " +
                 "     STOP_ORDERS.id, STOP_ORDERS.date_creation, STOP_ORDERS.status_id AS status, " +

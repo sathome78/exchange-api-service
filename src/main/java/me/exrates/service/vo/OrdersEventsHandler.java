@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 import me.exrates.model.enums.OperationType;
-import me.exrates.service.stomp.StompMessenger;
 import org.springframework.web.context.support.SpringBeanAutowiringSupport;
 
 import java.util.Timer;
