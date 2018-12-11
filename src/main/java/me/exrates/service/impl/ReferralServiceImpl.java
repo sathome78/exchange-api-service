@@ -21,7 +21,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +41,6 @@ import static me.exrates.model.vo.WalletOperationData.BalanceType.ACTIVE;
  */
 @Log4j2
 @Service
-@PropertySource("classpath:/referral.properties")
 public class ReferralServiceImpl implements ReferralService {
 
 

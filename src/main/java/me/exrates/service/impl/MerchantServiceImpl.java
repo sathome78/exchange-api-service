@@ -1,7 +1,6 @@
 package me.exrates.service.impl;
 
 import javafx.util.Pair;
-import lombok.SneakyThrows;
 import me.exrates.dao.MerchantDao;
 import me.exrates.model.Currency;
 import me.exrates.model.*;
@@ -24,15 +23,11 @@ import me.exrates.service.exception.ScaleForAmountNotSetException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,13 +42,9 @@ import static me.exrates.model.enums.OperationType.USER_TRANSFER;
  * @author Denis Savin (pilgrimm333@gmail.com)
  */
 @Service
-@PropertySource("classpath:/merchants.properties")
 public class MerchantServiceImpl implements MerchantService {
 
     private static final Logger LOG = LogManager.getLogger("merchant");
-
-    @Value("${btc.walletspass.folder}")
-    private String walletPropsFolder;
 
     @Autowired
     private MerchantDao merchantDao;
@@ -344,27 +335,11 @@ public class MerchantServiceImpl implements MerchantService {
     }
 
 
-    @Override
-    public Optional<String> getCoreWalletPassword(String merchantName, String currencyName) {
-        Properties props = getPassMerchantProperties(merchantName);
-        return Optional.ofNullable(props.getProperty("wallet.password"));
-    }
-
     /*pass file format : classpath: merchants/pass/<merchant>_pass.properties
      * stored values: wallet.password
      *                node.bitcoind.rpc.user
      *                node.bitcoind.rpc.password
      * */
-    @SneakyThrows
-    @Override
-    public Properties getPassMerchantProperties(String merchantName) {
-        Properties props = new Properties();
-        String fullPath = String.join("", walletPropsFolder, merchantName, "_pass.properties");
-        FileInputStream inputStream = new FileInputStream(new File(fullPath));
-        props.load(inputStream);
-        return props;
-    }
-
     @Override
     public Map<String, String> computeCommissionAndMapAllToString(final BigDecimal amount,
                                                                   final OperationType type,

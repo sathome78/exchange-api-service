@@ -1,10 +1,6 @@
 package me.exrates.service.api;
 
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.*;
 import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import me.exrates.service.exception.WalletsApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -25,16 +20,11 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.toMap;
 
-@PropertySource(value = {"classpath:/external-apis.properties", "classpath:/ethereum_contracts.properties"})
 @Slf4j
 @Component
 public class WalletsApi {

@@ -1,7 +1,5 @@
 package me.exrates.service;
 
-import lombok.SneakyThrows;
-import me.exrates.model.Currency;
 import me.exrates.model.*;
 import me.exrates.model.dto.MerchantCurrencyBasicInfoDto;
 import me.exrates.model.dto.MerchantCurrencyLifetimeDto;
@@ -11,7 +9,10 @@ import me.exrates.model.dto.merchants.btc.CoreWalletDto;
 import me.exrates.model.enums.OperationType;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Denis Savin (pilgrimm333@gmail.com)
@@ -67,11 +68,6 @@ public interface MerchantService {
     CoreWalletDto retrieveCoreWalletByMerchantName(String merchantName, Locale locale);
 
     List<CoreWalletDto> retrieveCoreWallets(Locale locale);
-
-    Optional<String> getCoreWalletPassword(String merchantName, String currencyName);
-
-    @SneakyThrows
-    Properties getPassMerchantProperties(String merchantName);
 
     Map<String, String> computeCommissionAndMapAllToString(BigDecimal amount,
                                                            OperationType type,
