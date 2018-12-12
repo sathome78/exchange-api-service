@@ -19,7 +19,7 @@ pipeline {
                  def server = Artifactory.server 'art-1'
                  def uploadSpec = """{
                     "files": [{
-                       "pattern": "/var/lib/jenkins/workspace/DEV-ex-micro-app-build/ex_micro_app_auth_service@2/target/*.jar",
+                       "pattern": "/var/lib/jenkins/workspace/DEV-ex-micro-app-build/ex_micro_app_api_service@2/target/*.jar",
                        "target": "exrates-api-service/"
                     }]
                  }"""
