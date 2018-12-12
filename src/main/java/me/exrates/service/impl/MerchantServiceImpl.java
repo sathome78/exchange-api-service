@@ -1,6 +1,5 @@
 package me.exrates.service.impl;
 
-import javafx.util.Pair;
 import me.exrates.dao.MerchantDao;
 import me.exrates.model.Currency;
 import me.exrates.model.*;

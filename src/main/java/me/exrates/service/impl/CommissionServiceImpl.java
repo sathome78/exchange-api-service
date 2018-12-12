@@ -53,6 +53,7 @@ public class CommissionServiceImpl implements CommissionService {
 
     @Override
   public BigDecimal getMinFixedCommission(Integer currencyId, Integer merchantId) {
+
     return commissionDao.getMinFixedCommission(currencyId, merchantId);
   }
 

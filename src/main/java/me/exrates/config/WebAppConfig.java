@@ -53,29 +53,25 @@ public class WebAppConfig {
     @Value("${mail_info.password}")
     String mailInfoPassword;
 
+    @Value("${db_master_user}")
     private String dbMasterUser;
+    @Value("${db_master_password}")
     private String dbMasterPassword;
+    @Value("${db_master_url}")
     private String dbMasterUrl;
+    @Value("${db_master_classname}")
     private String dbMasterClassname;
+    @Value("${db_slave_user}")
     private String dbSlaveUser;
+    @Value("${db_slave_password}")
     private String dbSlavePassword;
+    @Value("${db_slave_url}")
     private String dbSlaveUrl;
+    @Value("${db_slave_classname}")
     private String dbSlaveClassname;
 
     @PostConstruct
     public void init() {
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        List<String> arguments = runtimeMxBean.getInputArguments();
-        Properties properties = new Properties();
-
-        dbMasterUser = "root";
-        dbMasterPassword = "root";
-        dbMasterUrl = "jdbc:mysql://localhost:3306/birzha?useUnicode=true&characterEncoding=UTF-8&useSSL=false&autoReconnect=true";
-        dbMasterClassname = "com.mysql.jdbc.Driver";
-        dbSlaveUser = "root";
-        dbSlavePassword = "root";
-        dbSlaveUrl = "jdbc:mysql://localhost:3306/birzha?useUnicode=true&characterEncoding=UTF-8&useSSL=false&autoReconnect=true";
-        dbSlaveClassname = "com.mysql.jdbc.Driver";
     }
 
 
