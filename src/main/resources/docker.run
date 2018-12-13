@@ -1,2 +1,2 @@
-docker build --tag=java:8 --rm=true .
-docker run -p 80:8080 c72992161ff9
+docker build --tag=java:8 --build-arg ENVIRONMENT=preprod --rm=true .
+docker run -p 81:8080 3e7b863563ca

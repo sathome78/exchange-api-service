@@ -14,9 +14,6 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.util.List;
 import java.util.Properties;
 
 @Configuration
@@ -125,6 +122,7 @@ public class WebAppConfig {
 
     @Bean(name = "masterHikariDataSource")
     public DataSource masterHikariDataSource() {
+        System.out.println("db  url = " + dbMasterUrl);
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setDriverClassName(dbMasterClassname);
         hikariConfig.setJdbcUrl(dbMasterUrl);
