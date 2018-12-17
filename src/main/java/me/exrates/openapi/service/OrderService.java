@@ -34,9 +34,7 @@ import java.util.Optional;
 public interface OrderService {
 
 
-    List<ExOrderStatisticsShortByPairsDto> getOrdersStatisticByPairsEx(RefreshObjectsEnum refreshObjectsEnum);
 
-    List<ExOrderStatisticsShortByPairsDto> getStatForSomeCurrencies(List<Integer> pairsIds);
 
     OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair, OperationType orderType, String userEmail, BigDecimal amount, BigDecimal rate, OrderBaseType baseType);
 
@@ -237,7 +235,6 @@ public interface OrderService {
      * @return statistics of orders by currency pairs
      * @author ValkSam
      */
-    List<ExOrderStatisticsShortByPairsDto> getOrdersStatisticByPairs(CacheData cacheData, Locale locale);
 
     /**
      * Returns data for candle chart for <i>currencyPair</i> for for period: from current moment to <i></>interval</i> back
@@ -351,11 +348,8 @@ public interface OrderService {
 
     String getChartData(Integer currencyPairId, BackDealInterval backDealInterval);
 
-    String getAllCurrenciesStatForRefresh(RefreshObjectsEnum refreshObjectsEnum);
 
-    String getAllCurrenciesStatForRefreshForAllPairs();
 
-    Map<RefreshObjectsEnum, String> getSomeCurrencyStatForRefresh(List<Integer> currencyId);
 
     Map<OrderType, List<OrderBookItem>> getOrderBook(String currencyPairName, @Nullable OrderType orderType);
 

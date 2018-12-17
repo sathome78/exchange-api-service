@@ -193,56 +193,7 @@ public class OrderServiceImpl implements OrderService {
         return orderDao.getDataForCandleChart(currencyPair, interval);
     }
 
-    @Override
-    public List<ExOrderStatisticsShortByPairsDto> getOrdersStatisticByPairs(CacheData cacheData, Locale locale) {
-        List<ExOrderStatisticsShortByPairsDto> result = orderDao.getOrderStatisticByPairs();
-        result = result.stream()
-                .map(ExOrderStatisticsShortByPairsDto::new)
-                .collect(toList());
-        result.forEach(e -> {
-            BigDecimal lastRate = new BigDecimal(e.getLastOrderRate());
-            BigDecimal predLastRate = e.getPredLastOrderRate() == null ? lastRate : new BigDecimal(e.getPredLastOrderRate());
-            e.setLastOrderRate(BigDecimalProcessing.formatLocaleFixedSignificant(lastRate, locale, 12));
-            e.setPredLastOrderRate(BigDecimalProcessing.formatLocaleFixedSignificant(predLastRate, locale, 12));
-            BigDecimal percentChange = BigDecimalProcessing.doAction(predLastRate, lastRate, ActionType.PERCENT_GROWTH);
-            e.setPercentChange(BigDecimalProcessing.formatLocaleFixedDecimal(percentChange, locale, 2));
-        });
-        return result;
-    }
 
-    @Transactional(readOnly = true)
-    @Override
-    public List<ExOrderStatisticsShortByPairsDto> getOrdersStatisticByPairsEx(RefreshObjectsEnum refreshObjectsEnum) {
-        List<ExOrderStatisticsShortByPairsDto> dto = this.processStatistic(exchangeRatesHolder.getAllRates());
-        switch (refreshObjectsEnum) {
-            case ICO_CURRENCIES_STATISTIC: {
-                dto = dto.stream().filter(p -> p.getType() == CurrencyPairType.ICO).collect(toList());
-                break;
-            }
-            case MAIN_CURRENCIES_STATISTIC: {
-                dto = dto.stream().filter(p -> p.getType() == CurrencyPairType.MAIN).collect(toList());
-                break;
-            }
-            default: {
-            }
-        }
-        return dto;
-    }
-
-    @Override
-    public List<ExOrderStatisticsShortByPairsDto> getStatForSomeCurrencies(List<Integer> pairsIds) {
-        List<ExOrderStatisticsShortByPairsDto> dto = exchangeRatesHolder.getCurrenciesRates(pairsIds);
-        Locale locale = Locale.ENGLISH;
-        dto.forEach(e -> {
-            BigDecimal lastRate = new BigDecimal(e.getLastOrderRate());
-            BigDecimal predLastRate = e.getPredLastOrderRate() == null ? lastRate : new BigDecimal(e.getPredLastOrderRate());
-            e.setLastOrderRate(BigDecimalProcessing.formatLocaleFixedSignificant(lastRate, locale, 12));
-            e.setPredLastOrderRate(BigDecimalProcessing.formatLocaleFixedSignificant(predLastRate, locale, 12));
-            BigDecimal percentChange = BigDecimalProcessing.doAction(predLastRate, lastRate, ActionType.PERCENT_GROWTH);
-            e.setPercentChange(BigDecimalProcessing.formatLocaleFixedDecimal(percentChange, locale, 2));
-        });
-        return dto;
-    }
 
     @Override
     public OrderCreateDto prepareNewOrder(CurrencyPair activeCurrencyPair, OperationType orderType, String userEmail, BigDecimal amount, BigDecimal rate, OrderBaseType baseType) {
@@ -1674,63 +1625,8 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    @Override
-    public String getAllCurrenciesStatForRefresh(RefreshObjectsEnum refreshObjectsEnum) {
-        OrdersListWrapper wrapper = new OrdersListWrapper(this.getOrdersStatisticByPairsEx(refreshObjectsEnum),
-                refreshObjectsEnum.name());
-        try {
-            return new JSONArray() {{
-                put(objectMapper.writeValueAsString(wrapper));
-            }}.toString();
-        } catch (JsonProcessingException e) {
-            log.error(e);
-            return null;
-        }
-    }
 
-    @Override
-    public String getAllCurrenciesStatForRefreshForAllPairs() {
-        OrdersListWrapper wrapper = new OrdersListWrapper(this.processStatistic(exchangeRatesHolder.getAllRates()),
-                RefreshObjectsEnum.CURRENCIES_STATISTIC.name());
-        try {
-            return new JSONArray() {{
-                put(objectMapper.writeValueAsString(wrapper));
-            }}.toString();
-        } catch (JsonProcessingException e) {
-            log.error(e);
-            return null;
-        }
-    }
 
-    @Override
-    public Map<RefreshObjectsEnum, String> getSomeCurrencyStatForRefresh(List<Integer> currencyIds) {
-        System.out.println("curencies for refresh size " + currencyIds.size());
-        List<ExOrderStatisticsShortByPairsDto> dtos = this.getStatForSomeCurrencies(currencyIds);
-        List<ExOrderStatisticsShortByPairsDto> icos = dtos.stream().filter(p -> p.getType() == CurrencyPairType.ICO).collect(toList());
-        List<ExOrderStatisticsShortByPairsDto> mains = dtos.stream().filter(p -> p.getType() == CurrencyPairType.MAIN).collect(toList());
-        Map<RefreshObjectsEnum, String> res = new HashMap<>();
-        if (!icos.isEmpty()) {
-            OrdersListWrapper wrapper = new OrdersListWrapper(icos, RefreshObjectsEnum.ICO_CURRENCY_STATISTIC.name());
-            res.put(RefreshObjectsEnum.ICO_CURRENCY_STATISTIC, new JSONArray() {{
-                try {
-                    put(objectMapper.writeValueAsString(wrapper));
-                } catch (JsonProcessingException e) {
-                    logger.error(e);
-                }
-            }}.toString());
-        }
-        if (!mains.isEmpty()) {
-            OrdersListWrapper wrapper = new OrdersListWrapper(mains, RefreshObjectsEnum.MAIN_CURRENCY_STATISTIC.name());
-            res.put(RefreshObjectsEnum.MAIN_CURRENCY_STATISTIC, new JSONArray() {{
-                try {
-                    put(objectMapper.writeValueAsString(wrapper));
-                } catch (JsonProcessingException e) {
-                    log.error(e);
-                }
-            }}.toString());
-        }
-        return res;
-    }
 
     private List<ExOrderStatisticsShortByPairsDto> processStatistic(List<ExOrderStatisticsShortByPairsDto> orders) {
         orders = Stream.of(

@@ -15,6 +15,18 @@
         <property name="password" value=""/>
     </bean>
 
+
+    <bean id="slaveHikariDataSource" name="slaveHikariDataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+        <property name="driverClassName" value="org.h2.Driver"/>
+        <property name="jdbcUrl" value="jdbc:h2:mem:testdb2;MODE=MySQL"/>
+        <property name="username" value="sa"/>
+        <property name="password" value=""/>
+    </bean>
+
+    <jdbc:initialize-database data-source="slaveHikariDataSource">
+        <jdbc:script location="classpath:dev4000.sql"/>
+    </jdbc:initialize-database>
+
     <jdbc:initialize-database data-source="hikariDataSource">
         <jdbc:script location="classpath:dev4000.sql"/>
     </jdbc:initialize-database>

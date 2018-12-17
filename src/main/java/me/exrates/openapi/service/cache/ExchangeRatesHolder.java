@@ -6,7 +6,5 @@ import java.util.List;
 
 public interface ExchangeRatesHolder {
 
-    List<ExOrderStatisticsShortByPairsDto> getAllRates();
 
-    List<ExOrderStatisticsShortByPairsDto> getCurrenciesRates(List<Integer> id);
 }

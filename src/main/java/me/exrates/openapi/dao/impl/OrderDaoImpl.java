@@ -407,56 +407,6 @@ public class OrderDaoImpl implements OrderDao {
         }
     }
 
-    @Override
-    public List<ExOrderStatisticsShortByPairsDto> getOrderStatisticByPairs() {
-        long before = System.currentTimeMillis();
-        try {
-            String sql =
-                    "SELECT RESULT.currency_pair_name, RESULT.currency_pair_id, RESULT.type, RESULT.last_exrate, RESULT.pred_last_exrate, RESULT.pair_order " +
-                            "FROM " +
-                            "((SELECT  " +
-                            "   CURRENCY_PAIR.name AS currency_pair_name, CURRENCY_PAIR.id AS currency_pair_id, CURRENCY_PAIR.type AS type, " +
-                            "   (SELECT LASTORDER.exrate " +
-                            "       FROM EXORDERS LASTORDER  " +
-                            "       WHERE  " +
-                            "       (LASTORDER.currency_pair_id =AGRIGATE.currency_pair_id)  AND  " +
-                            "       (LASTORDER.status_id =AGRIGATE.status_id) " +
-                            "       ORDER BY LASTORDER.date_acception DESC, LASTORDER.id DESC " +
-                            "       LIMIT 1) AS last_exrate, " +
-                            "   (SELECT PRED_LASTORDER.exrate " +
-                            "       FROM EXORDERS PRED_LASTORDER  " +
-                            "       WHERE  " +
-                            "       (PRED_LASTORDER.currency_pair_id =AGRIGATE.currency_pair_id)  AND  " +
-                            "       (PRED_LASTORDER.status_id =AGRIGATE.status_id) " +
-                            "       ORDER BY PRED_LASTORDER.date_acception DESC, PRED_LASTORDER.id DESC " +
-                            "       LIMIT 1,1) AS pred_last_exrate, CURRENCY_PAIR.pair_order  " +
-                            " FROM ( " +
-                            "   SELECT DISTINCT" +
-                            "   EXORDERS.status_id AS status_id,  " +
-                            "   EXORDERS.currency_pair_id AS currency_pair_id " +
-                            "   FROM EXORDERS          " +
-                            "   WHERE EXORDERS.status_id = :status_id         " +
-                            "   ) " +
-                            " AGRIGATE " +
-                            " JOIN CURRENCY_PAIR ON (CURRENCY_PAIR.id = AGRIGATE.currency_pair_id) AND (CURRENCY_PAIR.hidden != 1) " +
-                            " ORDER BY -CURRENCY_PAIR.pair_order DESC)" +
-                            " UNION ALL (" +
-                            "   SELECT CP.name AS currency_pair_name, CP.id AS currency_pair_id, CP.type AS type, 0 AS last_exrate, 0 AS pred_last_exrate, CP.pair_order " +
-                            "      FROM CURRENCY_PAIR CP " +
-                            "      WHERE CP.id NOT IN(SELECT DISTINCT EXORDERS.currency_pair_id AS currency_pair_id FROM EXORDERS WHERE EXORDERS.status_id = :status_id) AND CP.hidden = 0 " +
-                            ")) RESULT ";
-            Map<String, String> namedParameters = new HashMap<>();
-            namedParameters.put("status_id", String.valueOf(3));
-            return slaveJdbcTemplate.query(sql, namedParameters, exchangeRatesRowMapper);
-        } catch (Exception e) {
-            long after = System.currentTimeMillis();
-            LOGGER.error("error... ms: " + (after - before) + " : " + e);
-            throw new OrderDaoException(e);
-        } finally {
-            long after = System.currentTimeMillis();
-            LOGGER.debug("query completed ... ms: " + (after - before));
-        }
-    }
 
     @Override
     public List<ExOrderStatisticsShortByPairsDto> getOrderStatisticForSomePairs(List<Integer> pairsIds) {

@@ -54,7 +54,6 @@ public interface OrderDao {
 
     ExOrderStatisticsDto getOrderStatistic(CurrencyPair currencyPair, BackDealInterval backDealInterval);
 
-    List<ExOrderStatisticsShortByPairsDto> getOrderStatisticByPairs();
 
     List<ExOrderStatisticsShortByPairsDto> getOrderStatisticForSomePairs(List<Integer> pairsIds);
 
