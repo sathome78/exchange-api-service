@@ -65,7 +65,7 @@ public class OpenApiAuthenticationFilter extends AbstractAuthenticationProcessin
         }
         Long timestamp = Long.parseLong(timestampString);
 
-        UserDetails userDetails = openApiAuthService.getUserByPublicKey(request.getMethod(), request.getServletPath(), timestamp, publicKey, signatureHex);
+        UserDetails userDetails = openApiAuthService.getUserByPublicKey(request.getMethod(), request.getRequestURI(), timestamp, publicKey, signatureHex);//todo check request.getRequestURI()
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities());
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         return authentication;
