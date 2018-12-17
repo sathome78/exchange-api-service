@@ -116,7 +116,7 @@
                 <configuration>
                     <finalName>api-service</finalName>
                     <executable>true</executable>
-                    <mainClass>me.exrates.ExratesApiServiceApplication</mainClass>
+                    <mainClass>me.exrates.openapi.ExratesApiServiceApplication</mainClass>
                 </configuration>
             </plugin>
             <plugin>
