@@ -112,36 +112,6 @@ public class OpenApiOrderController {
         return ResponseEntity.ok(BaseResponse.success(Collections.singletonMap("success", true)));
     }
 
-    /**
-     * @api {get} /openapi/v1/orders/accept Accept order
-     * @apiName Accept order
-     * @apiGroup Order API
-     * @apiUse APIHeaders
-     * @apiPermission NonPublicAuth
-     * @apiDescription Accepts order
-     * @apiParam {Integer} order_id Id of order to be accepted
-     * @apiParamExample Request Example:
-     * /openapi/v1/orders/accept
-     * RequestBody: Map{order_id=123}
-     * @apiSuccess {Map} success=true Acceptance result
-     */
-    @PreAuthorize("hasAuthority('TRADE')")
-    @RequestMapping(value = "/accept", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE,
-            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public Map<String, Boolean> acceptOrder(@RequestBody Map<String, String> params) {
-        String orderIdString = retrieveParamFormBody(params, "order_id", true);
-        Integer orderId = Integer.parseInt(orderIdString);
-        String userEmail = userService.getUserEmailFromSecurityContext();
-        int userId = userService.getIdByEmail(userEmail);
-        Locale locale = new Locale(userService.getPreferedLang(userId));
-        boolean accessToOperationForUser = userOperationService.getStatusAuthorityForUserByOperation(userId, UserOperationAuthority.TRADING);
-        if (!accessToOperationForUser) {
-            throw new UserOperationAccessException(messageSource.getMessage("merchant.operationNotAvailable", null, locale));
-        }
-        orderService.acceptOrder(userEmail, orderId);
-        return Collections.singletonMap("success", true);
-    }
-
 
     @PreAuthorize("hasAuthority('TRADE')")
     @PostMapping(value = "/callback/add", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
