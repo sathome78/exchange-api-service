@@ -10,13 +10,13 @@
 
     <bean id="hikariDataSource" name="masterHikariDataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
         <property name="driverClassName" value="org.h2.Driver"/>
-        <property name="jdbcUrl" value="jdbc:h2:mem:testdb;MODE=MySQL"/>
+        <property name="jdbcUrl" value="jdbc:h2:mem:testdb2;MODE=MySQL"/>
         <property name="username" value="sa"/>
         <property name="password" value=""/>
     </bean>
 
     <jdbc:initialize-database data-source="hikariDataSource">
-        <jdbc:script location="classpath:schema-h2.sql"/>
+        <jdbc:script location="classpath:dev4000.sql"/>
     </jdbc:initialize-database>
 
     <bean id="namedParameterJdbcTemplate" name="masterTemplate" primary="true" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
