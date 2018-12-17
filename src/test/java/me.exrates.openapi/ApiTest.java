@@ -34,7 +34,7 @@ public class ApiTest {
     String pub_key = "dyFh1UGDZJomAhQahaE63WNoRjlRLS969IpO2ykE";
     String priv_key = "AnL7vZlcfyIYAzLTrrQhWKigSmdlm7OHGwnTpXHb";
 
-
+    @Autowired
     @Before
     public void setUp(){
 
@@ -45,11 +45,7 @@ public class ApiTest {
     }
     
     @Test
-    public void contextTest() throws Exception {
-        example();
-    }
-
-    public void example() throws Exception {
+    public void callBack() throws Exception {
         Date timestamp = new Date();
 
         HmacSignature signature = new HmacSignature.Builder()
@@ -72,9 +68,14 @@ public class ApiTest {
         callbackURL.setPairId(11);
         HttpEntity<String> entity = new HttpEntity<String>(new ObjectMapper().writeValueAsString(callbackURL), headers);
 
+        //todo assert call not exists
 
         ResponseEntity<String> stringResponseEntity = restTemplate.postForEntity("http://localhost:8080/openapi/v1/orders/callback/add", entity, String.class);
         String s = stringResponseEntity.toString();
         System.out.println(stringResponseEntity.toString());
+
+        //todo assert call were added
     }
+
+
 }
