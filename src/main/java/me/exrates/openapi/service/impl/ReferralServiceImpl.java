@@ -1,5 +1,6 @@
 package me.exrates.openapi.service.impl;
 
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.log4j.Log4j2;
 import me.exrates.openapi.dao.ReferralLevelDao;
 import me.exrates.openapi.dao.ReferralTransactionDao;
@@ -17,15 +18,21 @@ import me.exrates.openapi.model.vo.CacheData;
 import me.exrates.openapi.model.vo.WalletOperationData;
 import me.exrates.openapi.service.*;
 import me.exrates.openapi.service.util.Cache;
+import me.exrates.openapi.utils.InitNeeded;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.MessageSource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -41,10 +48,10 @@ import static me.exrates.openapi.model.vo.WalletOperationData.BalanceType.ACTIVE
  */
 @Log4j2
 @Service
-public class ReferralServiceImpl implements ReferralService {
-
+public class ReferralServiceImpl implements ReferralService, InitNeeded {
 
     private static final int decimalPlaces = 9;
+
     @Autowired
     private ReferralLevelDao referralLevelDao;
     @Autowired
@@ -77,8 +84,8 @@ public class ReferralServiceImpl implements ReferralService {
     @Value("${referral.url}")
     String referralUrl;
 
-    @PostConstruct
-    public void init(){
+    @Override
+    public void init() {
         this.commission = commissionService.getDefaultCommission(REFERRAL);
     }
 

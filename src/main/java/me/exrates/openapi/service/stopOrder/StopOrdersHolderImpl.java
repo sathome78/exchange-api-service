@@ -8,6 +8,7 @@ import me.exrates.openapi.model.dto.StopOrderSummaryDto;
 import me.exrates.openapi.model.enums.CurrencyPairType;
 import me.exrates.openapi.model.enums.OperationType;
 import me.exrates.openapi.service.CurrencyService;
+import me.exrates.openapi.utils.InitNeeded;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
  */
 @Log4j2
 @Component
-public class StopOrdersHolderImpl implements StopOrdersHolder {
+public class StopOrdersHolderImpl implements StopOrdersHolder, InitNeeded {
 
     @Autowired
     private CurrencyService currencyService;
@@ -39,7 +40,7 @@ public class StopOrdersHolderImpl implements StopOrdersHolder {
 
 
     /*----methods-----*/
-    @PostConstruct
+    @Override
     public void init() {
         List<CurrencyPair> currencyPairs = currencyService.getAllCurrencyPairs(CurrencyPairType.MAIN);
         List<StopOrder> activeOrders = stopOrderService
