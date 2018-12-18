@@ -101,7 +101,7 @@ public class ApiTest {
                 .content(new ObjectMapper().writeValueAsString(callBackUrl))
         ).andExpect(status().isOk());
 
-        MockHttpServletResponse response = resultActions.andReturn().getResponse();
+        String response = resultActions.andReturn().getResponse().getContentAsString();
         assert userSettingService.getCallbackURL(id, currencyId).equals(callBackUrl);
     }
 
