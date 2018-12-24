@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -27,10 +30,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Date;
 
 import static junit.framework.TestCase.assertNull;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,7 +43,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = ExratesApiServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ContextConfiguration(locations = "classpath:dao.xml")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@AutoConfigureMockMvc
 public class ApiTest {
 
     @Autowired
@@ -57,25 +61,33 @@ public class ApiTest {
     UserSettingService userSettingService;
 
     @Autowired
-    private MockMvc mockMvc;
+    private WebApplicationContext context;
+
+    private MockMvc mvc;
 
     @Before
     public void setUp() {
         String email = "mikita.malykov@upholding.biz";
-        jdbcTemplate.update("INSERT INTO USER ( nickname, email, password, regdate, phone, finpassword, status, ipaddress, roleid, preferred_lang, avatar_path, tmp_poll_passed, login_pin, use2fa, `2fa_last_notify_date`, withdraw_pin, transfer_pin, reset_password_date, change_2fa_setting_pin) VALUES ('dudoser228', '" + email + "', '$2a$10$I9zD5k7OUtqN4G62L7X7WuN0jM9i9NnT1RckDzkFZP1b/7nB4yGSC', '2018-08-28 14:23:02', '', null, 2, '', 1, 'en', null, 1, '$2a$10$uxXSXZVXJn1I/S5WP2QjEOSbkcQMuWgeMtsf3VEkG.sCDJw2xaoMu', 0, '2018-10-12 03:00:00', '$2a$10$7eAZvix3gsV3AV6fEdv2J.Vl.13FOGumwwwSoV.0FjaPPfhNo5y4.', '$2a$10$I9zD5k7OUtqN4G62L7X7WuN0jM9i9NnT1RckDzkFZP1b/7nB4yGSC', null, null)");
+        int update = jdbcTemplate.update("INSERT INTO USER ( nickname, email, password, regdate, phone, finpassword, status, ipaddress, roleid, preferred_lang, avatar_path, tmp_poll_passed, login_pin, use2fa, `2fa_last_notify_date`, withdraw_pin, transfer_pin, reset_password_date, change_2fa_setting_pin) VALUES ('dudoser228', '" + email + "', '$2a$10$I9zD5k7OUtqN4G62L7X7WuN0jM9i9NnT1RckDzkFZP1b/7nB4yGSC', '2018-08-28 14:23:02', '', null, 2, '', 1, 'en', null, 1, '$2a$10$uxXSXZVXJn1I/S5WP2QjEOSbkcQMuWgeMtsf3VEkG.sCDJw2xaoMu', 0, '2018-10-12 03:00:00', '$2a$10$7eAZvix3gsV3AV6fEdv2J.Vl.13FOGumwwwSoV.0FjaPPfhNo5y4.', '$2a$10$I9zD5k7OUtqN4G62L7X7WuN0jM9i9NnT1RckDzkFZP1b/7nB4yGSC', null, null)");
         id = jdbcTemplate.queryForObject("SELECT id FROM USER WHERE email = " + "'" + email + "'", Integer.class);
         jdbcTemplate.update("INSERT INTO OPEN_API_USER_TOKEN (user_id, alias, public_key, private_key, date_generation, is_active, allow_trade, allow_withdraw) VALUES (" + id + ", 'trololo', '" + pub_key + "', '" + priv_key + "', '2018-12-07 17:28:04', 1, 1, 0);");
+        mvc = MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(springSecurity())
+                .build();
     }
 
     @Test
+    @WithUserDetails("denis@denis.com")
     public void callBack() throws Exception {
+
         Date timestamp = new Date();
 
         HmacSignature signature = new HmacSignature.Builder()
                 .algorithm("HmacSHA256")
                 .delimiter("|")
                 .apiSecret(priv_key)
-                .endpoint("/openapi/v1/orders/callback/add")
+                .endpoint("/openapi/v1/orders/callback/add1111111111111111111111111")
                 .requestMethod("POST")
                 .timestamp(timestamp.getTime())
                 .publicKey(pub_key).build();
@@ -94,7 +106,14 @@ public class ApiTest {
 
         assertNull(userSettingService.getCallbackURL(id, currencyId));
 
-        ResultActions resultActions = mockMvc.perform(post("/openapi/v1/orders/callback/add")
+        HttpEntity<String> entity = new HttpEntity<>(new ObjectMapper().writeValueAsString(callbackURL), headers);
+
+        //todo assert call not exists
+
+//        ResponseEntity<String> stringResponseEntity = restTemplate.postForEntity("http://localhost:8080/openapi/v1/orders/callback/add", entity, String.class);
+
+
+        ResultActions resultActions = mvc.perform(post("/openapi/v1/orders/callback/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .headers(headers)

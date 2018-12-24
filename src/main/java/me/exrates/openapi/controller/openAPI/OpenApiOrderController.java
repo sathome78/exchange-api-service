@@ -146,6 +146,7 @@ public class OpenApiOrderController {
     @PreAuthorize("hasAuthority('TRADE')")
     @PostMapping(value = "/callback/add", consumes = MediaType.APPLICATION_JSON_UTF8_VALUE, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public Map<String, Object> addCallback(@RequestBody CallbackURL callbackUrl) throws CallBackUrlAlreadyExistException {
+        System.out.println("CALLBACK WORKS");
         Map<String, Object> responseBody = new HashMap<>();
         String userEmail = userService.getUserEmailFromSecurityContext();
         int userId = userService.getIdByEmail(userEmail);
