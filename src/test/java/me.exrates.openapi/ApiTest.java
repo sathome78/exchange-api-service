@@ -87,7 +87,7 @@ public class ApiTest {
                 .algorithm("HmacSHA256")
                 .delimiter("|")
                 .apiSecret(priv_key)
-                .endpoint("/openapi/v1/orders/callback/add1111111111111111111111111")
+                .endpoint("/openapi/v1/orders/callback/add")
                 .requestMethod("POST")
                 .timestamp(timestamp.getTime())
                 .publicKey(pub_key).build();
