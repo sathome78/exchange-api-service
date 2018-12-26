@@ -15,7 +15,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -29,7 +28,6 @@ import java.util.Date;
 import java.util.List;
 
 import static junit.framework.TestCase.assertNull;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -47,8 +45,7 @@ public class ApiTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private UserSettingService userSettingService;
@@ -66,12 +63,11 @@ public class ApiTest {
         jdbcTemplate.update("INSERT INTO OPEN_API_USER_TOKEN (user_id, alias, public_key, private_key, date_generation, is_active, allow_trade, allow_withdraw) VALUES (" + id + ", 'trololo', '" + PUB_KEY + "', '" + PRIV_KEY + "', '2018-12-07 17:28:04', 1, 1, 0);");
         mvc = MockMvcBuilders
                 .webAppContextSetup(context)
-                .apply(springSecurity())
+//                .apply(springSecurity())
                 .build();
     }
 
     @Test
-    @WithUserDetails("denis@denis.com")
     public void callBack() throws Exception {
 
         Date timestamp = new Date();
@@ -86,14 +82,14 @@ public class ApiTest {
                 .publicKey(PUB_KEY).build();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("API-KEY", PUB_KEY);
         headers.add("API-TIME", String.valueOf(timestamp.getTime()));
         headers.add("API-SIGN", signature.getSignatureHexString());
 
         CallbackURL callbackURL = new CallbackURL();
-        String callBackUrl = "dwadaw";
-        callbackURL.setCallbackURL(callBackUrl);
+        String callBackDTO = "http://dtest.com";
+        callbackURL.setCallbackURL(callBackDTO);
         int currencyId = 11;
         callbackURL.setPairId(currencyId);
 
@@ -110,11 +106,11 @@ public class ApiTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .headers(headers)
-                .content(new ObjectMapper().writeValueAsString(callBackUrl))
+                .content(new ObjectMapper().writeValueAsString(callbackURL))
         ).andExpect(status().isOk());
 
         String response = resultActions.andReturn().getResponse().getContentAsString();
-        assert userSettingService.getCallbackURL(id, currencyId).equals(callBackUrl);
+        assert userSettingService.getCallbackURL(id, currencyId).equals(callBackDTO);
     }
 
     @Test
@@ -126,18 +122,18 @@ public class ApiTest {
                 .algorithm("HmacSHA256")
                 .delimiter("|")
                 .apiSecret(PRIV_KEY)
-                .endpoint("/openapi/v1/orders/callback/add")
+                .endpoint("/openapi/v1/public/ticker")
                 .requestMethod("POST")
                 .timestamp(timestamp.getTime())
                 .publicKey(PUB_KEY).build();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
+        headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("API-KEY", PUB_KEY);
         headers.add("API-TIME", String.valueOf(timestamp.getTime()));
         headers.add("API-SIGN", signature.getSignatureHexString());
 
-        MvcResult mvcResult = mvc.perform(get("/openapi/v1/public/ticker")
+        MvcResult mvcResult = mvc.perform(get("/openapi/v1/orders/callback/add")
                 .param("currency_pair", "btc_usd")
                 .headers(headers))
                 .andExpect(status().isOk())
